@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "com.limemojito.oss.mqlidea"
-version = "2026.1.0-SNAPSHOT"
+version = "2026.1.0"
 
 repositories {
     mavenCentral()
@@ -54,7 +54,7 @@ tasks {
         useJUnitPlatform()
     }
 
-    /*signPlugin {
+    signPlugin {
         certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
         privateKey.set(System.getenv("PRIVATE_KEY"))
         password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
@@ -62,7 +62,7 @@ tasks {
 
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
-    }*/
+    }
 }
 
 

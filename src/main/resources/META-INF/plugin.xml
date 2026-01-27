@@ -3,14 +3,15 @@
   ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
   -->
 
-<idea-plugin>
+<idea-plugin require-restart="true"
+             url="https://limemojito.com/articles/limemojito-mql-idea">
     <id>com.limemojito.oss.mqlidea</id>
-    <name>MQL Idea</name>
+    <name>Lime MQL Idea</name>
     <version>2026.1.0</version>
-    <vendor email="admin@limemojito.com" url="https://limemojito.com/articles/limemojito-mql-idea">
+    <vendor email="admin@limemojito.com"
+            url="https://limemojito.com/">
         Lime Mojito Pty Ltd
     </vendor>
-
     <description>
         <![CDATA[
          <p><b>MQL4 and MQL5 support for IntelliJ IDEA.</b></p>
