@@ -1,5 +1,9 @@
 
-## MQL Idea - support for MQL4 programming language in JetBrains' IDEs.
+## Lime Mojito MQL Idea - support for MQL4 and MQL5 programming language in JetBrains' Inteliji IDEA.
+            
+Forked from the unmaintained [InvestFlow MQL Idea](https://github.com/investflow/mqlidea)
+      
+Lime Mojito Pty Ltd is continuing the original open source project and license under GPL3.  See [LICENSE.txt](LICENSE.txt) for details.
 
 ### Features
 * Syntax highlighting
@@ -11,11 +15,10 @@
 * Compilation & errors navigation
 * Support for Windows & Linux
 
-### Setup
-* Check [Wiki](https://github.com/investflow/mqlidea/wiki) for details
+### Build
+1. Java 21
+2. Gradle 9.3 (Gradle wrapper included)
+3. Idea 2025.3.2+
 
-### EAP (Early Access Program) builds
-* Add ```https://plugins.jetbrains.com/plugins/testing/9291``` to "File » Settings » Plugins » Browse Repositories » Manage Repositories" and "Help » Check for Updates".
-
-### Forum (in Russian language)
-Обсуждаем развитие плагина и сообщаем об ошибках на сайте [Investflow.Ru](http://investflow.ru/mqlidea)
+### Issues
+* See GitHub issue tracker [here](https://github.com/LimeMojito/mqlidea/issues).

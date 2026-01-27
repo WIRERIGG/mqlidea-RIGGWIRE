@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
 package parser;
 
 import com.intellij.psi.PsiErrorElement;
@@ -9,11 +14,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static parser.ParserTestUtils.findErrorElement;
 import static parser.ParserTestUtils.getFilesRecursively;
 
 /**
- * Ensures that there is no parsing errors in VALID blocks
+ * Ensures that there are no parsing errors in VALID blocks
  */
 public class ValidBlocksTest extends MQL4ParserTestBase {
 
@@ -24,7 +30,7 @@ public class ValidBlocksTest extends MQL4ParserTestBase {
     public void testValidBlocks() throws IOException {
         File dir = new File(myFullDataPath).getAbsoluteFile();
         List<Path> files = getFilesRecursively(dir);
-        Assert.assertFalse(files.isEmpty());
+        assertThat(files.isEmpty()).isFalse();
 
         int samplesDirPathLen = dir.getAbsolutePath().length();
         for (Path p : files) {

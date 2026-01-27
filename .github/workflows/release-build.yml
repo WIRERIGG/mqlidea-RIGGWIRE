@@ -1,0 +1,59 @@
+name: OSS MQL Idea Plugin Release
+
+on:
+  workflow_call:
+
+concurrency:
+  # this should stop release and java build running on the same repo as we have one AWS account involved.
+  group: ${{ github.repository }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ssh-key: "${{ secrets.LIME_BUILD_AGENT_GIT_KEY }}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          check-latest: 'false'
+          java-version: '21'
+          distribution: 'jetbrains'
+          cache: 'gradle'
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.LIME_SIGNING_KEY }}
+          passphrase: ${{ secrets.LIME_SIGNING_PASSPHRASE }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Release Build with Gradle
+        # See https://plugins.jetbrains.com/docs/intellij/plugin-signing.html#cli-tool for details.
+        # TODO after we have one successful upload
+        # export PUBLISH_TOKEN= ${{ secrets.LIME_JETBRAINS_PUBLISH_TOKEN }}
+        run: |
+          export CERTIFICATE_CHAIN=${{ secrets.LIME_JETBRAINS_CERTIFICATE_CHAIN_B64 }}
+          export PRIVATE_KEY=${{ secrets.LIME_JETBRAINS_PRIVATE_KEY_B64 }}
+          export PRIVATE_KEY_PASSWORD=${{ secrets.LIME_JETBRAINS_PRIVATE_KEY_PASSWORD }}
+          ./gradlew --no-daemon --console=plain --stacktrace buildPlugin 
+
+      - name: Github Plugin Zip
+        uses: actions/upload-artifact@v5
+        with:
+          name: pluginZip
+          path: ${{ github.workspace }}/build/distributions/*.zip
+          retention-days: 7
+          compression-level: 9

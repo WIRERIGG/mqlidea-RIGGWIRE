@@ -1,0 +1,43 @@
+name: OSS MQL Idea Plugin Merge Build
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  # this should stop release and java build running on the same repo as we have one AWS account involved.
+  group: ${{ github.repository }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ssh-key: "${{ secrets.LIME_BUILD_AGENT_GIT_KEY }}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          check-latest: 'false'
+          java-version: '21'
+          distribution: 'jetbrains'
+          cache: 'gradle'
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.LIME_SIGNING_KEY }}
+          passphrase: ${{ secrets.LIME_SIGNING_PASSPHRASE }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build with Gradle
+        run: |
+          ./gradlew --no-daemon --console=plain --stacktrace build 

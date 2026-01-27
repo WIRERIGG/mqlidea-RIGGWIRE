@@ -1,0 +1,54 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
+package com.limemojito.oss.mql.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.tree.IElementType;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import org.jetbrains.annotations.NotNull;
+import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
+import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
+import com.limemojito.oss.mql.psi.impl.MQL4EnumFieldElement;
+import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
+import com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock;
+import com.limemojito.oss.mql.psi.impl.MQL4PreprocessorPropertyBlock;
+import com.limemojito.oss.mql.psi.impl.MQL4PsiElement;
+
+public class MQL4ElementsFactory implements MQL4Elements {
+
+    private final static Map<ASTNode, Function<ASTNode, PsiElement>> ELEMENT_FACTORY = Collections.synchronizedMap(new HashMap<>());
+
+    public static PsiElement createElement(@NotNull ASTNode node) {
+        Function<ASTNode, PsiElement> psiFunction = ELEMENT_FACTORY.computeIfAbsent(node, n -> {
+            IElementType type = n.getElementType();
+            if (type == PREPROCESSOR_PROPERTY_BLOCK) {
+                return MQL4PreprocessorPropertyBlock::new;
+            }
+            if (type == PREPROCESSOR_INCLUDE_BLOCK) {
+                return MQL4PreprocessorIncludeBlock::new;
+            }
+            if (type == FUNCTION_DECLARATION || type == FUNCTION) {
+                return MQL4FunctionElement::new;
+            }
+            if (type == ENUM_STATEMENT) {
+                return MQL4EnumElement::new;
+            }
+            if (type == ENUM_FIELD) {
+                return MQL4EnumFieldElement::new;
+            }
+            if (type == MQL4Elements.CLASS) {
+                return MQL4ClassElement::new;
+            }
+
+            return MQL4PsiElement::new;
+        });
+        return psiFunction.apply(node);
+    }
+}

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
 package parser;
 
 import com.intellij.psi.PsiErrorElement;
@@ -12,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Ensures that there is no parsing errors in sample files
+ * Ensures that there are no parsing errors in sample files
  */
 public class SamplesTest extends MQL4ParserTestBase {
 
