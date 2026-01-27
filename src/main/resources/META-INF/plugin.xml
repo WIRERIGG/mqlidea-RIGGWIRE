@@ -6,7 +6,7 @@
 <idea-plugin require-restart="true"
              url="https://limemojito.com/articles/limemojito-mql-idea">
     <id>com.limemojito.oss.mqlidea</id>
-    <name>Lime MQL Idea</name>
+    <name>Lime MQL Editing</name>
     <version>2026.1.0</version>
     <vendor email="admin@limemojito.com"
             url="https://limemojito.com/">
@@ -14,14 +14,14 @@
     </vendor>
     <description>
         <![CDATA[
-         <p><b>MQL4 and MQL5 support for IntelliJ IDEA.</b></p>
-         <p><i>Forked from the original investorflow.ru version and updated for the latest IDE.</i></p>
+         <p><b>MetaQuotes MQL4 and MQL5 support for IntelliJ IDEA.</b></p>
+         <p><i>Forked from the original mqlidea plugin by investorflow.ru and updated for the latest IDE.</i></p>
          <p>
             <b>Setup:</b>
             <ol>
              <li>Please Uninstall any other versions of the MQLIdea plugin (such as investorflow.ru)</li>
              <li>Restart IntelliJ IDEA.</li>
-             <li>Install the Lime Mojito MQLIdea plugin from the Marketplace</li>
+             <li>Install the Lime MQL Editing plugin from the Marketplace</li>
              <li>Restart IntelliJ IDEA.</li>
             </ol>
          </p>
@@ -48,7 +48,7 @@
     <change-notes>
         <![CDATA[
             <ul>
-             <li>Version 2026.1.0 – Initial release with basic MQL4 and MQL5 support from fork of investorflow.ru plugin</li>
+             <li>Version 2026.1.0 – Initial release with basic MQL4 and MQL5 support from fork of mqlidea investorflow.ru plugin</li>
             </ul>
          ]]>
     </change-notes>
