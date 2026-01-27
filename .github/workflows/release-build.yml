@@ -54,6 +54,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: pluginZip
-          path: ${{ github.workspace }}/build/distributions/*.zip
+          path: ${{ github.workspace }}/build/distributions/*-signed.zip
+          if-no-files-found: error
           retention-days: 7
           compression-level: 9
