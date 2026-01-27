@@ -14,24 +14,43 @@
     <description>
         <![CDATA[
          <p><b>MQL4 and MQL5 support for IntelliJ IDEA.</b></p>
-         <p>Forked from the original investorflow.ru version and updated for the latest IDE.</p>
-         <p>Supports:
+         <p><i>Forked from the original investorflow.ru version and updated for the latest IDE.</i></p>
+         <p>
+            <b>Setup:</b>
+            <ol>
+             <li>Please Uninstall any other versions of the MQLIdea plugin (such as investorflow.ru)</li>
+             <li>Restart IntelliJ IDEA.</li>
+             <li>Install the Lime Mojito MQLIdea plugin from the Marketplace</li>
+             <li>Restart IntelliJ IDEA.</li>
+            </ol>
+         </p>
+         <p>
+           <b>Supports:</b>
            <ul>
              <li>MQL Syntax highlighting.</li>
-             <li>Launching MQL compiler on Windows, Linux</li>
              <li>Code completion and navigation for MQL4 and MQL5</li>
              <li>Quick documentation in English and Russian (see settings).</li>
            </ul>
          </p>
-         <p>Not Supported:
+         <p>
+           <b>Not Supported:</b>
            <ul>
              <li>Code formatting</li>
              <li>Code refactoring</li>
              <li>Debugging</li>
+             <li>Launching MQL compiler on Windows, Linux</li>
            </ul>
          </p>
          ]]>
     </description>
+
+    <change-notes>
+        <![CDATA[
+            <ul>
+             <li>Version 2026.1.0 – Initial release with basic MQL4 and MQL5 support from fork of investorflow.ru plugin</li>
+            </ul>
+         ]]>
+    </change-notes>
 
     <idea-version since-build="253.30387"/>
 
@@ -69,7 +88,8 @@
                   extensions="mq5;mqh;mql5"
         />
 
-        <lang.parserDefinition language="MQL4" implementationClass="com.limemojito.oss.mql.parser.MQL4ParserDefinition"/>
+        <lang.parserDefinition language="MQL4"
+                               implementationClass="com.limemojito.oss.mql.parser.MQL4ParserDefinition"/>
         <lang.syntaxHighlighterFactory language="MQL4"
                                        implementationClass="com.limemojito.oss.mql.editor.MQL4SyntaxHighlighter$MQL4SyntaxHighlighterFactory"/>
         <lang.commenter language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4Commenter"/>
@@ -85,7 +105,8 @@
 
         <!--build runner-->
         <programRunner implementation="com.limemojito.oss.mql.runconfig.MQL4CompilerRunner"/>
-        <runConfigurationProducer implementation="com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfigurationProducer"/>
+        <runConfigurationProducer
+                implementation="com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfigurationProducer"/>
         <configurationType implementation="com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfigurationType"/>
 
         <!--
