@@ -40,4 +40,4 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          ./gradlew --no-daemon --console=plain --stacktrace --info build 
+          ./gradlew --no-daemon --console=plain --stacktrace build 
