@@ -42,13 +42,13 @@ jobs:
 
       - name: Release Build with Gradle
         # See https://plugins.jetbrains.com/docs/intellij/plugin-signing.html#cli-tool for details.
-        # TODO after we have one successful upload
+        # TODO after we have one successful upload add publishPlugin to gradle calls.
         # export PUBLISH_TOKEN= ${{ secrets.LIME_JETBRAINS_PUBLISH_TOKEN }}
         run: |
           export CERTIFICATE_CHAIN=${{ secrets.LIME_JETBRAINS_CERTIFICATE_CHAIN_B64 }}
           export PRIVATE_KEY=${{ secrets.LIME_JETBRAINS_PRIVATE_KEY_B64 }}
           export PRIVATE_KEY_PASSWORD=${{ secrets.LIME_JETBRAINS_PRIVATE_KEY_PASSWORD }}
-          ./gradlew --no-daemon --console=plain --stacktrace buildPlugin 
+          ./gradlew --no-daemon --console=plain --stacktrace buildPlugin signPlugin
 
       - name: Github Plugin Zip
         uses: actions/upload-artifact@v5
