@@ -1,4 +1,4 @@
-name: OSS MQL Idea Plugin Build
+name: OSS MQL Idea Plugin Merge Build
 
 on:
   push:
@@ -40,4 +40,4 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          ./gradlew build --no-daemon --console=plain --stacktrace
+          ./gradlew --no-daemon --console=plain --stacktrace --info build 
