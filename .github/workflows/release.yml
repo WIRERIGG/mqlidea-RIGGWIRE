@@ -1,4 +1,4 @@
-name: OSS MQL Idea Plugin Build
+name: OSS MQL Idea Plugin Release
 
 on:
   workflow_call:
