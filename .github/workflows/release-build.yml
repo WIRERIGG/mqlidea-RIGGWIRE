@@ -1,7 +1,7 @@
 name: OSS MQL Idea Plugin Release
 
 on:
-  workflow_call:
+  workflow_dispatch
 
 concurrency:
   # this should stop release and java build running on the same repo as we have one AWS account involved.
