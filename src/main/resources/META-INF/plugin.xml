@@ -15,11 +15,13 @@
     <description>
         <![CDATA[
          <p><b>MetaQuotes MQL4 and MQL5 support for IntelliJ IDEA.</b></p>
-         <p><i>Forked from the original mqlidea plugin by investorflow.ru and updated for the latest IDE.</i></p>
+         <p><i>Forked from the
+             <a href="https://plugins.jetbrains.com/plugin/9291-mql-idea>original mqlidea plugin by investflow.ru</a>
+             and updated for the latest IDE.</i></p>
          <p>
             <b>Setup:</b>
             <ol>
-             <li>Please Uninstall any other versions of the MQLIdea plugin (such as investorflow.ru)</li>
+             <li>Please Uninstall any other versions of the MQLIdea plugin (such as investflow.ru)</li>
              <li>Restart IntelliJ IDEA.</li>
              <li>Install the Lime MQL Editing plugin from the Marketplace</li>
              <li>Restart IntelliJ IDEA.</li>
@@ -48,7 +50,7 @@
     <change-notes>
         <![CDATA[
             <ul>
-             <li>Version 2026.1.0 – Initial release with basic MQL4 and MQL5 support from fork of mqlidea investorflow.ru plugin</li>
+             <li>Version 2026.1.0 – Initial release with basic MQL4 and MQL5 support from fork of mqlidea investflow.ru plugin</li>
             </ul>
          ]]>
     </change-notes>
