@@ -1,15 +1,20 @@
-<h1>_RandomSeed</h1> 
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>_RandomSeed</h1>
 <p><span>Переменная для хранения текущего состояния при генерации псевдослучайных целых чисел. </span><span style="color: #0000ff;">_RandomSeed</span><span> меняет своё значение при вызове <a href="/math/mathrand">MathRand()</a>. Для установки нужного начального состояния используйте <a href="/math/mathsrand">MathSrand()</a>. </span></p>
-<p><span>Случайное число </span><span style="font-style: italic; font-weight: bold;">x</span><span>, получаемое функцией MathRand(), вычисляется при каждом вызове следующим образом:</span></p> 
-<div style="text-align: left; text-indent: 0px; page-break-inside: avoid; border-color: #d8dfea; border-style: solid; border-width: thin; background: #fbf9f5; padding: 0px 0px 0px 0px; margin: 2px 17px 2px 17px;"> 
- <table cellpadding="3" style="border:none; border-spacing:0px;"> 
-  <tbody> 
+<p><span>Случайное число </span><span style="font-style: italic; font-weight: bold;">x</span><span>, получаемое функцией MathRand(), вычисляется при каждом вызове следующим образом:</span></p>
+<div style="text-align: left; text-indent: 0px; page-break-inside: avoid; border-color: #d8dfea; border-style: solid; border-width: thin; background: #fbf9f5; padding: 0px 0px 0px 0px; margin: 2px 17px 2px 17px;">
+ <table cellpadding="3" style="border:none; border-spacing:0px;">
+  <tbody>
    <tr>
-    <td style="vertical-align:top; padding:3px;"><p><span>x=</span><span style="color: #0000ff;">_RandomSeed</span><span>*214013+2531011;</span><br> <span style="color: #0000ff;">_RandomSeed</span><span>=x;</span><br> <span>x=(x&gt;&gt;16)&amp;0x7FFF;</span></p></td> 
-   </tr> 
-  </tbody> 
- </table> 
-</div> 
-<p><span>Смотри также</span></p> 
+    <td style="vertical-align:top; padding:3px;"><p><span>x=</span><span style="color: #0000ff;">_RandomSeed</span><span>*214013+2531011;</span><br> <span style="color: #0000ff;">_RandomSeed</span><span>=x;</span><br> <span>x=(x&gt;&gt;16)&amp;0x7FFF;</span></p></td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>Смотри также</span></p>
 <p><span><a href="/math/mathrand">MathRand()</a>, <a href="/math/mathsrand">MathSrand()</a>, <a href="/basis/types/integer">Целые типы</a></span></p>
 <br>

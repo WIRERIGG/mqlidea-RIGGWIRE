@@ -1,33 +1,53 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+
 plugins {
     id("java")
-    id("org.jetbrains.intellij") version "1.17.2"
+    id("org.jetbrains.kotlin.jvm") version "1.9.25"
+    id("org.jetbrains.intellij.platform") version "2.11.0"
 }
 
-group = "ru.investflow.mql"
-version = "24.1.0-SNAPSHOT"
+group = "com.limemojito.oss.mqlidea"
+version = "2026.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+
+    intellijPlatform {
+        defaultRepositories()
+        jetbrainsRuntime()
+    }
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.9.1"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    intellijPlatform {
+        intellijIdea("2025.3.2")
+        jetbrainsRuntime("21.0.9-b1283")
+        testFramework(TestFrameworkType.Platform)
+    }
+
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testImplementation("org.assertj:assertj-core:3.27.7")
+    testImplementation("junit:junit:4.13.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// Configure Gradle IntelliJ Plugin
-// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
-intellij {
-    version.set("2023.3.4")
-    type.set("IC") // Target IDE Platform
-
-    plugins.set(listOf(/* Plugin Dependencies */))
+intellijPlatform {
+    // fails on auto builds for unknown reasons.
+    buildSearchableOptions = false
 }
 
 tasks {
     // Set the JVM compatibility versions
     withType<JavaCompile> {
-        targetCompatibility = "17"
+        targetCompatibility = "21"
     }
 
     test {

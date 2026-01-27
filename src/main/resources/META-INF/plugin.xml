@@ -1,14 +1,39 @@
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
 <idea-plugin>
-    <id>ru.investflow.mql</id>
+    <id>com.limemojito.oss.mqlidea</id>
     <name>MQL Idea</name>
-    <version>211.1.0</version>
-    <vendor email="mike.fursov@gmail.com" url="https://investflow.ru/mqlidea">Investflow.Ru</vendor>
+    <version>2026.1.0</version>
+    <vendor email="admin@limemojito.com" url="https://limemojito.com/articles/limemojito-mql-idea">
+        Lime Mojito Pty Ltd
+    </vendor>
 
     <description>
-        MQL4 language support for Intellij IDEA.
+        <![CDATA[
+         <p><b>MQL4 and MQL5 support for IntelliJ IDEA.</b></p>
+         <p>Forked from the original investorflow.ru version and updated for the latest IDE.</p>
+         <p>Supports:
+           <ul>
+             <li>MQL Syntax highlighting.</li>
+             <li>Launching MQL compiler on Windows, Linux</li>
+             <li>Code completion and navigation for MQL4 and MQL5</li>
+             <li>Quick documentation in English and Russian (see settings).</li>
+           </ul>
+         </p>
+         <p>Not Supported:
+           <ul>
+             <li>Code formatting</li>
+             <li>Code refactoring</li>
+             <li>Debugging</li>
+           </ul>
+         </p>
+         ]]>
     </description>
 
-    <idea-version since-build="203"/>
+    <idea-version since-build="253.30387"/>
 
     <depends>com.intellij.modules.lang</depends>
 
@@ -16,8 +41,12 @@
         <action id="NewMQL4File" class="ru.investflow.mql.action.CreateMQL4FileAction">
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFromTemplate"/>
         </action>
+        <action id="NewMQL5File" class="ru.investflow.mql.action.CreateMQL5FileAction">
+            <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFromTemplate"/>
+        </action>
     </actions>
 
+    <!-- TODO This needs to updated as deprecated -->
     <application-components>
         <component>
             <interface-class>ru.investflow.mql.settings.MQL4PluginSettings</interface-class>
@@ -31,7 +60,13 @@
                   implementationClass="ru.investflow.mql.MQL4FileType"
                   fieldName="INSTANCE"
                   language="MQL4"
-                  extensions="mq4;mqh;mql4;mql5;mq5"
+                  extensions="mq4;mqh;mql4"
+        />
+        <fileType name="MQL5 File"
+                  implementationClass="ru.investflow.mql.MQL5FileType"
+                  fieldName="INSTANCE"
+                  language="MQL4"
+                  extensions="mq5;mqh;mql5"
         />
 
         <lang.parserDefinition language="MQL4" implementationClass="ru.investflow.mql.parser.MQL4ParserDefinition"/>
@@ -57,10 +92,14 @@
         https://confluence.jetbrains.com/display/IDEADEV/Customizing+the+IDEA+Settings+Dialog
         https://sites.google.com/site/malenkov/java/150403
         -->
-        <projectConfigurable id="settings.mql4" groupId="language"
+        <!--suppress PluginXmlI18n -->
+        <projectConfigurable id="settings.mql4"
+                             groupId="language"
+                             displayName="Lime Mojito MQL Idea"
                              instance="ru.investflow.mql.settings.MQL4PluginSettingsPanel"/>
 
         <!--Inspections-->
+        <!--suppress PluginXmlI18n -->
         <localInspection language="MQL4" groupName="MQL4 inspections" enabledByDefault="true" level="WARNING"
                          displayName="Preprocessor #property element"
                          implementationClass="ru.investflow.mql.inspection.PreprocessorPropertyInspection"/>
@@ -70,7 +109,7 @@
                                       implementationClass="ru.investflow.mql.structure.MQL4StructureViewBuilderFactory"/>
 
         <!--Indexing -->
-        <stubElementTypeHolder class="ru.investflow.mql.psi.stub.MQL4StubElements"/>
+        <stubElementTypeHolder class="ru.investflow.mql.psi.stub.MQL4StubElements" externalIdPrefix="LMMI"/>
         <stubIndex implementation="ru.investflow.mql.index.MQL4ClassNameIndex"/>
         <stubIndex implementation="ru.investflow.mql.index.MQL4FunctionNameIndex"/>
 

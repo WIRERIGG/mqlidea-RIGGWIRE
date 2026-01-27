@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
 package ru.investflow.mql.action;
 
 import com.intellij.ide.actions.CreateFileAction;
@@ -10,7 +15,7 @@ import ru.investflow.mql.MQL4PluginResources;
  */
 public class CreateMQL4FileAction extends CreateFileAction {
     public CreateMQL4FileAction() {
-        super(MQL4PluginResources.message("action.New-MQL-File.text"), MQL4PluginResources.message("action.New-MQL-File.description"), MQL4Icons.File);
+        super(()->MQL4PluginResources.message("action.New-MQL-File.text"),()-> MQL4PluginResources.message("action.New-MQL-File.description"), ()->MQL4Icons.File);
     }
 
     @Override

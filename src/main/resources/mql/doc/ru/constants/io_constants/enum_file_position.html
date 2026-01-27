@@ -1,28 +1,33 @@
-<h1>Позиционирование внутри файла</h1> 
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>Позиционирование внутри файла</h1>
 <p><span>Большая часть <a href="/files">файловых функций</a> связана с операциями чтения/записи информации. При этом с помощью функции <a href="/files/fileseek">FileSeek()</a> можно указывать положение файлового указателя на позицию внутри файла, с которой будет производится следующая операция чтения или записи. Перечисление ENUM_FILE_POSITION содержит допустимые положения указателя, относительно которого можно указать смещения в байтах для следующей операции.</span></p>
-<p><span style="font-weight: bold;">ENUM_FILE_POSITION</span></p> 
-<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 8px 17px 7px 17px;"> 
- <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;"> 
-  <tbody> 
+<p><span style="font-weight: bold;">ENUM_FILE_POSITION</span></p>
+<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 8px 17px 7px 17px;">
+ <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;">
+  <tbody>
    <tr>
-    <td style="vertical-align:top; width:179px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Идентификатор</span></p> </td> 
-    <td style="vertical-align:top; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Описание</span></p> </td> 
-   </tr> 
+    <td style="vertical-align:top; width:179px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Идентификатор</span></p> </td>
+    <td style="vertical-align:top; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Описание</span></p> </td>
+   </tr>
    <tr>
-    <td style="vertical-align:top; width:179px; padding:5px; border:solid thin #b1c2d6;"><p><span>SEEK_SET</span></p> </td> 
-    <td style="vertical-align:top; padding:5px; border:solid thin #b1c2d6;"><p><span>Начало файла</span></p> </td> 
-   </tr> 
+    <td style="vertical-align:top; width:179px; padding:5px; border:solid thin #b1c2d6;"><p><span>SEEK_SET</span></p> </td>
+    <td style="vertical-align:top; padding:5px; border:solid thin #b1c2d6;"><p><span>Начало файла</span></p> </td>
+   </tr>
    <tr>
-    <td style="vertical-align:top; width:179px; padding:5px; border:solid thin #b1c2d6;"><p><span>SEEK_CUR</span></p> </td> 
-    <td style="vertical-align:top; padding:5px; border:solid thin #b1c2d6;"><p><span>Текущая позиция файлового указателя</span></p> </td> 
-   </tr> 
+    <td style="vertical-align:top; width:179px; padding:5px; border:solid thin #b1c2d6;"><p><span>SEEK_CUR</span></p> </td>
+    <td style="vertical-align:top; padding:5px; border:solid thin #b1c2d6;"><p><span>Текущая позиция файлового указателя</span></p> </td>
+   </tr>
    <tr>
-    <td style="vertical-align:top; width:179px; padding:5px; border:solid thin #b1c2d6;"><p><span>SEEK_END</span></p> </td> 
-    <td style="vertical-align:top; padding:5px; border:solid thin #b1c2d6;"><p><span>Конец файла</span></p> </td> 
-   </tr> 
-  </tbody> 
- </table> 
-</div> 
-<p><span>Смотри также</span></p> 
+    <td style="vertical-align:top; width:179px; padding:5px; border:solid thin #b1c2d6;"><p><span>SEEK_END</span></p> </td>
+    <td style="vertical-align:top; padding:5px; border:solid thin #b1c2d6;"><p><span>Конец файла</span></p> </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>Смотри также</span></p>
 <p><span><a href="/files/fileisending">FileIsEnding</a>, <a href="/files/fileislineending">FileIsLineEnding</a></span></p>
 <br>

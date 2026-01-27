@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
 package parser;
 
 import com.intellij.core.CoreApplicationEnvironment;
@@ -20,7 +25,7 @@ public abstract class MQL4ParserTestBase extends ParsingTestCase {
     @NotNull
     @Override
     protected String getTestDataPath() {
-        return "testData";
+        return "src/test/resources";
     }
 
     @Override
