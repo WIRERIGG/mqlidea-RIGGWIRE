@@ -8,8 +8,8 @@ package parser;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiErrorElement;
 import org.jetbrains.annotations.NotNull;
-import ru.investflow.mql.MQL4FileType;
-import ru.investflow.mql.MQL5FileType;
+import com.limemojito.oss.mql.MQL4FileType;
+import com.limemojito.oss.mql.MQL5FileType;
 
 import java.io.File;
 import java.io.IOException;

@@ -10,7 +10,7 @@ import com.intellij.lang.LanguageExtensionPoint;
 import com.intellij.openapi.extensions.Extensions;
 import com.intellij.testFramework.ParsingTestCase;
 import org.jetbrains.annotations.NotNull;
-import ru.investflow.mql.parser.MQL4ParserDefinition;
+import com.limemojito.oss.mql.parser.MQL4ParserDefinition;
 
 public abstract class MQL4ParserTestBase extends ParsingTestCase {
 

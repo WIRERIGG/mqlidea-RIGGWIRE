@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
+package com.limemojito.oss.mql.parser;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.lang.ParserDefinition;
+import com.intellij.lang.PsiParser;
+import com.intellij.lexer.FlexAdapter;
+import com.intellij.lexer.Lexer;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.FileViewProvider;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.IFileElementType;
+import com.intellij.psi.tree.TokenSet;
+import org.jetbrains.annotations.NotNull;
+import com.limemojito.oss.mql.MQL4Lexer;
+import com.limemojito.oss.mql.psi.MQL4Elements;
+import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
+import com.limemojito.oss.mql.psi.MQL4File;
+import com.limemojito.oss.mql.psi.stub.MQL4StubElements;
+
+/* Parser definition used by Intellij Platform to parse MQL4 Language sources. */
+public class MQL4ParserDefinition implements ParserDefinition, MQL4Elements {
+
+    public static final TokenSet WHITE_SPACES = TokenSet.create(WHITE_SPACE, LINE_TERMINATOR);
+
+    public static final TokenSet COMMENTS = TokenSet.create(BLOCK_COMMENT, LINE_COMMENT);
+
+    @NotNull
+    @Override
+    public Lexer createLexer(Project project) {
+        return new FlexAdapter(new MQL4Lexer(null));
+    }
+
+    @NotNull
+    @Override
+    public TokenSet getWhitespaceTokens() {
+        return WHITE_SPACES;
+    }
+
+    @NotNull
+    @Override
+    public TokenSet getCommentTokens() {
+        return COMMENTS;
+    }
+
+    @NotNull
+    @Override
+    public TokenSet getStringLiteralElements() {
+        return TokenSet.EMPTY;
+    }
+
+    @NotNull
+    @Override
+    public PsiParser createParser(Project project) {
+        return new MQL4Parser();
+    }
+
+    @NotNull
+    @Override
+    public IFileElementType getFileNodeType() {
+        return MQL4StubElements.FILE;
+    }
+
+    @NotNull
+    @Override
+    public PsiFile createFile(FileViewProvider viewProvider) {
+        return new MQL4File(viewProvider);
+    }
+
+    @NotNull
+    @Override
+    public SpaceRequirements spaceExistenceTypeBetweenTokens(ASTNode left, ASTNode right) {
+        return SpaceRequirements.MAY;
+    }
+
+    @NotNull
+    @Override
+    public PsiElement createElement(ASTNode node) {
+        return MQL4ElementsFactory.createElement(node);
+    }
+}

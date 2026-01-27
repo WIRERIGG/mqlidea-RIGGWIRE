@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
+package com.limemojito.oss.mql.runconfig;
+
+import com.intellij.execution.configurations.ConfigurationFactory;
+import com.intellij.execution.configurations.ConfigurationTypeBase;
+import com.intellij.execution.configurations.RunConfiguration;
+import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
+import com.limemojito.oss.mql.MQL4Icons;
+
+/**
+ * See http://www.jetbrains.org/intellij/sdk/docs/basics/run_configurations/run_configuration_management.html
+ */
+public class MQL4RunCompilerConfigurationType extends ConfigurationTypeBase {
+
+    private static final String CONFIGURATION_TYPE_ID = "MQL4RunCompilerConfigurationTypeId";
+
+    public MQL4RunCompilerConfigurationType() {
+        super(CONFIGURATION_TYPE_ID, "MQL4 Build", "Build single MQL4 file", MQL4Icons.File);
+        addFactory(new ConfigurationFactory(this) {
+            @NotNull
+            @Override
+            public RunConfiguration createTemplateConfiguration(@NotNull Project project) {
+                return new MQL4RunCompilerConfiguration(project, this, "MQL4 Build");
+            }
+
+            @Override
+            @NotNull
+            public String getId() {
+                return getName(); // We do not use localized values, so getName() is safe.
+            }
+        });
+    }
+
+    @NotNull
+    public static MQL4RunCompilerConfigurationType getInstance() {
+        return CONFIGURATION_TYPE_EP.findExtensionOrFail(MQL4RunCompilerConfigurationType.class);
+    }
+}
