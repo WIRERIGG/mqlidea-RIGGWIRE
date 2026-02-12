@@ -1,0 +1,69 @@
+{
+  "validation_time": "2025-12-20T14:54:13.650538",
+  "agent_path": "/home/RIGG_dev/CLionProjects/RIGGWIRE-EA/.claude/agents/mt5_infinite_reliability_agent",
+  "summary": {
+    "total": 14,
+    "passed": 9,
+    "failed": 5,
+    "warnings": 0,
+    "pass_rate": 64.28571428571429
+  },
+  "detailed_results": {
+    "Import Error": {
+      "status": "\u274c FAIL",
+      "error": "No module named 'mt5_infinite_reliability_agent'"
+    },
+    "Configuration Error": {
+      "status": "\u274c FAIL",
+      "error": "No module named 'mt5_infinite_reliability_agent'"
+    },
+    "Tool Validation Error": {
+      "status": "\u274c FAIL",
+      "error": "No module named 'mt5_infinite_reliability_agent'"
+    },
+    "Workflow Validation Error": {
+      "status": "\u274c FAIL",
+      "error": "No module named 'mt5_infinite_reliability_agent'"
+    },
+    "Security Validation Error": {
+      "status": "\u274c FAIL",
+      "error": "No module named 'mt5_infinite_reliability_agent'"
+    },
+    "Doc: README.md": {
+      "status": "\u2705 PASS",
+      "message": "12782 bytes"
+    },
+    "Doc: .env.example": {
+      "status": "\u2705 PASS",
+      "message": "1465 bytes"
+    },
+    "Doc: requirements.txt": {
+      "status": "\u2705 PASS",
+      "message": "625 bytes"
+    },
+    "Doc: planning/INITIAL.md": {
+      "status": "\u2705 PASS",
+      "message": "8833 bytes"
+    },
+    "Doc: planning/prompts.md": {
+      "status": "\u2705 PASS",
+      "message": "4390 bytes"
+    },
+    "Doc: planning/tools.md": {
+      "status": "\u2705 PASS",
+      "message": "27299 bytes"
+    },
+    "Doc: planning/dependencies.md": {
+      "status": "\u2705 PASS",
+      "message": "25747 bytes"
+    },
+    "Doc: tests/README.md": {
+      "status": "\u2705 PASS",
+      "message": "7465 bytes"
+    },
+    "Doc: tests/VALIDATION_REPORT.md": {
+      "status": "\u2705 PASS",
+      "message": "19880 bytes"
+    }
+  }
+}

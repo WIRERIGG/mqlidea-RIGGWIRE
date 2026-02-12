@@ -1,0 +1,125 @@
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>Свойства сделок</h1>
+<p><span>Константы для получения свойств сделок с помощью функций <a href="/trading/historydealgetinteger">HistoryDealGetInteger()</a>, <a href="/trading/historydealgetdouble">HistoryDealGetDouble()</a> и <a href="/trading/historydealgetstring">HistoryDealGetString()</a>.</span></p>
+<p><span style="font-weight: bold;">ENUM_DEAL_PROPERTY_INTEGER</span></p>
+<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 0px 4px 0px 4px;">
+ <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; width:220px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Константа</span></p> </td>
+    <td style="vertical-align:top; width:1182px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Описание</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TICKET</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Тикет сделки. Уникальный номер, присваиваемый каждой сделке</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_ORDER</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Номер ордера сделки</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TIME</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Время исполнения сделки</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TIME_MSC</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Время исполнения сделки в миллисекундах с 01.01.1970</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TYPE</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Тип сделки (ENUM_DEAL_TYPE)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_ENTRY</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Направление сделки - вход в рынок, выход из рынка, разворот (ENUM_DEAL_ENTRY)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_MAGIC</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Магическое число сделки (см. <a href="/trading/ordersend">OrderSend</a>)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_REASON</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Причина совершения сделки (ENUM_DEAL_REASON)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_POSITION_ID</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Идентификатор позиции, к которой относится сделка</span></p> </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>&nbsp;</span></p>
+<p><span style="font-weight: bold;">ENUM_DEAL_PROPERTY_DOUBLE</span></p>
+<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 0px 4px 0px 4px;">
+ <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; width:220px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Константа</span></p> </td>
+    <td style="vertical-align:top; width:1182px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Описание</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_VOLUME</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Объём сделки</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_PRICE</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Цена сделки</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_COMMISSION</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Комиссия по сделке</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_SWAP</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Накопленный своп при закрытии</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_PROFIT</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Прибыль сделки</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_FEE</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Сбор, взимаемый за сделку</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_SL</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Уровень Stop Loss</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TP</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Уровень Take Profit</span></p> </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>&nbsp;</span></p>
+<p><span style="font-weight: bold;">ENUM_DEAL_PROPERTY_STRING</span></p>
+<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 0px 4px 0px 4px;">
+ <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; width:220px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Константа</span></p> </td>
+    <td style="vertical-align:top; width:1182px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Описание</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_SYMBOL</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Символ сделки</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_COMMENT</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Комментарий к сделке</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_EXTERNAL_ID</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Идентификатор сделки во внешней торговой системе</span></p> </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>Смотри также</span></p>
+<p><span><a href="/trading/historydealgetinteger">HistoryDealGetInteger</a>, <a href="/trading/historydealgetdouble">HistoryDealGetDouble</a>, <a href="/trading/historydealgetstring">HistoryDealGetString</a></span></p>
+<br>

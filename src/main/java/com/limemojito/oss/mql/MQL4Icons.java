@@ -8,6 +8,7 @@ package com.limemojito.oss.mql;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.LayeredIcon;
+import com.intellij.util.IconUtil;
 import com.intellij.util.ReflectionUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,8 +16,15 @@ import javax.swing.*;
 import java.util.Objects;
 
 public interface MQL4Icons {
-    // MQL4 files
+    // File type icons
     Icon File = IconLoader.getIcon("/icons/mql4.png", callingClassLoader());
+    Icon MQL5File = IconLoader.getIcon("/icons/mql5.png", callingClassLoader());
+    Icon HeaderFile = IconLoader.getIcon("/icons/mqh.png", callingClassLoader());
+
+    // Desaturated (gray) variants for files with problems
+    Icon FileGray = IconUtil.desaturate(File);
+    Icon MQL5FileGray = IconUtil.desaturate(MQL5File);
+    Icon HeaderFileGray = IconUtil.desaturate(HeaderFile);
 
     // Classes and structs
     Icon Class = AllIcons.Nodes.Class;
@@ -24,10 +32,18 @@ public interface MQL4Icons {
     Icon Interface = AllIcons.Nodes.Interface;
 
     // Functions and methods
-    Icon FunctionDeclaration = new LayeredIcon(AllIcons.Nodes.Function, AllIcons.Nodes.Symlink);
+    Icon FunctionDeclaration = createLayeredIcon(AllIcons.Nodes.Function);
     Icon FunctionDefinition = AllIcons.Nodes.Function;
-    Icon MethodDeclaration = new LayeredIcon(AllIcons.Nodes.Method, AllIcons.Nodes.Symlink);
+    Icon MethodDeclaration = createLayeredIcon(AllIcons.Nodes.Method);
     Icon MethodDefinition = AllIcons.Nodes.Method;
+
+    @NotNull
+    private static Icon createLayeredIcon(@NotNull Icon base) {
+        LayeredIcon icon = new LayeredIcon(2);
+        icon.setIcon(base, 0);
+        icon.setIcon(AllIcons.Nodes.Symlink, 1);
+        return icon;
+    }
 
     @NotNull
     private static java.lang.Class<?> callingClassLoader() {

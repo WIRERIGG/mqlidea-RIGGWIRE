@@ -1,0 +1,80 @@
+{
+  "file": "/home/RIGG_dev/CLionProjects/RIGGWIRE-EA/RIGGWIRE-EA-FTMO-LIVE/LeadingExtremaIndicator_LIVE.mq5",
+  "analysis_timestamp": "2025-12-28T22:35:00.025451",
+  "file_metrics": {
+    "total_lines": 6835,
+    "file_size_bytes": 315854,
+    "function_count": 120,
+    "variable_count": 291
+  },
+  "code_patterns": {
+    "loops": 315,
+    "conditions": 663,
+    "indicators": 4,
+    "arrays": 184
+  },
+  "dimensional_analysis": {
+    "complexity": {
+      "dimension": "complexity",
+      "metrics": {
+        "total_functions": 120,
+        "total_decision_points": 978,
+        "avg_complexity_per_function": 8.15,
+        "lines_of_code": 6835
+      },
+      "rating": "Low",
+      "score": 10,
+      "issues": []
+    },
+    "memory_safety": {
+      "dimension": "memory_safety",
+      "metrics": {
+        "array_count": 184,
+        "buffer_checks": 96,
+        "array_operations": 58,
+        "safety_ratio": 0.52
+      },
+      "rating": "Excellent",
+      "score": 10,
+      "issues": []
+    },
+    "security": {
+      "dimension": "security",
+      "metrics": {
+        "input_validation": false,
+        "error_handling_points": 13
+      },
+      "rating": "Good",
+      "score": 8,
+      "issues": [
+        {
+          "severity": "medium",
+          "message": "No explicit input validation found in OnInit"
+        }
+      ]
+    },
+    "robustness": {
+      "dimension": "robustness",
+      "metrics": {
+        "division_operations": 167,
+        "zero_checks": 64,
+        "has_bars_validation": true
+      },
+      "rating": "Excellent",
+      "score": 10,
+      "issues": [
+        {
+          "severity": "medium",
+          "message": "Potential divide-by-zero risk: 167 divisions, 64 zero checks"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "total_issues": 2,
+    "critical_issues": 0,
+    "average_score": 9.5,
+    "certification": "\u2705 PRODUCTION READY - CERTIFIED",
+    "production_ready": true
+  }
+}

@@ -1,0 +1,10 @@
+2025-09-29 21:57:25,114 - root - INFO - Valgrind detected: valgrind-3.22.0
+2025-09-29 21:57:25,115 - root - INFO - ValgrindAnalyzer initialized for project: /IdeaProjects/wire_ground
+2025-09-29 21:57:25,115 - root - INFO - Starting ValgrindTool.MEMCHECK analysis of /IdeaProjects/wire_ground/cmake-build-debug/tests/wire_ground_tests
+2025-09-29 22:04:09,810 - root - INFO - Analysis completed in 404.70s: 0 issues found
+/IdeaProjects/wire_ground/.claude/agents/valgrind_pydantic_tool/comprehensive_safe_test_analysis.py:143: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+  "metrics": result.metrics.dict() if result.metrics else {},
+/home/RIGG_dev/.local/lib/python3.12/site-packages/pydantic/main.py:463: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `int` - serialized value may not be as expected [input_value=<function ValgrindMetrics...ssues at 0x7328dbb28c20>, input_type=function])
+  return self.__pydantic_serializer__.to_python(
+2025-09-29 22:04:09,812 - root - INFO - Starting ValgrindTool.HELGRIND analysis of /IdeaProjects/wire_ground/cmake-build-debug/tests/wire_ground_tests

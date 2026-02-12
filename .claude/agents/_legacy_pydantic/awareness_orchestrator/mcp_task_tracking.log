@@ -1,0 +1,12 @@
+[2025-09-29 01:43:46] MCP Task Tracker started with command: health
+[2025-09-29 01:43:46] INFO: Virtual environment activated
+[2025-09-29 01:43:46] INFO: Checking MCP server health...
+[2025-09-29 01:43:46] ERROR: MCP server is not healthy
+[2025-09-29 01:43:53] MCP Task Tracker started with command: start Test tracker functionality Verify MCP task tracker can create and manage tasks
+[2025-09-29 01:43:53] INFO: Virtual environment activated
+[2025-09-29 01:43:53] INFO: Checking MCP server health...
+[2025-09-29 01:43:53] ERROR: MCP server is not healthy
+[2025-09-29 01:49:30] MCP Task Tracker started with command: start Fix safe_test.cpp compilation error Resolve missing file path issue in C++ compilation
+[2025-09-29 01:49:30] INFO: Virtual environment activated
+[2025-09-29 01:49:30] INFO: Checking MCP server health...
+[2025-09-29 01:49:31] ERROR: MCP server is not healthy

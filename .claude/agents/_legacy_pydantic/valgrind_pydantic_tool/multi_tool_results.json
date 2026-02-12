@@ -1,0 +1,70 @@
+{
+  "timestamp": "2025-09-01T05:24:51.700347",
+  "binary_analyzed": "/IdeaProjects/wire_ground/cmake-build-debug/wire_ground_tests",
+  "total_tools": 10,
+  "successful_tools": 10,
+  "total_execution_time": 662.4264974594116,
+  "total_issues": 0,
+  "tool_results": {
+    "memcheck": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 34.728293895721436,
+      "safety_score": 100.0
+    },
+    "cachegrind": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 44.599629163742065,
+      "safety_score": 100.0
+    },
+    "callgrind": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 65.29170656204224,
+      "safety_score": 100.0
+    },
+    "helgrind": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 50.529338121414185,
+      "safety_score": 100.0
+    },
+    "drd": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 242.01700234413147,
+      "safety_score": 100.0
+    },
+    "massif": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 9.331721305847168,
+      "safety_score": 100.0
+    },
+    "dhat": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 13.853752136230469,
+      "safety_score": 100.0
+    },
+    "lackey": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 152.28926348686218,
+      "safety_score": 100.0
+    },
+    "none": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 10.857836246490479,
+      "safety_score": 100.0
+    },
+    "exp-bbv": {
+      "success": true,
+      "issues": 0,
+      "execution_time": 38.92795419692993,
+      "safety_score": 100.0
+    }
+  }
+}

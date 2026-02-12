@@ -8,6 +8,7 @@ package com.limemojito.oss.mql.doc;
 public enum DocEntryType {
     BuiltInConstant,
     BuiltInFunction,
+    BuiltInType,
     Keyword,
     PreprocessorKeyword
 }

@@ -1,0 +1,155 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/ctest --extra-verbose)",
+      "Bash(/IdeaProjects/wire_ground/cmake-build-debug/wire_ground_tests --gtest_list_tests)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_EMBEDDED=OFF -DSUPPRESS_DOCKER_WARNINGS=ON -S /IdeaProjects/wire_ground -B /IdeaProjects/wire_ground/cmake-build-debug)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target wire_ground_tests -- -j 14)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target safe_test)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target safe_test --verbose)",
+      "Bash(g++:*)",
+      "Bash(clang++:*)",
+      "Bash(cppcheck:*)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target wire_ground_tests)",
+      "Bash(/tmp:*)",
+      "Bash(sed:*)",
+      "Bash(/dev/null)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target wire_ground_tests -- VERBOSE=1)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target CMakeFiles/wire_ground_tests.dir/tests/safe_test.cpp.o)",
+      "Bash(grep:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/check_warnings.sh:*)",
+      "Bash(./scripts/pre_edit_check.sh:*)",
+      "Bash(./scripts/post_edit_check.sh:*)",
+      "Bash(./scripts/cmake_warning_check.sh:*)",
+      "Bash(./scripts/setup_git_hooks.sh:*)",
+      "Bash(./wire_ground_tests:*)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target wire_ground_tests --verbose)",
+      "Bash(./scripts/update_prevention_system.sh:*)",
+      "Bash(./scripts/build_safety_check.sh:*)",
+      "Bash(./scripts/convert_to_gtest.sh:*)",
+      "Bash(./scripts/fix_build.sh:*)",
+      "Bash(./scripts/current_file_fixer.sh:*)",
+      "Bash(./scripts/clang_tidy_fixer.sh:*)",
+      "Bash(./scripts/start_passive_mode.sh:*)",
+      "Bash(./scripts/passive_auto_fixer.sh:*)",
+      "Bash(pkill:*)",
+      "Bash(./scripts/simple_passive_mode.sh:*)",
+      "Bash(./scripts/fixed_passive_fixer.sh:*)",
+      "Bash(timeout 10s:*)",
+      "Bash(source:*)",
+      "Bash(find:*)",
+      "Bash(timeout:*)",
+      "Bash(clang-tidy:*)",
+      "Bash(./scripts/working_clang_tidy.sh:*)",
+      "Bash(pgrep:*)",
+      "Bash(./scripts/targeted_clang_tidy_fix.sh:*)",
+      "Bash(python3 scripts/clang_tidy_agent.py:*)",
+      "Bash(./scripts/test_clang_tidy_agent.sh:*)",
+      "Bash(./scripts/claude_clang_tidy_fixer.sh:*)",
+      "Bash(./scripts/claude_execution_loop.sh:*)",
+      "Bash(./scripts/comprehensive_clang_tidy_fixer.sh:*)",
+      "Bash(valgrind:*)",
+      "WebSearch",
+      "Bash(cmake:*)",
+      "Bash(make:*)",
+      "Bash(addr2line:*)",
+      "Bash(objdump:*)",
+      "Bash(cat:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)",
+      "Bash(./scripts/simple_passive_agent.sh:*)",
+      "Bash(/usr/local/bin/valgrind --version)",
+      "Bash(./scripts/focused_passive_agent.sh:*)",
+      "Bash(./scripts/background_monitor.sh:*)",
+      "Bash(ctest:*)",
+      "Bash(./scripts/monitor_status.sh:*)",
+      "Bash(./scripts/start_project_monitor.sh:*)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/ctest --rerun-failed --output-on-failure)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_EMBEDDED=OFF -DSUPPRESS_DOCKER_WARNINGS=ON -DVALGRIND_COMPAT=ON -S /IdeaProjects/wire_ground -B /IdeaProjects/wire_ground/cmake-build-debug)",
+      "Bash(./tests/safe_test.cpp )",
+      "Bash(./safe_test:*)",
+      "Bash(LD_LIBRARY_PATH=./cmake-build-debug ./safe_test --gtest_list_tests)",
+      "Bash(sudo apt:*)",
+      "Bash(sudo cmake:*)",
+      "Bash(c++:*)",
+      "Bash(./simple_test)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target wire_ground_tests)",
+      "Bash(./scripts/start_optimized_passive_analyzer.sh:*)",
+      "Bash(./scripts/launch_claude_agent.sh:*)",
+      "Bash(./main_optimized)",
+      "Bash(./blitzfire_performance_demo)",
+      "Bash(./blitzfire_performance_tests)",
+      "Bash(./cmake-build-debug/wire_ground_tests:*)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_EMBEDDED=OFF -DSUPPRESS_DOCKER_WARNINGS=ON -DVALGRIND_COMPAT=OFF -S /IdeaProjects/wire_ground -B /IdeaProjects/wire_ground/cmake-build-debug)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/9d6b06b5af154_CLion-2025.2.1/bin/cmake/linux/x64/bin/cmake --build /IdeaProjects/wire_ground/cmake-build-debug --target wire_ground_tests)",
+      "Bash(/.jbdevcontainer/JetBrains/RemoteDev/dist/243a1514282d0_CLion-2025.2/bin/cmake/linux/x64/bin/cmake --build cmake-build-debug --target wire_ground_tests)",
+      "Bash(.claude/hooks/build_monitor.sh:*)",
+      "Bash(.claude/hooks/clang_tidy_auto_detector.py:*)",
+      "Bash(npm run dev:*)",
+      "Bash(claude mcp:*)",
+      "Bash(./scripts/claude_build_resolver.sh:*)",
+      "Bash(./scripts/invoke_build_resolver.py:*)",
+      "Bash(python3 ./scripts/invoke_build_resolver.py:*)",
+      "Bash(./scripts/claude_resolve_build.py:*)",
+      "Bash(python3 ./scripts/claude_resolve_build.py:*)",
+      "Bash(mkdir:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "/usr/bin",
+      "/tmp/clang_tidy_logs",
+      "/tmp"
+    ],
+    "mcp": {
+      "archon": {
+        "url": "http://archon-mcp:8051/mcp",
+        "transport": "http",
+        "timeout": 30000,
+        "retry": {
+          "attempts": 5,
+          "delay": 2000,
+          "backoff": "exponential"
+        }
+      }
+    }
+  },
+  "enableAllProjectMcpServers": false,
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/IdeaProjects/wire_ground/.claude/hooks/session_start_hook.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "cmake.*--build",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/build_monitor.sh monitor_last_build",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/file_open_monitor.sh \"$TOOL_INPUT_file_path\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "outputStyle": "default"
+}

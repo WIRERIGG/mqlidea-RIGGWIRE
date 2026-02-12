@@ -84,6 +84,8 @@ public class MQL4TokenSets implements MQL4Elements {
             VOID_KEYWORD
     );
 
+    public static final TokenSet MEMORY_CLASSES = TokenSet.create(EXTERN_KEYWORD, INPUT_KEYWORD, SINPUT_KEYWORD, STATIC_KEYWORD);
+
     public static final TokenSet CLASS_STRUCT_INTERFACE = TokenSet.create(CLASS_KEYWORD, STRUCT_KEYWORD, INTERFACE_KEYWORD);
 
     @NotNull

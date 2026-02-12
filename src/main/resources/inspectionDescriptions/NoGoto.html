@@ -1,0 +1,26 @@
+﻿<html>
+<body>
+This inspection reports usage of the <code>goto</code> statement in MQL5 code.
+The <code>goto</code> keyword creates unstructured control flow that is difficult to
+read, maintain, and reason about. Prefer structured alternatives such as loops,
+<code>if/else</code>, <code>break</code>, and <code>continue</code>.
+<!-- tooltip end -->
+<p>Example of problematic code:</p>
+<pre>
+void OnTick() {
+    goto retry;  // Warning: use structured control flow instead
+retry:
+    Print("retrying");
+}
+</pre>
+<p>Preferred alternative:</p>
+<pre>
+void OnTick() {
+    while(true) {
+        Print("retrying");
+        break;
+    }
+}
+</pre>
+</body>
+</html>

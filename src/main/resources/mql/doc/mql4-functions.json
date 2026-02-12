@@ -208,8 +208,16 @@
     "/chart_operations/chartid"
   ],
   [
+    "ChartIndicatorAdd",
+    "/chart_operations/chartindicatoradd"
+  ],
+  [
     "ChartIndicatorDelete",
     "/chart_operations/chartindicatordelete"
+  ],
+  [
+    "ChartIndicatorGet",
+    "/chart_operations/chartindicatorget"
   ],
   [
     "ChartIndicatorName",
@@ -324,6 +332,10 @@
     "/common/comment"
   ],
   [
+    "CopyBuffer",
+    "/series/copybuffer"
+  ],
+  [
     "CopyClose",
     "/series/copyclose"
   ],
@@ -344,6 +356,10 @@
     "/series/copyrates"
   ],
   [
+    "CopySpread",
+    "/series/copyspread"
+  ],
+  [
     "CopyTickVolume",
     "/series/copytickvolume"
   ],
@@ -357,7 +373,7 @@
   ],
   [
     "CryptDecode",
-    "/common/crypydecode"
+    "/common/cryptdecode"
   ],
   [
     "CryptEncode",
@@ -672,6 +688,10 @@
     "/indicators/iadx"
   ],
   [
+    "iAMA",
+    "/indicators/iama"
+  ],
+  [
     "iAlligator",
     "/indicators/ialligator"
   ],
@@ -712,6 +732,10 @@
     "/indicators/ibwmfi"
   ],
   [
+    "iChaikin",
+    "/indicators/ichaikin"
+  ],
+  [
     "iCCI",
     "/indicators/icci"
   ],
@@ -728,6 +752,10 @@
     "/indicators/icustom"
   ],
   [
+    "iDEMA",
+    "/indicators/idema"
+  ],
+  [
     "iDeMarker",
     "/indicators/idemarker"
   ],
@@ -742,6 +770,10 @@
   [
     "iForce",
     "/indicators/iforce"
+  ],
+  [
+    "iFrAMA",
+    "/indicators/iframa"
   ],
   [
     "iFractals",
@@ -809,7 +841,7 @@
   ],
   [
     "IndicatorSetDouble",
-    "/customindindicatorsetdouble"
+    "/customind/indicatorsetdouble"
   ],
   [
     "IndicatorSetInteger",
@@ -825,7 +857,7 @@
   ],
   [
     "IntegerToString",
-    "/convert/integettostring"
+    "/convert/integertostring"
   ],
   [
     "iOBV",
@@ -889,7 +921,7 @@
   ],
   [
     "iStdDevOnArray",
-    "/indicators/istdevonarray"
+    "/indicators/istddevonarray"
   ],
   [
     "IsTesting",
@@ -912,8 +944,16 @@
     "/check/isvisualmode"
   ],
   [
+    "iTEMA",
+    "/indicators/itema"
+  ],
+  [
     "iTime",
     "/series/itime"
+  ],
+  [
+    "iVIDyA",
+    "/indicators/ividya"
   ],
   [
     "iVolume",
@@ -1109,7 +1149,7 @@
   ],
   [
     "ObjectsDeleteAll",
-    "/objects/objectdeleteall"
+    "/objects/objectsdeleteall"
   ],
   [
     "ObjectSet",
@@ -1165,7 +1205,7 @@
   ],
   [
     "OrderCommission",
-    "/trading/ordercomission"
+    "/trading/ordercommission"
   ],
   [
     "OrderDelete",
@@ -1213,7 +1253,7 @@
   ],
   [
     "OrdersHistoryTotal",
-    "/trading/orderhistorytotal"
+    "/trading/ordershistorytotal"
   ],
   [
     "OrderStopLoss",
@@ -1221,7 +1261,7 @@
   ],
   [
     "OrdersTotal",
-    "/trading/ordertotal"
+    "/trading/orderstotal"
   ],
   [
     "OrderSwap",
@@ -1248,16 +1288,28 @@
     "/check/period"
   ],
   [
-    "Period",
-    "/chart_operations/chartperiod"
-  ],
-  [
     "PeriodSeconds",
     "/common/periodseconds"
   ],
   [
     "PlaySound",
     "/common/playsound"
+  ],
+  [
+    "PlotIndexGetInteger",
+    "/customind/plotindexgetinteger"
+  ],
+  [
+    "PlotIndexSetDouble",
+    "/customind/plotindexsetdouble"
+  ],
+  [
+    "PlotIndexSetInteger",
+    "/customind/plotindexsetinteger"
+  ],
+  [
+    "PlotIndexSetString",
+    "/customind/plotindexsetstring"
   ],
   [
     "Point",
@@ -1433,7 +1485,7 @@
   ],
   [
     "srand",
-    "/math/mathstrand"
+    "/math/mathsrand"
   ],
   [
     "StringAdd",
@@ -1573,7 +1625,7 @@
   ],
   [
     "SymbolInfoSessionTrade",
-    "/marketinformation/symbolsessiontrade"
+    "/marketinformation/symbolinfosessiontrade"
   ],
   [
     "SymbolInfoString",
@@ -1593,7 +1645,7 @@
   ],
   [
     "SymbolsTotal",
-    "/marketinformation/symboltotal"
+    "/marketinformation/symbolstotal"
   ],
   [
     "tan",
@@ -1765,7 +1817,7 @@
   ],
   [
     "WindowsTotal",
-    "/chart_operations/windowtotal"
+    "/chart_operations/windowstotal"
   ],
   [
     "WindowTimeOnDropped",
@@ -1786,5 +1838,397 @@
   [
     "ZeroMemory",
     "/common/zeromemory"
+  ],
+  [
+    "ArrayInsert",
+    "/array/arrayinsert"
+  ],
+  [
+    "ArrayPrint",
+    "/array/arrayprint"
+  ],
+  [
+    "ArrayRemove",
+    "/array/arrayremove"
+  ],
+  [
+    "ArrayReverse",
+    "/array/arrayreverse"
+  ],
+  [
+    "ArraySwap",
+    "/array/arrayswap"
+  ],
+  [
+    "BarsCalculated",
+    "/series/barscalculated"
+  ],
+  [
+    "CharArrayToStruct",
+    "/convert/chararraytostruct"
+  ],
+  [
+    "CopyRealVolume",
+    "/series/copyrealvolume"
+  ],
+  [
+    "CopySeries",
+    "/series/copyseries"
+  ],
+  [
+    "CopyTicks",
+    "/series/copyticks"
+  ],
+  [
+    "CopyTicksRange",
+    "/series/copyticksrange"
+  ],
+  [
+    "CustomBookAdd",
+    "/customsymbols/custombookadd"
+  ],
+  [
+    "CustomRatesDelete",
+    "/customsymbols/customratesdelete"
+  ],
+  [
+    "CustomRatesReplace",
+    "/customsymbols/customratesreplace"
+  ],
+  [
+    "CustomRatesUpdate",
+    "/customsymbols/customratesupdate"
+  ],
+  [
+    "CustomSymbolCreate",
+    "/customsymbols/customsymbolcreate"
+  ],
+  [
+    "CustomSymbolDelete",
+    "/customsymbols/customsymboldelete"
+  ],
+  [
+    "CustomSymbolSetDouble",
+    "/customsymbols/customsymbolsetdouble"
+  ],
+  [
+    "CustomSymbolSetInteger",
+    "/customsymbols/customsymbolsetinteger"
+  ],
+  [
+    "CustomSymbolSetMarginByOrderType",
+    "/customsymbols/customsymbolsetmarginbyordertype"
+  ],
+  [
+    "CustomSymbolSetSessionQuote",
+    "/customsymbols/customsymbolsetsessionquote"
+  ],
+  [
+    "CustomSymbolSetSessionTrade",
+    "/customsymbols/customsymbolsetsessiontrade"
+  ],
+  [
+    "CustomSymbolSetString",
+    "/customsymbols/customsymbolsetstring"
+  ],
+  [
+    "CustomTicksAdd",
+    "/customsymbols/customticksadd"
+  ],
+  [
+    "CustomTicksDelete",
+    "/customsymbols/customticksdelete"
+  ],
+  [
+    "CustomTicksReplace",
+    "/customsymbols/customticksreplace"
+  ],
+  [
+    "DatabaseClose",
+    "/database/databaseclose"
+  ],
+  [
+    "DatabaseColumnName",
+    "/database/databasecolumnname"
+  ],
+  [
+    "DatabaseColumnSize",
+    "/database/databasecolumnsize"
+  ],
+  [
+    "DatabaseColumnText",
+    "/database/databasecolumntext"
+  ],
+  [
+    "DatabaseColumnType",
+    "/database/databasecolumntype"
+  ],
+  [
+    "DatabaseColumnsCount",
+    "/database/databasecolumnscount"
+  ],
+  [
+    "DatabaseExecute",
+    "/database/databaseexecute"
+  ],
+  [
+    "DatabaseExport",
+    "/database/databaseexport"
+  ],
+  [
+    "DatabaseFinalize",
+    "/database/databasefinalize"
+  ],
+  [
+    "DatabaseImport",
+    "/database/databaseimport"
+  ],
+  [
+    "DatabaseOpen",
+    "/database/databaseopen"
+  ],
+  [
+    "DatabasePrepare",
+    "/database/databaseprepare"
+  ],
+  [
+    "DatabasePrint",
+    "/database/databaseprint"
+  ],
+  [
+    "DatabaseRead",
+    "/database/databaseread"
+  ],
+  [
+    "DatabaseReadBind",
+    "/database/databasereadbind"
+  ],
+  [
+    "DatabaseTableExists",
+    "/database/databasetableexists"
+  ],
+  [
+    "DatabaseTransactionBegin",
+    "/database/databasetransactionbegin"
+  ],
+  [
+    "DatabaseTransactionCommit",
+    "/database/databasetransactioncommit"
+  ],
+  [
+    "DatabaseTransactionRollback",
+    "/database/databasetransactionrollback"
+  ],
+  [
+    "FrameAdd",
+    "/common/frameadd"
+  ],
+  [
+    "FrameFilter",
+    "/common/framefilter"
+  ],
+  [
+    "FrameFirst",
+    "/common/framefirst"
+  ],
+  [
+    "FrameInputs",
+    "/common/frameinputs"
+  ],
+  [
+    "FrameNext",
+    "/common/framenext"
+  ],
+  [
+    "GetMicrosecondCount",
+    "/common/getmicrosecondcount"
+  ],
+  [
+    "GetTickCount64",
+    "/common/gettickcount64"
+  ],
+  [
+    "HistoryDealGetDouble",
+    "/trading/historydealgetdouble"
+  ],
+  [
+    "HistoryDealGetInteger",
+    "/trading/historydealgetinteger"
+  ],
+  [
+    "HistoryDealGetString",
+    "/trading/historydealgetstring"
+  ],
+  [
+    "HistoryDealGetTicket",
+    "/trading/historydealgetticket"
+  ],
+  [
+    "HistoryDealSelect",
+    "/trading/historydealselect"
+  ],
+  [
+    "HistoryDealsTotal",
+    "/trading/historydealstotal"
+  ],
+  [
+    "HistoryOrderGetDouble",
+    "/trading/historyordergetdouble"
+  ],
+  [
+    "HistoryOrderGetInteger",
+    "/trading/historyordergetinteger"
+  ],
+  [
+    "HistoryOrderGetString",
+    "/trading/historyordergetstring"
+  ],
+  [
+    "HistoryOrderGetTicket",
+    "/trading/historyordergetticket"
+  ],
+  [
+    "HistoryOrderSelect",
+    "/trading/historyorderselect"
+  ],
+  [
+    "HistoryOrdersTotal",
+    "/trading/historyorderstotal"
+  ],
+  [
+    "HistorySelect",
+    "/trading/historyselect"
+  ],
+  [
+    "HistorySelectByPosition",
+    "/trading/historyselectbyposition"
+  ],
+  [
+    "IndicatorCreate",
+    "/indicators/indicatorcreate"
+  ],
+  [
+    "IndicatorParameters",
+    "/indicators/indicatorparameters"
+  ],
+  [
+    "IndicatorRelease",
+    "/indicators/indicatorrelease"
+  ],
+  [
+    "MarketBookAdd",
+    "/marketinformation/marketbookadd"
+  ],
+  [
+    "MarketBookGet",
+    "/marketinformation/marketbookget"
+  ],
+  [
+    "MarketBookRelease",
+    "/marketinformation/marketbookrelease"
+  ],
+  [
+    "MathSwap",
+    "/math/mathswap"
+  ],
+  [
+    "OrderCalcMargin",
+    "/trading/ordercalcmargin"
+  ],
+  [
+    "OrderCalcProfit",
+    "/trading/ordercalcprofit"
+  ],
+  [
+    "OrderCheck",
+    "/trading/ordercheck"
+  ],
+  [
+    "OrderGetDouble",
+    "/trading/ordergetdouble"
+  ],
+  [
+    "OrderGetInteger",
+    "/trading/ordergetinteger"
+  ],
+  [
+    "OrderGetString",
+    "/trading/ordergetstring"
+  ],
+  [
+    "OrderGetTicket",
+    "/trading/ordergetticket"
+  ],
+  [
+    "OrderSendAsync",
+    "/trading/ordersendasync"
+  ],
+  [
+    "PositionGetDouble",
+    "/trading/positiongetdouble"
+  ],
+  [
+    "PositionGetInteger",
+    "/trading/positiongetinteger"
+  ],
+  [
+    "PositionGetString",
+    "/trading/positiongetstring"
+  ],
+  [
+    "PositionGetSymbol",
+    "/trading/positiongetsymbol"
+  ],
+  [
+    "PositionGetTicket",
+    "/trading/positiongetticket"
+  ],
+  [
+    "PositionSelect",
+    "/trading/positionselect"
+  ],
+  [
+    "PositionSelectByTicket",
+    "/trading/positionselectbyticket"
+  ],
+  [
+    "PositionsTotal",
+    "/trading/positionstotal"
+  ],
+  [
+    "StructToCharArray",
+    "/convert/structtochararray"
+  ],
+  [
+    "SymbolExist",
+    "/marketinformation/symbolexist"
+  ],
+  [
+    "SymbolInfoMarginRate",
+    "/marketinformation/symbolinfomarginrate"
+  ],
+  [
+    "SymbolIsSynchronized",
+    "/marketinformation/symbolissynchronized"
+  ],
+  [
+    "TesterDeposit",
+    "/common/testerdeposit"
+  ],
+  [
+    "TesterHideIndicators",
+    "/common/testerhideindicators"
+  ],
+  [
+    "TesterPass",
+    "/common/testerpass"
+  ],
+  [
+    "TesterStop",
+    "/common/testerstop"
+  ],
+  [
+    "TesterWithdrawal",
+    "/common/testerwithdrawal"
   ]
 ]

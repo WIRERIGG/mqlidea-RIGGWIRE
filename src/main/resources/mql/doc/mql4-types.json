@@ -1,0 +1,11 @@
+[
+  ["MqlBookInfo", "/constants/structures/mqlbookinfo"],
+  ["MqlDateTime", "/constants/structures/mqldatetime"],
+  ["MqlParam", "/constants/structures/mqlparam"],
+  ["MqlRates", "/constants/structures/mqlrates"],
+  ["MqlTick", "/constants/structures/mqltick"],
+  ["MqlTradeCheckResult", "/constants/structures/mqltradecheckresult"],
+  ["MqlTradeRequest", "/constants/structures/mqltraderequest"],
+  ["MqlTradeResult", "/constants/structures/mqltraderesult"],
+  ["MqlTradeTransaction", "/constants/structures/mqltradetransaction"]
+]

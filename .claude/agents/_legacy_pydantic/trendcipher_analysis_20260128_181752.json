@@ -1,0 +1,145 @@
+{
+  "timestamp": "2026-01-28T18:17:52.390998",
+  "file": "C:\\Users\\dorwi\\CLionProjects\\RIGGWIRE-EA\\RIGGWIRE-EA-FTMO-LIVE\\TrendCipher.mq5",
+  "analysis": {
+    "structural": {
+      "total_lines": 3317,
+      "version_references": 174,
+      "properties": 136,
+      "functions": 33,
+      "buffer_declarations": 33,
+      "property_list": {
+        "copyright": "\"Production v12.22 - Strategic Sensitivity Enhancements\"",
+        "link": "\"https://www.mql5.com\"",
+        "version": "\"12.22\"",
+        "strict": "removed - MQL4-only directive (MQL5 is strict by default)",
+        "indicator_separate_window": "#property indicator_buffers 39",
+        "indicator_plots": "26",
+        "indicator_label1": "\"WT Main\"",
+        "indicator_type1": "DRAW_LINE",
+        "indicator_color1": "clrDodgerBlue",
+        "indicator_style1": "STYLE_SOLID"
+      },
+      "function_names": [
+        "IsTradingSession",
+        "IsBarInSession",
+        "ParseSessionTime",
+        "OnInit",
+        "OnDeinit",
+        "GetTF_Trend",
+        "CheckHigherTF_Support",
+        "CheckVolatilityFilter",
+        "OnCalculate",
+        "PrintCurrentState",
+        "ClearAllBuffers",
+        "ClearCurrentSignals",
+        "InitializeBuffers",
+        "UpdateZonesFixed",
+        "CalculateSupportResistance",
+        "CalculateWaveTrend",
+        "CalculateFastSMA",
+        "CalculateTrendZones",
+        "CalculateSignalStrength",
+        "CalculatePriceCorrelation"
+      ]
+    },
+    "buffers": {
+      "total_buffers": 39,
+      "total_plots": 26,
+      "buffer_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38
+      ],
+      "gaps": [],
+      "issues": []
+    },
+    "logic": {
+      "issues": [],
+      "warnings": [
+        {
+          "type": "Division Operations",
+          "count": 689,
+          "recommendation": "Ensure all divisions check for zero denominator"
+        },
+        {
+          "type": "Static Variables",
+          "count": 16,
+          "recommendation": "Consider using global variables for state persistence"
+        }
+      ],
+      "stats": {
+        "divisions": 689,
+        "array_accesses": 36,
+        "copybuffer_calls": 7,
+        "static_variables": 16
+      }
+    },
+    "compilation": {
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "type": "Potential Typos or Disabled Code",
+          "count": 1,
+          "examples": [
+            {
+              "variable": "g_activeSignalDirection",
+              "issue": "Variable referenced but commented as DISABLED",
+              "line_pattern": "g_activeSignalDirection"
+            }
+          ]
+        }
+      ],
+      "stats": {
+        "declared_vars": 328,
+        "used_vars": 466,
+        "declared_functions": 33,
+        "called_functions": 334
+      }
+    },
+    "compatibility": {
+      "signal_generation": true,
+      "buffer_access": true,
+      "proper_empty_values": true,
+      "issues": []
+    }
+  },
+  "issues": [],
+  "recommendations": []
+}

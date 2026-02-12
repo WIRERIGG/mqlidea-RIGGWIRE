@@ -1,5 +1,9 @@
 [
   [
+    "abstract",
+    "/basis/oop/polymorphism#abstract"
+  ],
+  [
     "bool",
     "/basis/types/integer/boolconst"
   ],
@@ -100,6 +104,10 @@
     "/basis/variables/inputvariables"
   ],
   [
+    "interface",
+    "/basis/oop/interfaces"
+  ],
+  [
     "static",
     "/basis/variables/static"
   ],
@@ -190,5 +198,21 @@
   [
     "false",
     "/basis/types/integer/boolconst"
+  ],
+  [
+    "final",
+    "/basis/oop/polymorphism#final"
+  ],
+  [
+    "namespace",
+    "/basis/syntax/namespace"
+  ],
+  [
+    "override",
+    "/basis/oop/polymorphism#override"
+  ],
+  [
+    "sinput",
+    "/basis/variables/inputvariables#sinput"
   ]
 ]

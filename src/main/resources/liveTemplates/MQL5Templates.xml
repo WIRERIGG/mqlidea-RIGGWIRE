@@ -1,0 +1,85 @@
+<templateSet group="MQL5">
+
+    <template name="oninit" value="int OnInit()&#10;{&#10;   $BODY$&#10;   return(INIT_SUCCEEDED);&#10;}&#10;" description="OnInit() event handler with INIT_SUCCEEDED return" toReformat="false" toShortenFQNames="false">
+        <variable name="BODY" expression="" defaultValue="&quot;// Initialization code&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="ontick" value="void OnTick()&#10;{&#10;   static datetime lastBarTime = 0;&#10;   datetime currentBarTime = iTime(_Symbol, PERIOD_CURRENT, 0);&#10;   if(currentBarTime == lastBarTime)&#10;      return;&#10;   lastBarTime = currentBarTime;&#10;&#10;   $BODY$&#10;}&#10;" description="OnTick() with new bar check pattern" toReformat="false" toShortenFQNames="false">
+        <variable name="BODY" expression="" defaultValue="&quot;// Process new bar&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="ondeinit" value="void OnDeinit(const int reason)&#10;{&#10;   $BODY$&#10;}&#10;" description="OnDeinit() cleanup event handler" toReformat="false" toShortenFQNames="false">
+        <variable name="BODY" expression="" defaultValue="&quot;// Cleanup resources&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="ordersend" value="MqlTradeRequest request = {};&#10;MqlTradeResult result = {};&#10;&#10;request.action    = $ACTION$;&#10;request.symbol    = _Symbol;&#10;request.volume    = $VOLUME$;&#10;request.type      = $ORDER_TYPE$;&#10;request.price     = $PRICE$;&#10;request.deviation = $DEVIATION$;&#10;request.magic     = $MAGIC$;&#10;request.comment   = $COMMENT$;&#10;&#10;if(!OrderSend(request, result))&#10;{&#10;   PrintFormat(&quot;OrderSend error %d: %s&quot;, GetLastError(), result.comment);&#10;}&#10;" description="OrderSend with MqlTradeRequest/Result and error check" toReformat="false" toShortenFQNames="false">
+        <variable name="ACTION" expression="" defaultValue="&quot;TRADE_ACTION_DEAL&quot;" alwaysStopAt="true" />
+        <variable name="VOLUME" expression="" defaultValue="&quot;0.1&quot;" alwaysStopAt="true" />
+        <variable name="ORDER_TYPE" expression="" defaultValue="&quot;ORDER_TYPE_BUY&quot;" alwaysStopAt="true" />
+        <variable name="PRICE" expression="" defaultValue="&quot;SymbolInfoDouble(_Symbol, SYMBOL_ASK)&quot;" alwaysStopAt="true" />
+        <variable name="DEVIATION" expression="" defaultValue="&quot;10&quot;" alwaysStopAt="true" />
+        <variable name="MAGIC" expression="" defaultValue="&quot;123456&quot;" alwaysStopAt="true" />
+        <variable name="COMMENT" expression="" defaultValue="&quot;\&quot;EA Order\&quot;&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="input" value="input $TYPE$ $NAME$ = $DEFAULT$;  // $DESCRIPTION$&#10;" description="Input parameter declaration" toReformat="false" toShortenFQNames="false">
+        <variable name="TYPE" expression="" defaultValue="&quot;double&quot;" alwaysStopAt="true" />
+        <variable name="NAME" expression="" defaultValue="&quot;InpParam&quot;" alwaysStopAt="true" />
+        <variable name="DEFAULT" expression="" defaultValue="&quot;0.0&quot;" alwaysStopAt="true" />
+        <variable name="DESCRIPTION" expression="" defaultValue="&quot;Parameter description&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="indicator" value="int $HANDLE$ = $INDICATOR$($SYMBOL$, $PERIOD$, $PARAMS$);&#10;if($HANDLE$ == INVALID_HANDLE)&#10;{&#10;   PrintFormat(&quot;Failed to create indicator: %d&quot;, GetLastError());&#10;   return(INIT_FAILED);&#10;}&#10;" description="Indicator creation with INVALID_HANDLE check" toReformat="false" toShortenFQNames="false">
+        <variable name="HANDLE" expression="" defaultValue="&quot;maHandle&quot;" alwaysStopAt="true" />
+        <variable name="INDICATOR" expression="" defaultValue="&quot;iMA&quot;" alwaysStopAt="true" />
+        <variable name="SYMBOL" expression="" defaultValue="&quot;_Symbol&quot;" alwaysStopAt="true" />
+        <variable name="PERIOD" expression="" defaultValue="&quot;PERIOD_CURRENT&quot;" alwaysStopAt="true" />
+        <variable name="PARAMS" expression="" defaultValue="&quot;14, 0, MODE_SMA, PRICE_CLOSE&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="fileop" value="int $HANDLE$ = FileOpen($FILENAME$, $FLAGS$);&#10;if($HANDLE$ == INVALID_HANDLE)&#10;{&#10;   PrintFormat(&quot;FileOpen failed: %d&quot;, GetLastError());&#10;   return;&#10;}&#10;&#10;$BODY$&#10;&#10;FileClose($HANDLE$);&#10;" description="FileOpen/FileClose with error handling" toReformat="false" toShortenFQNames="false">
+        <variable name="HANDLE" expression="" defaultValue="&quot;fileHandle&quot;" alwaysStopAt="true" />
+        <variable name="FILENAME" expression="" defaultValue="&quot;\&quot;data.csv\&quot;&quot;" alwaysStopAt="true" />
+        <variable name="FLAGS" expression="" defaultValue="&quot;FILE_WRITE|FILE_CSV&quot;" alwaysStopAt="true" />
+        <variable name="BODY" expression="" defaultValue="&quot;// File operations here&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="class" value="class $NAME$&#10;{&#10;private:&#10;   $MEMBERS$&#10;&#10;public:&#10;   $NAME$()&#10;   {&#10;      $INIT$&#10;   }&#10;&#10;   ~$NAME$()&#10;   {&#10;      $CLEANUP$&#10;   }&#10;};&#10;" description="Class with constructor and destructor" toReformat="false" toShortenFQNames="false">
+        <variable name="NAME" expression="" defaultValue="&quot;CMyClass&quot;" alwaysStopAt="true" />
+        <variable name="MEMBERS" expression="" defaultValue="&quot;int m_value;&quot;" alwaysStopAt="true" />
+        <variable name="INIT" expression="" defaultValue="&quot;m_value = 0;&quot;" alwaysStopAt="true" />
+        <variable name="CLEANUP" expression="" defaultValue="&quot;// Cleanup&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+    <template name="pool" value="class $NAME$Pool&#10;{&#10;private:&#10;   $NAME$ *m_pool[];&#10;   int     m_size;&#10;   int     m_used;&#10;&#10;public:&#10;   $NAME$Pool(int poolSize)&#10;   {&#10;      m_size = poolSize;&#10;      m_used = 0;&#10;      ArrayResize(m_pool, m_size);&#10;      for(int i = 0; i &lt; m_size; i++)&#10;         m_pool[i] = new $NAME$();&#10;   }&#10;&#10;   ~$NAME$Pool()&#10;   {&#10;      for(int i = 0; i &lt; m_size; i++)&#10;      {&#10;         if(m_pool[i] != NULL)&#10;         {&#10;            delete m_pool[i];&#10;            m_pool[i] = NULL;&#10;         }&#10;      }&#10;   }&#10;&#10;   $NAME$ *Acquire()&#10;   {&#10;      if(m_used &lt; m_size)&#10;         return m_pool[m_used++];&#10;      return NULL;&#10;   }&#10;&#10;   void Release()&#10;   {&#10;      m_used = 0;&#10;   }&#10;};&#10;" description="Object pool pattern for reusable objects" toReformat="false" toShortenFQNames="false">
+        <variable name="NAME" expression="" defaultValue="&quot;CMyObject&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="MQL5" value="true" />
+        </context>
+    </template>
+
+</templateSet>

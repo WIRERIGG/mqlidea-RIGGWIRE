@@ -1,0 +1,19 @@
+﻿<html>
+<body>
+This inspection reports <code>for</code> or <code>while</code> loops with empty bodies
+(<code>{}</code>). An empty loop body usually indicates missing implementation or
+dead code that should be removed.
+<!-- tooltip end -->
+<p>Example of problematic code:</p>
+<pre>
+for(int i = 0; i &lt; OrdersTotal(); i++) {}  // Warning: empty loop body
+</pre>
+<p>Add the intended logic or remove the loop:</p>
+<pre>
+for(int i = 0; i &lt; OrdersTotal(); i++) {
+    if(OrderSelect(i, SELECT_BY_POS))
+        ProcessOrder();
+}
+</pre>
+</body>
+</html>

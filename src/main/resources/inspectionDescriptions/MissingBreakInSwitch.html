@@ -1,0 +1,31 @@
+﻿<html>
+<body>
+This inspection reports possible unintended fall-through in <code>switch</code> statements
+where a <code>case</code> block does not end with <code>break</code> or <code>return</code>
+before the next <code>case</code>. Accidental fall-through is a common source of bugs in
+MQL5 trading code.
+<!-- tooltip end -->
+<p>Example of problematic code:</p>
+<pre>
+switch(signal) {
+    case SIGNAL_BUY:
+        OpenBuy();
+        // Missing break — falls through to SIGNAL_SELL!
+    case SIGNAL_SELL:
+        OpenSell();
+        break;
+}
+</pre>
+<p>Add <code>break</code> to each case:</p>
+<pre>
+switch(signal) {
+    case SIGNAL_BUY:
+        OpenBuy();
+        break;
+    case SIGNAL_SELL:
+        OpenSell();
+        break;
+}
+</pre>
+</body>
+</html>

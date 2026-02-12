@@ -1884,7 +1884,8 @@ public class MQL4Lexer implements FlexLexer {
             // fall through
           case 119: break;
           case 4:
-            { return MQL4Elements.IDENTIFIER;
+            { IElementType kw = checkMQL5Keyword();
+              return kw != null ? kw : MQL4Elements.IDENTIFIER;
             }
             // fall through
           case 120: break;
@@ -2455,5 +2456,43 @@ public class MQL4Lexer implements FlexLexer {
     }
   }
 
+  /**
+   * Check if the current identifier token matches an MQL5 keyword
+   * that was not present in the original JFlex-generated DFA.
+   * These keywords were added to MQL4Lexer.flex and will be handled
+   * natively when the lexer is regenerated.
+   */
+  private IElementType checkMQL5Keyword() {
+    CharSequence text = yytext();
+    int len = text.length();
+    if (len < 5 || len > 12) return null;
+    switch (len) {
+      case 5:
+        if (charSeqEquals(text, "final")) return MQL4Elements.FINAL_KEYWORD;
+        break;
+      case 6:
+        if (charSeqEquals(text, "sinput")) return MQL4Elements.SINPUT_KEYWORD;
+        break;
+      case 8:
+        if (charSeqEquals(text, "abstract")) return MQL4Elements.ABSTRACT_KEYWORD;
+        if (charSeqEquals(text, "override")) return MQL4Elements.OVERRIDE_KEYWORD;
+        break;
+      case 9:
+        if (charSeqEquals(text, "namespace")) return MQL4Elements.NAMESPACE_KEYWORD;
+        break;
+      case 12:
+        if (charSeqEquals(text, "dynamic_cast")) return MQL4Elements.DYNAMIC_CAST_KEYWORD;
+        break;
+    }
+    return null;
+  }
+
+  private static boolean charSeqEquals(CharSequence cs, String s) {
+    if (cs.length() != s.length()) return false;
+    for (int i = 0; i < cs.length(); i++) {
+      if (cs.charAt(i) != s.charAt(i)) return false;
+    }
+    return true;
+  }
 
 }

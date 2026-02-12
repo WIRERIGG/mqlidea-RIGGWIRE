@@ -1,0 +1,110 @@
+{
+  "pairs": [
+    {
+      "issue_category": "memory_leak",
+      "issue_description": "Memory leak detected",
+      "suggestion": "Replace raw pointers with std::unique_ptr",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:01.816240"
+    },
+    {
+      "issue_category": "invalid_read",
+      "issue_description": "Invalid read access",
+      "suggestion": "Add bounds checking before array access",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:01.816262"
+    },
+    {
+      "issue_category": "data_race",
+      "issue_description": "Data race detected",
+      "suggestion": "Protect shared data with std::mutex",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:01.816264"
+    },
+    {
+      "issue_category": "uninitialized_value",
+      "issue_description": "Uninitialized variable",
+      "suggestion": "Initialize all variables at declaration",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:01.816269"
+    },
+    {
+      "issue_category": "cache_miss",
+      "issue_description": "High cache miss rate",
+      "suggestion": "Improve data locality by reorganizing structures",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:01.816271"
+    },
+    {
+      "issue_category": "memory_leak",
+      "issue_description": "Definitely lost: 1,024 bytes in 1 blocks",
+      "suggestion": "Replace raw pointer with std::unique_ptr for automatic cleanup",
+      "effectiveness_score": 0.9,
+      "usage_count": 3,
+      "timestamp": "2025-09-01T05:37:01.822255"
+    },
+    {
+      "issue_category": "data_race",
+      "issue_description": "Data race detected: 4 byte access by thread #2",
+      "suggestion": "Add std::mutex protection around shared variable access",
+      "effectiveness_score": 0.95,
+      "usage_count": 2,
+      "timestamp": "2025-09-01T05:37:01.822565"
+    },
+    {
+      "issue_category": "memory_leak",
+      "issue_description": "Memory leak detected",
+      "suggestion": "Replace raw pointers with std::unique_ptr",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:31.792711"
+    },
+    {
+      "issue_category": "invalid_read",
+      "issue_description": "Invalid read access",
+      "suggestion": "Add bounds checking before array access",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:31.792715"
+    },
+    {
+      "issue_category": "data_race",
+      "issue_description": "Data race detected",
+      "suggestion": "Protect shared data with std::mutex",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:31.792717"
+    },
+    {
+      "issue_category": "uninitialized_value",
+      "issue_description": "Uninitialized variable",
+      "suggestion": "Initialize all variables at declaration",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:31.792719"
+    },
+    {
+      "issue_category": "cache_miss",
+      "issue_description": "High cache miss rate",
+      "suggestion": "Improve data locality by reorganizing structures",
+      "effectiveness_score": 0.8,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:31.792723"
+    },
+    {
+      "issue_category": "memory_leak",
+      "issue_description": "Definitely lost: 1,024 bytes in 1 blocks",
+      "suggestion": "Replace raw pointer with std::unique_ptr for automatic cleanup",
+      "effectiveness_score": 0.0,
+      "usage_count": 1,
+      "timestamp": "2025-09-01T05:37:31.793197"
+    }
+  ],
+  "last_updated": "2025-09-01T05:37:31.793201",
+  "version": "1.0.0"
+}

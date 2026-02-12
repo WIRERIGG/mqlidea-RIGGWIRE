@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>MqlTradeCheckResult</h1>
+<p><span>This structure is used to check the result of a trade request before sending it. It is filled by the <a href="/trading/ordercheck">OrderCheck()</a> function.</span></p>
+<div style="text-align: left; text-indent: 0px; line-height: 1.0; page-break-inside: avoid; border-color: #b3b3b3; border-style: solid; border-width: thin; background: #fbf9f5; padding: 0px 0px 0px 0px; margin: 2px 17px 2px 17px;">
+ <table cellpadding="3" style="border:none; border-spacing:0px;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; padding:3px;"><p><span style="color: #0000ff;">struct&nbsp;</span><span style="font-weight: bold;">MqlTradeCheckResult</span><br> <span>&nbsp;&nbsp;{</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">uint</span><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span>retcode</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Response&nbsp;code</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;</span><span>balance</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Balance&nbsp;after&nbsp;the&nbsp;trade</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;</span><span>equity</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Equity&nbsp;after&nbsp;the&nbsp;trade</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;</span><span>profit</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Floating&nbsp;profit</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;</span><span>margin</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Margin&nbsp;required&nbsp;for&nbsp;the&nbsp;trade</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;</span><span>margin_free</span><span>;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Free&nbsp;margin&nbsp;after&nbsp;the&nbsp;trade</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;</span><span>margin_level</span><span>;&nbsp;</span><span style="color: #808080;">//&nbsp;Margin&nbsp;level&nbsp;after&nbsp;the&nbsp;trade</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">string</span><span>&nbsp;&nbsp;</span><span>comment</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Comment&nbsp;to&nbsp;the&nbsp;response&nbsp;code</span><br> <span>&nbsp;&nbsp;};</span></p></td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>Note</span></p>
+<p><span>MqlTradeCheckResult is used with <a href="/trading/ordercheck">OrderCheck()</a> to validate a trade request before actually sending it to the server. This allows checking if there are enough funds, whether the parameters are correct, and estimating the margin requirements.</span></p>
+<p><span>See also</span></p>
+<p><span><a href="/trading/ordercheck">OrderCheck</a>, <a href="/trading/ordersend">OrderSend</a>, <a href="/constants/structures">Data Structures</a></span></p>
+<br>

@@ -1,0 +1,35 @@
+# Build directories
+build/
+cmake-build-*/
+
+# CMake cache
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+
+# Test executables
+safe_test
+safe_test.exe
+
+# Coverage files
+*.gcda
+*.gcno
+*.gcov
+coverage.html
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
+package com.limemojito.oss.mql.inspection;
+
+import com.intellij.codeInspection.InspectionManager;
+import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.lang.ASTNode;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
+import java.util.Set;
+
+public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
+
+    private static final String MESSAGE =
+            "Important function return value ignored — check return values of ArrayResize/FileOpen/ObjectCreate/etc. to detect failures";
+
+    private static final Set<String> IMPORTANT_FUNCTIONS = Set.of(
+            "ArrayResize", "ArrayCopy", "ArraySort",
+            "StringFind", "StringReplace",
+            "FileOpen", "FileCopy", "FileMove",
+            "GlobalVariableSet",
+            "ChartSetInteger", "ChartSetDouble", "ChartSetString",
+            "ObjectCreate", "ObjectDelete",
+            "EventSetTimer", "EventSetMillisecondTimer"
+    );
+
+    /**
+     * Pattern matches a line that starts (after whitespace) directly with an important function name
+     * followed by '('. This indicates the function is called as a standalone statement without
+     * capturing its return value.
+     */
+    private static final String IGNORED_RETURN_PATTERN =
+            "(?m)^\\s+(ArrayResize|ArrayCopy|ArraySort|StringFind|StringReplace|FileOpen|FileCopy|FileMove"
+                    + "|GlobalVariableSet|ChartSetInteger|ChartSetDouble|ChartSetString"
+                    + "|ObjectCreate|ObjectDelete|EventSetTimer|EventSetMillisecondTimer)\\s*\\(";
+
+    @Override
+    public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
+        List<ProblemDescriptor> problems = new SmartList<>();
+        for (PsiElement child : file.getChildren()) {
+            ProgressManager.checkCanceled();
+            if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
+                ASTNode body = findBracketsBlock(child);
+                if (body == null) continue;
+                if (BracketBlockTokenWalker.containsPattern(body, IGNORED_RETURN_PATTERN)) {
+                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                }
+            }
+        }
+        return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+}

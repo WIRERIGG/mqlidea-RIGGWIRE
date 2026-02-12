@@ -56,6 +56,7 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
         loadResource("mql4-constants", DocEntryType.BuiltInConstant);
         loadResource("mql4-functions", DocEntryType.BuiltInFunction);
         loadResource("mql4-keywords", DocEntryType.Keyword);
+        loadResource("mql4-types", DocEntryType.BuiltInType);
         loadResource("mql4-preprocessor", DocEntryType.PreprocessorKeyword);
         resourcesLoadedFlag = true;
     }

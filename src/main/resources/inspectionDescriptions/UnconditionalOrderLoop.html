@@ -1,0 +1,32 @@
+<html>
+<body>
+Reports <code>OrdersTotal()</code> or <code>PositionsTotal()</code> calls in <code>OnTick()</code>
+without any change detection or caching mechanism.
+<p>
+    Iterating over all orders/positions on every tick is wasteful when order state rarely changes.
+    Use the <code>OnTrade()</code> or <code>OnTradeTransaction()</code> event handlers for
+    order state changes, or cache the count with a static variable and only re-scan when it changes.
+</p>
+<p><b>Example (bad):</b></p>
+<pre>
+void OnTick() {
+    for (int i = PositionsTotal() - 1; i >= 0; i--) {
+        // Check every position on every tick
+    }
+}
+</pre>
+<p><b>Example (good):</b></p>
+<pre>
+void OnTick() {
+    static int prevTotal = 0;
+    int total = PositionsTotal();
+    if (total == prevTotal) return;
+    prevTotal = total;
+
+    for (int i = total - 1; i >= 0; i--) {
+        // Only scan when count changes
+    }
+}
+</pre>
+</body>
+</html>

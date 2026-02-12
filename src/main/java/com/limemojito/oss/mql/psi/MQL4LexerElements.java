@@ -96,10 +96,14 @@ public interface MQL4LexerElements {
     // Memory classes
     IElementType EXTERN_KEYWORD = new MQL4ElementType("EXTERN_KEYWORD");
     IElementType INPUT_KEYWORD = new MQL4ElementType("INPUT_KEYWORD");
+    IElementType SINPUT_KEYWORD = new MQL4ElementType("SINPUT_KEYWORD");
     IElementType STATIC_KEYWORD = new MQL4ElementType("STATIC_KEYWORD");
 
     // Access specifiers
+    IElementType ABSTRACT_KEYWORD = new MQL4ElementType("ABSTRACT_KEYWORD");
     IElementType CONST_KEYWORD = new MQL4ElementType("CONST_KEYWORD");
+    IElementType FINAL_KEYWORD = new MQL4ElementType("FINAL_KEYWORD");
+    IElementType OVERRIDE_KEYWORD = new MQL4ElementType("OVERRIDE_KEYWORD");
     IElementType PRIVATE_KEYWORD = new MQL4ElementType("PRIVATE_KEYWORD");
     IElementType PROTECTED_KEYWORD = new MQL4ElementType("PROTECTED_KEYWORD");
     IElementType PUBLIC_KEYWORD = new MQL4ElementType("PUBLIC_KEYWORD");
@@ -146,6 +150,7 @@ public interface MQL4LexerElements {
 
     // Keywords
     IElementType BREAK_KEYWORD = new MQL4ElementType("BREAK_KEYWORD");
+    IElementType DYNAMIC_CAST_KEYWORD = new MQL4ElementType("DYNAMIC_CAST_KEYWORD");
     IElementType CASE_KEYWORD = new MQL4ElementType("CASE_KEYWORD");
     IElementType CONTINUE_KEYWORD = new MQL4ElementType("CONTINUE_KEYWORD");
     IElementType DEFAULT_KEYWORD = new MQL4ElementType("DEFAULT_KEYWORD");
@@ -155,6 +160,7 @@ public interface MQL4LexerElements {
     IElementType FALSE_KEYWORD = new MQL4ElementType("FALSE_KEYWORD");
     IElementType FOR_KEYWORD = new MQL4ElementType("FOR_KEYWORD");
     IElementType IF_KEYWORD = new MQL4ElementType("IF_KEYWORD");
+    IElementType NAMESPACE_KEYWORD = new MQL4ElementType("NAMESPACE_KEYWORD");
     IElementType NEW_KEYWORD = new MQL4ElementType("NEW_KEYWORD");
     IElementType OPERATOR_KEYWORD = new MQL4ElementType("OPERATOR_KEYWORD");
     IElementType SIZEOF_KEYWORD = new MQL4ElementType("SIZEOF_KEYWORD");

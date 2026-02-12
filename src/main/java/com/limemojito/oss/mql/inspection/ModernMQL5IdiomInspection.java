@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+ */
+
+package com.limemojito.oss.mql.inspection;
+
+import com.intellij.codeInspection.InspectionManager;
+import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.lang.ASTNode;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
+import java.util.Map;
+
+public class ModernMQL5IdiomInspection extends MQL5SafetyInspectionBase {
+
+    private static final String MESSAGE = "Deprecated MQL4 function '%s()' used — consider MQL5 equivalent '%s()'";
+    private static final Map<String, String> DEPRECATED_FUNCS = Map.ofEntries(
+            Map.entry("OrderSend", "CTrade.OrderSend"),
+            Map.entry("OrderClose", "CTrade.PositionClose"),
+            Map.entry("OrderModify", "CTrade.OrderModify"),
+            Map.entry("OrderDelete", "CTrade.OrderDelete"),
+            Map.entry("MarketInfo", "SymbolInfoDouble/SymbolInfoInteger"),
+            Map.entry("AccountBalance", "AccountInfoDouble(ACCOUNT_BALANCE)"),
+            Map.entry("AccountEquity", "AccountInfoDouble(ACCOUNT_EQUITY)"),
+            Map.entry("AccountFreeMargin", "AccountInfoDouble(ACCOUNT_MARGIN_FREE)"),
+            Map.entry("AccountNumber", "AccountInfoInteger(ACCOUNT_LOGIN)")
+    );
+
+    @Override
+    public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
+        if (!file.getName().toLowerCase().endsWith(".mq5")) return ProblemDescriptor.EMPTY_ARRAY;
+
+        List<ProblemDescriptor> problems = new SmartList<>();
+        for (PsiElement child : file.getChildren()) {
+            ProgressManager.checkCanceled();
+            if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
+                ASTNode body = findBracketsBlock(child);
+                for (Map.Entry<String, String> entry : DEPRECATED_FUNCS.entrySet()) {
+                    if (BracketBlockTokenWalker.containsFunctionCall(body, entry.getKey())) {
+                        problems.add(createWeakWarning(manager, child.getNavigationElement(),
+                                String.format(MESSAGE, entry.getKey(), entry.getValue())));
+                    }
+                }
+            }
+        }
+        return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+}

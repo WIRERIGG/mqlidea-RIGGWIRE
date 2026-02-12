@@ -1,0 +1,20 @@
+<html>
+<body>
+Reports <code>delete</code> statements that are not followed by setting the pointer to <code>NULL</code>.
+<p>
+    After deleting an object, the pointer still holds the old address. Subsequent accidental
+    use of that pointer causes undefined behavior (use-after-free). Setting the pointer to
+    <code>NULL</code> immediately after delete prevents this class of bugs.
+</p>
+<p><b>Example (bad):</b></p>
+<pre>
+delete m_indicator;
+// m_indicator still points to freed memory
+</pre>
+<p><b>Example (good):</b></p>
+<pre>
+delete m_indicator;
+m_indicator = NULL;
+</pre>
+</body>
+</html>

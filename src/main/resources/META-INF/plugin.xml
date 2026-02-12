@@ -128,6 +128,342 @@
                          displayName="Preprocessor #property element"
                          implementationClass="com.limemojito.oss.mql.inspection.PreprocessorPropertyInspection"/>
 
+        <!-- MQL5 Safety: Trading Safety -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Unchecked OrderSend() result"
+                         implementationClass="com.limemojito.oss.mql.inspection.UncheckedOrderSendInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Unchecked indicator handle"
+                         implementationClass="com.limemojito.oss.mql.inspection.UncheckedHandleInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Missing IndicatorRelease() in OnDeinit"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingIndicatorReleaseInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Array access without size check"
+                         implementationClass="com.limemojito.oss.mql.inspection.ArrayAccessWithoutSizeCheckInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Missing input parameter validation"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingInputValidationInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="FileOpen() without FileClose()"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingFileCloseInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Unchecked CopyRates/CopyBuffer result"
+                         implementationClass="com.limemojito.oss.mql.inspection.UncheckedCopyRatesInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Double IndicatorRelease() call"
+                         implementationClass="com.limemojito.oss.mql.inspection.DoubleIndicatorReleaseInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Delete without NULL check"
+                         implementationClass="com.limemojito.oss.mql.inspection.DeleteWithoutNullCheckInspection"/>
+
+        <!-- MQL5 Safety: Function Signature -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="OnInit() returns void instead of int"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingOnInitReturnInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Empty event handler"
+                         implementationClass="com.limemojito.oss.mql.inspection.EmptyEventHandlerInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Missing const on reference parameter"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingConstParameterInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Large struct passed by value"
+                         implementationClass="com.limemojito.oss.mql.inspection.LargeStructByValueInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Missing destructor in class"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingDestructorInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Virtual methods without virtual destructor"
+                         implementationClass="com.limemojito.oss.mql.inspection.VirtualWithoutDestructorInspection"/>
+
+        <!-- MQL5 Safety: Class Structure -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Public data member in class"
+                         implementationClass="com.limemojito.oss.mql.inspection.PublicDataMemberInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Missing #property description"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingPropertyDescriptionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Missing #property version"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingPropertyVersionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Excessive global variables"
+                         implementationClass="com.limemojito.oss.mql.inspection.ExcessiveGlobalVariablesInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Input parameter reassignment"
+                         implementationClass="com.limemojito.oss.mql.inspection.ImmutableInputParameterInspection"/>
+
+        <!-- MQL5 Safety: Naming & Style -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="false" level="WEAK WARNING"
+                         displayName="Function naming convention (PascalCase)"
+                         implementationClass="com.limemojito.oss.mql.inspection.FunctionNamingConventionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="false" level="WEAK WARNING"
+                         displayName="Variable naming convention"
+                         implementationClass="com.limemojito.oss.mql.inspection.VariableNamingConventionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="false" level="WEAK WARNING"
+                         displayName="Class naming convention (CClassName)"
+                         implementationClass="com.limemojito.oss.mql.inspection.ClassNamingConventionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="false" level="WEAK WARNING"
+                         displayName="Missing function documentation comment"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingFunctionDocCommentInspection"/>
+
+        <!-- MQL5 Safety: Type Safety -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Narrowing return type (precision loss)"
+                         implementationClass="com.limemojito.oss.mql.inspection.NarrowingReturnTypeInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Uninitialized variable"
+                         implementationClass="com.limemojito.oss.mql.inspection.UninitializedVariableInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Explicit type cast"
+                         implementationClass="com.limemojito.oss.mql.inspection.ImplicitCastInspection"/>
+
+        <!-- MQL5 Safety: Performance -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="ArrayResize() inside loop"
+                         implementationClass="com.limemojito.oss.mql.inspection.ArrayResizeInLoopInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Print/Comment in OnTick()"
+                         implementationClass="com.limemojito.oss.mql.inspection.PrintInOnTickInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Sleep() in event handler"
+                         implementationClass="com.limemojito.oss.mql.inspection.SleepInEventHandlerInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Redundant calculations in OnTick()"
+                         implementationClass="com.limemojito.oss.mql.inspection.RedundantCalculationInOnTickInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="String concatenation in loop"
+                         implementationClass="com.limemojito.oss.mql.inspection.StringConcatInLoopInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Suboptimal container usage"
+                         implementationClass="com.limemojito.oss.mql.inspection.SuboptimalContainerInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Missing array pre-allocation"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingArrayPreallocationInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Lazy evaluation missed"
+                         implementationClass="com.limemojito.oss.mql.inspection.LazyEvaluationMissInspection"/>
+
+        <!-- MQL5 Safety: Security & Data -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Account info exposure"
+                         implementationClass="com.limemojito.oss.mql.inspection.AccountInfoExposureInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Hardcoded credentials"
+                         implementationClass="com.limemojito.oss.mql.inspection.HardcodedCredentialsInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="OrderSend() without volume validation"
+                         implementationClass="com.limemojito.oss.mql.inspection.SafeApiUsageInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="File read without error check"
+                         implementationClass="com.limemojito.oss.mql.inspection.FileOperationValidationInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Deterministic random seed"
+                         implementationClass="com.limemojito.oss.mql.inspection.DeterministicSeedInspection"/>
+
+        <!-- MQL5 Safety: Advanced Patterns -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Stack overflow risk (recursion)"
+                         implementationClass="com.limemojito.oss.mql.inspection.StackOverflowRiskInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Dangling object reference"
+                         implementationClass="com.limemojito.oss.mql.inspection.DanglingObjectReferenceInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Stale handle usage after release"
+                         implementationClass="com.limemojito.oss.mql.inspection.StaleHandleUsageInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Incomplete class (Rule of Three)"
+                         implementationClass="com.limemojito.oss.mql.inspection.IncompleteClassInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="GlobalVariableSet() from multiple functions"
+                         implementationClass="com.limemojito.oss.mql.inspection.GlobalVariableConflictInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Missing error recovery for OrderSend()"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingErrorRecoveryInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Over-complex error handling"
+                         implementationClass="com.limemojito.oss.mql.inspection.OverComplexErrorHandlingInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Unsafe ArrayCopy()"
+                         implementationClass="com.limemojito.oss.mql.inspection.UnsafeArrayCopyInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Deprecated MQL4 function in MQL5"
+                         implementationClass="com.limemojito.oss.mql.inspection.ModernMQL5IdiomInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Price comparison without NormalizeDouble()"
+                         implementationClass="com.limemojito.oss.mql.inspection.DataConsistencyInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Missing ArraySetAsSeries() for timeseries"
+                         implementationClass="com.limemojito.oss.mql.inspection.TimeseriesDirectionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Secure coding patterns"
+                         implementationClass="com.limemojito.oss.mql.inspection.SecureCodingPatternsInspection"/>
+
+        <!-- MQL5 Safety: Memory & Allocation -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Object allocation in OnTick()"
+                         implementationClass="com.limemojito.oss.mql.inspection.ObjectCreationInOnTickInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Unchecked ArrayResize() return value"
+                         implementationClass="com.limemojito.oss.mql.inspection.ArrayResizeReturnCheckInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Missing NULL assignment after delete"
+                         implementationClass="com.limemojito.oss.mql.inspection.NullAfterDeleteInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Indicator handle created in OnTick()"
+                         implementationClass="com.limemojito.oss.mql.inspection.IndicatorCreationInOnTickInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Heap allocation ('new') in loop"
+                         implementationClass="com.limemojito.oss.mql.inspection.NewKeywordInLoopInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Missing new bar check in OnTick()"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingNewBarCheckInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Unconditional order loop in OnTick()"
+                         implementationClass="com.limemojito.oss.mql.inspection.UnconditionalOrderLoopInspection"/>
+
+        <!-- MQL5 Safety: Control Flow -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Use of 'goto' statement"
+                         implementationClass="com.limemojito.oss.mql.inspection.NoGotoInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Suspicious semicolon after control statement"
+                         implementationClass="com.limemojito.oss.mql.inspection.SuspiciousSemicolonInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Empty loop body"
+                         implementationClass="com.limemojito.oss.mql.inspection.EmptyLoopBodyInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Switch without default case"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingDefaultCaseInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Switch case fall-through without break"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingBreakInSwitchInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Potential infinite loop"
+                         implementationClass="com.limemojito.oss.mql.inspection.InfiniteLoopRiskInspection"/>
+
+        <!-- MQL5 Safety: Code Complexity -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Excessive nesting depth"
+                         implementationClass="com.limemojito.oss.mql.inspection.DeepNestingInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Function too long (>200 lines)"
+                         implementationClass="com.limemojito.oss.mql.inspection.LongFunctionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="false" level="WEAK WARNING"
+                         displayName="Too many function parameters (>7)"
+                         implementationClass="com.limemojito.oss.mql.inspection.TooManyParametersInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="false" level="WEAK WARNING"
+                         displayName="Unused function parameter"
+                         implementationClass="com.limemojito.oss.mql.inspection.UnusedParameterInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="false" level="WEAK WARNING"
+                         displayName="TODO/FIXME marker in code"
+                         implementationClass="com.limemojito.oss.mql.inspection.TodoFixmeInspection"/>
+
+        <!-- MQL5 Safety: Trading-Specific -->
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Hardcoded values in trading operation"
+                         implementationClass="com.limemojito.oss.mql.inspection.MagicNumberInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Important function return value ignored"
+                         implementationClass="com.limemojito.oss.mql.inspection.ReturnValueIgnoredInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WARNING"
+                         displayName="Virtual method called in constructor/destructor"
+                         implementationClass="com.limemojito.oss.mql.inspection.VirtualCallInConstructorInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="MQL5 Safety" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Repeated expensive API calls in OnTick()"
+                         implementationClass="com.limemojito.oss.mql.inspection.RepeatedApiCallInspection"/>
+
+        <!-- MQL Problems Logger -->
+        <projectService serviceImplementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerService"/>
+        <postStartupActivity implementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerStartupActivity"/>
+
+        <!-- Live Templates -->
+        <defaultLiveTemplates>/liveTemplates/MQL5Templates</defaultLiveTemplates>
+        <!--suppress PluginXmlI18n -->
+        <liveTemplateContext implementation="com.limemojito.oss.mql.editor.MQL5TemplateContextType"
+                             contextId="MQL5"/>
+
+        <!-- Semantic Annotator -->
+        <annotator language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4Annotator"/>
+
+        <!--File icons-->
+        <iconProvider implementation="com.limemojito.oss.mql.MQL4FileIconProvider"/>
+
         <!--Structure view-->
         <lang.psiStructureViewFactory language="MQL4"
                                       implementationClass="com.limemojito.oss.mql.structure.MQL4StructureViewBuilderFactory"/>

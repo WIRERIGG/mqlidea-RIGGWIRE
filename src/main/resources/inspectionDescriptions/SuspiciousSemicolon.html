@@ -1,0 +1,22 @@
+﻿<html>
+<body>
+This inspection reports a suspicious semicolon immediately after a control statement
+(<code>if</code>, <code>for</code>, or <code>while</code>). This pattern almost always
+indicates a logic error where the intended body is not actually controlled by the statement.
+<!-- tooltip end -->
+<p>Example of problematic code:</p>
+<pre>
+if(OrderSelect(i, SELECT_BY_POS));   // Bug: semicolon makes the body empty
+{
+    OrderClose(OrderTicket(), OrderLots(), Ask, 3);
+}
+</pre>
+<p>Fix by removing the stray semicolon:</p>
+<pre>
+if(OrderSelect(i, SELECT_BY_POS))
+{
+    OrderClose(OrderTicket(), OrderLots(), Ask, 3);
+}
+</pre>
+</body>
+</html>

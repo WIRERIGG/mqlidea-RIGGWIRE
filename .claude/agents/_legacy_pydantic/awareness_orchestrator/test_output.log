@@ -1,0 +1,57 @@
+
+======================================================================
+AWARENESS ORCHESTRATOR - SYSTEM TEST
+PydanticAI Multi-Agent Analysis System
+======================================================================
+
+======================================================================
+TEST 1: Agent Discovery
+======================================================================
+
+✅ Main Orchestrator: awareness-orchestrator.md
+   Agent Name: awareness-orchestrator
+✅ Analysis Agent: awareness-orchestrator-analysis.md
+   Agent Name: awareness-orchestrator-analysis
+✅ Architecture Agent: awareness-orchestrator-architecture.md
+   Agent Name: awareness-orchestrator-architecture
+✅ Validation Agent: awareness-orchestrator-validation.md
+   Agent Name: awareness-orchestrator-validation
+
+✅ All agents discovered successfully!
+
+======================================================================
+TEST 2: Proactive Suggestions Engine Analysis
+======================================================================
+Analyzing: /IdeaProjects/wire_ground/tests/safe_test.cpp
+
+🔍 Scanning file for code quality issues...
+
+📊 Analysis Results:
+   Total suggestions: 163
+   Suggestion types: 3
+
+📋 Breakdown by Type:
+   SuggestionType.REFACTORING    : 134 issues
+   SuggestionType.CODE_SMELL     :  26 issues
+   SuggestionType.SAFETY_IMPROVEMENT:   3 issues
+
+🎯 Breakdown by Priority:
+   🟠 high      :   3 issues
+   🟡 medium    : 149 issues
+   🟢 low       :  11 issues
+
+🔍 Top 5 Critical Findings:
+
+   1. [HIGH] SuggestionType.SAFETY_IMPROVEMENT
+      Title: Raw Pointer Allocation
+Traceback (most recent call last):
+  File "/IdeaProjects/wire_ground/.claude/agents/awareness_orchestrator/test_orchestrator_analysis.py", line 333, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/IdeaProjects/wire_ground/.claude/agents/awareness_orchestrator/test_orchestrator_analysis.py", line 300, in main
+    suggestions = test_proactive_suggestions_engine(file_path)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/IdeaProjects/wire_ground/.claude/agents/awareness_orchestrator/test_orchestrator_analysis.py", line 126, in test_proactive_suggestions_engine
+    if s.line_number:
+       ^^^^^^^^^^^^^
+AttributeError: 'Suggestion' object has no attribute 'line_number'

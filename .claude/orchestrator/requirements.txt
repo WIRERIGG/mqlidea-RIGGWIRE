@@ -1,0 +1,7 @@
+pydantic-ai
+pydantic
+pydantic-settings
+python-dotenv
+aiohttp
+beautifulsoup4
+PyGithub

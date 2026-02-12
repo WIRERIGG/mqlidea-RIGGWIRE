@@ -111,7 +111,7 @@ public class PreprocessorPropertyInspection extends LocalInspectionTool implemen
 
         public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
             PsiElement el = descriptor.getPsiElement();
-            TextRange rangeToRemove = extendLeft(el, MQL4Elements.WHITE_SPACE);
+            TextRange rangeToRemove = extendLeft(el);
             Document document = PsiDocumentManager.getInstance(project).getDocument(el.getContainingFile());
             assert document != null;
             document.deleteString(rangeToRemove.getStartOffset(), rangeToRemove.getEndOffset());
@@ -120,11 +120,11 @@ public class PreprocessorPropertyInspection extends LocalInspectionTool implemen
     }
 
     @NotNull
-    private static TextRange extendLeft(@NotNull PsiElement el, @NotNull IElementType siblingType) {
+    private static TextRange extendLeft(@NotNull PsiElement el) {
         int endOffset = el.getTextRange().getEndOffset();
         while (true) {
             PsiElement prev = el.getPrevSibling();
-            if (prev == null || (prev.getNode().getElementType() != siblingType)) {
+            if (prev == null || (prev.getNode().getElementType() != MQL4Elements.WHITE_SPACE)) {
                 break;
             }
             el = prev;
@@ -170,7 +170,7 @@ public class PreprocessorPropertyInspection extends LocalInspectionTool implemen
 
     public static final String[] COUNTING_NAMES = {"indicator_label", "indicator_color", "indicator_width", "indicator_style", "indicator_type", "indicator_level"};
 
-    interface PropertyValueValidator {
+    public interface PropertyValueValidator {
         @Nullable
         ProblemDescriptor validateAndReturnProblemDescriptor(@NotNull InspectionManager manager, @NotNull ASTNode keyNode, @Nullable ASTNode valueNode);
     }

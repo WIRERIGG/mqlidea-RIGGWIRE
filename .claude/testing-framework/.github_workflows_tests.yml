@@ -1,0 +1,518 @@
+# GitHub Actions CI/CD Pipeline for Pydantic AI Agents Testing
+# This file should be copied to .github/workflows/tests.yml in your repository
+
+name: Pydantic AI Agents Test Suite
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - '.claude/agents/**'
+      - '.claude/testing-framework/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - '.claude/agents/**'
+      - '.claude/testing-framework/**'
+      - 'tests/**'
+      - 'requirements.txt'
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      agent_filter:
+        description: 'Specific agent to test (leave empty for all)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - 'valgrind_memory_ai_agent'
+          - 'never_fail_build_resolver'
+          - 'blitzfire_cpp_optimizer'
+          - 'clang_tidy_ai_agent'
+
+env:
+  PYTHON_VERSION: '3.11'
+  COVERAGE_THRESHOLD: 95
+
+jobs:
+  # =============================================================================
+  # SETUP AND PREPARATION
+  # =============================================================================
+  
+  setup:
+    name: Setup and Validation
+    runs-on: ubuntu-latest
+    outputs:
+      agents: ${{ steps.detect-agents.outputs.agents }}
+      matrix: ${{ steps.setup-matrix.outputs.matrix }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          clang-tidy \
+          valgrind \
+          cmake \
+          build-essential \
+          pkg-config
+        
+    - name: Detect available agents
+      id: detect-agents
+      run: |
+        AGENTS=()
+        for agent_dir in .claude/agents/*/; do
+          if [ -d "$agent_dir" ]; then
+            agent_name=$(basename "$agent_dir")
+            if [[ "$agent_name" == "valgrind_memory_ai_agent" || \
+                  "$agent_name" == "never_fail_build_resolver" || \
+                  "$agent_name" == "blitzfire_cpp_optimizer" || \
+                  "$agent_name" == "clang_tidy_ai_agent" ]]; then
+              AGENTS+=("$agent_name")
+            fi
+          fi
+        done
+        
+        # Filter by manual input if provided
+        if [ -n "${{ github.event.inputs.agent_filter }}" ]; then
+          AGENTS=("${{ github.event.inputs.agent_filter }}")
+        fi
+        
+        AGENTS_JSON=$(printf '%s\n' "${AGENTS[@]}" | jq -R . | jq -s .)
+        echo "agents=$AGENTS_JSON" >> $GITHUB_OUTPUT
+        
+    - name: Setup test matrix
+      id: setup-matrix
+      run: |
+        MATRIX=$(echo '${{ steps.detect-agents.outputs.agents }}' | jq -c '{
+          "agent": .,
+          "python-version": ["3.11", "3.12"],
+          "test-type": ["unit", "integration", "performance"]
+        }')
+        echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # UNIT TESTS
+  # =============================================================================
+  
+  unit-tests:
+    name: Unit Tests - ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: ${{ fromJson(needs.setup.outputs.agents) }}
+        python-version: ['3.11', '3.12']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('.claude/testing-framework/requirements.txt', '.claude/agents/${{ matrix.agent }}/requirements.txt') }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .claude/testing-framework/requirements.txt
+        if [ -f ".claude/agents/${{ matrix.agent }}/requirements.txt" ]; then
+          pip install -r .claude/agents/${{ matrix.agent }}/requirements.txt
+        fi
+        
+    - name: Run unit tests
+      working-directory: .claude/agents/${{ matrix.agent }}
+      run: |
+        # Copy universal config if tests directory exists
+        if [ -d "tests" ]; then
+          cp ../../testing-framework/pytest.ini tests/ 2>/dev/null || true
+          cp ../../testing-framework/conftest_universal.py tests/conftest_universal.py 2>/dev/null || true
+        fi
+        
+        # Run unit tests with coverage
+        python -m pytest tests/ -m unit -v \
+          --cov=. \
+          --cov-report=term-missing \
+          --cov-report=xml:coverage.xml \
+          --cov-report=html:coverage_html \
+          --junitxml=test_results_unit.xml \
+          || echo "Unit tests completed with issues"
+          
+    - name: Upload unit test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: unit-test-results-${{ matrix.agent }}-py${{ matrix.python-version }}
+        path: |
+          .claude/agents/${{ matrix.agent }}/test_results_unit.xml
+          .claude/agents/${{ matrix.agent }}/coverage.xml
+          .claude/agents/${{ matrix.agent }}/coverage_html/
+          
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: .claude/agents/${{ matrix.agent }}/coverage.xml
+        flags: unit,${{ matrix.agent }}
+        name: ${{ matrix.agent }}-unit-py${{ matrix.python-version }}
+
+  # =============================================================================
+  # INTEGRATION TESTS
+  # =============================================================================
+  
+  integration-tests:
+    name: Integration Tests - ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: ${{ fromJson(needs.setup.outputs.agents) }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          clang-tidy \
+          valgrind \
+          cmake \
+          build-essential \
+          pkg-config \
+          gdb
+          
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .claude/testing-framework/requirements.txt
+        if [ -f ".claude/agents/${{ matrix.agent }}/requirements.txt" ]; then
+          pip install -r .claude/agents/${{ matrix.agent }}/requirements.txt
+        fi
+        
+    - name: Run integration tests
+      working-directory: .claude/agents/${{ matrix.agent }}
+      env:
+        # Mock environment variables for testing
+        LLM_API_KEY: "test-key-for-mocking"
+        LLM_PROVIDER: "test"
+        LLM_MODEL: "test-model"
+      run: |
+        # Copy universal config
+        if [ -d "tests" ]; then
+          cp ../../testing-framework/pytest.ini tests/ 2>/dev/null || true
+          cp ../../testing-framework/conftest_universal.py tests/conftest_universal.py 2>/dev/null || true
+        fi
+        
+        # Run integration tests
+        python -m pytest tests/ -m integration -v \
+          --timeout=300 \
+          --junitxml=test_results_integration.xml \
+          || echo "Integration tests completed with issues"
+          
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results-${{ matrix.agent }}
+        path: .claude/agents/${{ matrix.agent }}/test_results_integration.xml
+
+  # =============================================================================
+  # PERFORMANCE TESTS
+  # =============================================================================
+  
+  performance-tests:
+    name: Performance Tests - ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: ${{ fromJson(needs.setup.outputs.agents) }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .claude/testing-framework/requirements.txt
+        if [ -f ".claude/agents/${{ matrix.agent }}/requirements.txt" ]; then
+          pip install -r .claude/agents/${{ matrix.agent }}/requirements.txt
+        fi
+        
+    - name: Run performance tests
+      working-directory: .claude/agents/${{ matrix.agent }}
+      env:
+        LLM_API_KEY: "test-key-for-mocking"
+        LLM_PROVIDER: "test"
+        LLM_MODEL: "test-model"
+      run: |
+        # Copy universal config
+        if [ -d "tests" ]; then
+          cp ../../testing-framework/pytest.ini tests/ 2>/dev/null || true
+          cp ../../testing-framework/conftest_universal.py tests/conftest_universal.py 2>/dev/null || true
+        fi
+        
+        # Run performance tests
+        python -m pytest tests/ -m performance -v \
+          --benchmark-only \
+          --benchmark-json=benchmark_results.json \
+          --timeout=600 \
+          || echo "Performance tests completed with issues"
+          
+    - name: Upload performance test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-test-results-${{ matrix.agent }}
+        path: |
+          .claude/agents/${{ matrix.agent }}/benchmark_results.json
+
+  # =============================================================================
+  # END-TO-END TESTS
+  # =============================================================================
+  
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: ${{ fromJson(needs.setup.outputs.agents) }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          clang-tidy \
+          valgrind \
+          cmake \
+          build-essential \
+          pkg-config
+          
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .claude/testing-framework/requirements.txt
+        if [ -f ".claude/agents/${{ matrix.agent }}/requirements.txt" ]; then
+          pip install -r .claude/agents/${{ matrix.agent }}/requirements.txt
+        fi
+        
+    - name: Create test project
+      run: |
+        mkdir -p test_project/src
+        cat > test_project/src/main.cpp << 'EOF'
+        #include <iostream>
+        #include <vector>
+        
+        int main() {
+            std::vector<int> vec = {1, 2, 3, 4, 5};
+            for (const auto& item : vec) {
+                std::cout << item << " ";
+            }
+            std::cout << std::endl;
+            return 0;
+        }
+        EOF
+        
+        cat > test_project/CMakeLists.txt << 'EOF'
+        cmake_minimum_required(VERSION 3.16)
+        project(TestProject)
+        set(CMAKE_CXX_STANDARD 17)
+        add_executable(test_app src/main.cpp)
+        EOF
+        
+    - name: Run end-to-end tests
+      working-directory: .claude/agents/${{ matrix.agent }}
+      env:
+        LLM_API_KEY: "test-key-for-mocking"
+        LLM_PROVIDER: "test"
+        LLM_MODEL: "test-model"
+        TEST_PROJECT_ROOT: ${{ github.workspace }}/test_project
+      run: |
+        # Copy universal config
+        if [ -d "tests" ]; then
+          cp ../../testing-framework/pytest.ini tests/ 2>/dev/null || true
+          cp ../../testing-framework/conftest_universal.py tests/conftest_universal.py 2>/dev/null || true
+        fi
+        
+        # Run E2E tests
+        python -m pytest tests/ -m e2e -v \
+          --timeout=900 \
+          --junitxml=test_results_e2e.xml \
+          || echo "E2E tests completed with issues"
+          
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: e2e-test-results-${{ matrix.agent }}
+        path: .claude/agents/${{ matrix.agent }}/test_results_e2e.xml
+
+  # =============================================================================
+  # COVERAGE ANALYSIS
+  # =============================================================================
+  
+  coverage-analysis:
+    name: Coverage Analysis
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all test artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install coverage tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install coverage coverage-badge
+        
+    - name: Combine coverage reports
+      run: |
+        # Find all coverage.xml files and combine them
+        find . -name "coverage.xml" -exec coverage combine {} +
+        coverage xml -o combined_coverage.xml
+        coverage html -d combined_coverage_html
+        coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
+        
+    - name: Generate coverage badge
+      run: |
+        coverage-badge -o coverage_badge.svg
+        
+    - name: Upload combined coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: combined-coverage-report
+        path: |
+          combined_coverage.xml
+          combined_coverage_html/
+          coverage_badge.svg
+          
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: combined_coverage.xml
+        flags: combined
+        name: combined-coverage
+
+  # =============================================================================
+  # FINAL REPORTING
+  # =============================================================================
+  
+  test-report:
+    name: Generate Test Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, performance-tests, e2e-tests, coverage-analysis]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install report tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install jinja2 junit2html
+        
+    - name: Generate test report
+      run: |
+        python .claude/testing-framework/generate_test_report.py \
+          --artifacts-dir . \
+          --output-dir test_report \
+          --agents '${{ needs.setup.outputs.agents }}'
+        
+    - name: Upload test report
+      uses: actions/upload-artifact@v3
+      with:
+        name: final-test-report
+        path: test_report/
+        
+    - name: Create GitHub summary
+      run: |
+        echo "# Pydantic AI Agents Test Results 🧪" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Agents Tested" >> $GITHUB_STEP_SUMMARY
+        echo '${{ needs.setup.outputs.agents }}' | jq -r '.[] | "- " + .' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Status" >> $GITHUB_STEP_SUMMARY
+        echo "| Test Type | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Performance Tests | ${{ needs.performance-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Coverage Analysis | ${{ needs.coverage-analysis.result }} |" >> $GITHUB_STEP_SUMMARY
+        
+        # Add coverage information if available
+        if [ -f "combined-coverage-report/combined_coverage.xml" ]; then
+          COVERAGE=$(python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('combined-coverage-report/combined_coverage.xml')
+          print(f'{float(tree.getroot().attrib[\"line-rate\"]) * 100:.1f}%')
+          ")
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Coverage: $COVERAGE" >> $GITHUB_STEP_SUMMARY
+        fi

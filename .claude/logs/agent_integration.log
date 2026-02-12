@@ -1,0 +1,65 @@
+2025-09-29 01:11:08,356 - __main__ - INFO - Loaded 9 agents from registry
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/universal_agent_factory
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/python_blitzfire_optimizer
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/never_fail_build_resolver
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/production_validation_system
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/blitzfire_cpp_optimizer
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/valgrind_pydantic_tool
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/clang_tidy_ai_agent
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/multi_agent_debugging_system
+2025-09-29 01:11:08,365 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/awareness_orchestrator
+2025-09-29 01:11:08,366 - __main__ - INFO - Executed /agent-health with agent universal-agent-factory in 0.00s
+2025-09-29 01:13:41,719 - __main__ - INFO - Loaded 9 agents from registry
+2025-09-29 01:13:41,720 - __main__ - INFO - Discovered agent: universal-agent-factory at /IdeaProjects/wire_ground/.claude/agents/universal_agent_factory
+2025-09-29 01:13:41,720 - __main__ - INFO - Discovered agent: python-blitzfire-optimizer at /IdeaProjects/wire_ground/.claude/agents/python_blitzfire_optimizer
+2025-09-29 01:13:41,720 - __main__ - INFO - Discovered agent: never-fail-build-system at /IdeaProjects/wire_ground/.claude/agents/never_fail_build_resolver
+2025-09-29 01:13:41,720 - __main__ - INFO - Discovered agent: production-validation-system at /IdeaProjects/wire_ground/.claude/agents/production_validation_system
+2025-09-29 01:13:41,720 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/blitzfire_cpp_optimizer
+2025-09-29 01:13:41,720 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/valgrind_pydantic_tool
+2025-09-29 01:13:41,720 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/clang_tidy_ai_agent
+2025-09-29 01:13:41,720 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/multi_agent_debugging_system
+2025-09-29 01:13:41,720 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/awareness_orchestrator
+2025-09-29 01:13:41,720 - __main__ - INFO - Executed /validate-production with agent production-validation-system in 0.00s
+2025-09-29 01:13:55,803 - __main__ - INFO - Loaded 9 agents from registry
+2025-09-29 01:13:55,804 - __main__ - INFO - Discovered agent: universal-agent-factory at /IdeaProjects/wire_ground/.claude/agents/universal_agent_factory
+2025-09-29 01:13:55,804 - __main__ - INFO - Discovered agent: python-blitzfire-optimizer at /IdeaProjects/wire_ground/.claude/agents/python_blitzfire_optimizer
+2025-09-29 01:13:55,804 - __main__ - INFO - Discovered agent: never-fail-build-system at /IdeaProjects/wire_ground/.claude/agents/never_fail_build_resolver
+2025-09-29 01:13:55,804 - __main__ - INFO - Discovered agent: production-validation-system at /IdeaProjects/wire_ground/.claude/agents/production_validation_system
+2025-09-29 01:13:55,804 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/blitzfire_cpp_optimizer
+2025-09-29 01:13:55,804 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/valgrind_pydantic_tool
+2025-09-29 01:13:55,804 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/clang_tidy_ai_agent
+2025-09-29 01:13:55,804 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/multi_agent_debugging_system
+2025-09-29 01:13:55,804 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/awareness_orchestrator
+2025-09-29 01:13:55,813 - __main__ - INFO - Executed /create-agent with agent universal-agent-factory in 0.01s
+2025-09-29 01:14:00,787 - __main__ - INFO - Loaded 9 agents from registry
+2025-09-29 01:14:00,787 - __main__ - INFO - Discovered agent: universal-agent-factory at /IdeaProjects/wire_ground/.claude/agents/universal_agent_factory
+2025-09-29 01:14:00,787 - __main__ - INFO - Discovered agent: python-blitzfire-optimizer at /IdeaProjects/wire_ground/.claude/agents/python_blitzfire_optimizer
+2025-09-29 01:14:00,787 - __main__ - INFO - Discovered agent: never-fail-build-system at /IdeaProjects/wire_ground/.claude/agents/never_fail_build_resolver
+2025-09-29 01:14:00,787 - __main__ - INFO - Discovered agent: production-validation-system at /IdeaProjects/wire_ground/.claude/agents/production_validation_system
+2025-09-29 01:14:00,787 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/blitzfire_cpp_optimizer
+2025-09-29 01:14:00,787 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/valgrind_pydantic_tool
+2025-09-29 01:14:00,787 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/clang_tidy_ai_agent
+2025-09-29 01:14:00,788 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/multi_agent_debugging_system
+2025-09-29 01:14:00,788 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/awareness_orchestrator
+2025-09-29 01:14:00,788 - __main__ - INFO - Executed /fix-build with agent never-fail-build-system in 0.00s
+2025-09-29 01:14:13,861 - __main__ - INFO - Loaded 9 agents from registry
+2025-09-29 01:14:13,861 - __main__ - INFO - Discovered agent: universal-agent-factory at /IdeaProjects/wire_ground/.claude/agents/universal_agent_factory
+2025-09-29 01:14:13,861 - __main__ - INFO - Discovered agent: python-blitzfire-optimizer at /IdeaProjects/wire_ground/.claude/agents/python_blitzfire_optimizer
+2025-09-29 01:14:13,861 - __main__ - INFO - Discovered agent: never-fail-build-system at /IdeaProjects/wire_ground/.claude/agents/never_fail_build_resolver
+2025-09-29 01:14:13,861 - __main__ - INFO - Discovered agent: production-validation-system at /IdeaProjects/wire_ground/.claude/agents/production_validation_system
+2025-09-29 01:14:13,861 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/blitzfire_cpp_optimizer
+2025-09-29 01:14:13,862 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/valgrind_pydantic_tool
+2025-09-29 01:14:13,862 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/clang_tidy_ai_agent
+2025-09-29 01:14:13,862 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/multi_agent_debugging_system
+2025-09-29 01:14:13,862 - __main__ - WARNING - Agent path not found: .claude/.claude/agents/awareness_orchestrator
+2025-09-29 01:14:13,862 - __main__ - INFO - Executed /python-optimize with agent python-blitzfire-optimizer in 0.00s
+2025-09-29 01:14:29,491 - claude_code_integration - INFO - Loaded 9 agents from registry
+2025-09-29 01:14:29,492 - claude_code_integration - INFO - Discovered agent: universal-agent-factory at /IdeaProjects/wire_ground/.claude/agents/universal_agent_factory
+2025-09-29 01:14:29,492 - claude_code_integration - INFO - Discovered agent: python-blitzfire-optimizer at /IdeaProjects/wire_ground/.claude/agents/python_blitzfire_optimizer
+2025-09-29 01:14:29,492 - claude_code_integration - INFO - Discovered agent: never-fail-build-system at /IdeaProjects/wire_ground/.claude/agents/never_fail_build_resolver
+2025-09-29 01:14:29,492 - claude_code_integration - INFO - Discovered agent: production-validation-system at /IdeaProjects/wire_ground/.claude/agents/production_validation_system
+2025-09-29 01:14:29,492 - claude_code_integration - WARNING - Agent path not found: .claude/.claude/agents/blitzfire_cpp_optimizer
+2025-09-29 01:14:29,492 - claude_code_integration - WARNING - Agent path not found: .claude/.claude/agents/valgrind_pydantic_tool
+2025-09-29 01:14:29,492 - claude_code_integration - WARNING - Agent path not found: .claude/.claude/agents/clang_tidy_ai_agent
+2025-09-29 01:14:29,492 - claude_code_integration - WARNING - Agent path not found: .claude/.claude/agents/multi_agent_debugging_system
+2025-09-29 01:14:29,493 - claude_code_integration - WARNING - Agent path not found: .claude/.claude/agents/awareness_orchestrator

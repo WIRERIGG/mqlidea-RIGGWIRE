@@ -1,0 +1,47 @@
+[
+  {
+    "run_id": "test-001",
+    "timestamp": "2025-09-30T00:16:01.364592",
+    "target_file": "tests/safe_test.cpp",
+    "agents_executed": [
+      "clang-tidy-analyzer",
+      "clang-tidy-critical-fixer",
+      "zero-warnings-enforcer"
+    ],
+    "duration": 45.2,
+    "success": true,
+    "errors": [],
+    "warnings": [
+      {
+        "message": "unused variable 'x'",
+        "file": "tests/safe_test.cpp"
+      }
+    ],
+    "fixes_applied": 3,
+    "tests_passed": true,
+    "build_success": true,
+    "metadata": {}
+  },
+  {
+    "run_id": "test-002",
+    "timestamp": "2025-09-30T00:16:01.364859",
+    "target_file": "tests/safe_test.cpp",
+    "agents_executed": [
+      "clang-tidy-analyzer"
+    ],
+    "duration": 12.5,
+    "success": false,
+    "errors": [
+      {
+        "message": "error: version control conflict marker in file",
+        "file": "tests/safe_test.cpp",
+        "line": 1
+      }
+    ],
+    "warnings": [],
+    "fixes_applied": 0,
+    "tests_passed": false,
+    "build_success": false,
+    "metadata": {}
+  }
+]

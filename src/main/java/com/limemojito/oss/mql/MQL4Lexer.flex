@@ -111,7 +111,10 @@ color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
 
 
 // Access specificators
+"abstract"  { return MQL4Elements.ABSTRACT_KEYWORD; }
 "const"     { return MQL4Elements.CONST_KEYWORD; }
+"final"     { return MQL4Elements.FINAL_KEYWORD; }
+"override"  { return MQL4Elements.OVERRIDE_KEYWORD; }
 "public"    { return MQL4Elements.PUBLIC_KEYWORD; }
 "private"   { return MQL4Elements.PRIVATE_KEYWORD; }
 "virtual"   { return MQL4Elements.VIRTUAL_KEYWORD; }
@@ -120,6 +123,7 @@ color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
 // Memory classes
 "extern"    { return MQL4Elements.EXTERN_KEYWORD; }
 "input"     { return MQL4Elements.INPUT_KEYWORD; }
+"sinput"    { return MQL4Elements.SINPUT_KEYWORD; }
 "static"    { return MQL4Elements.STATIC_KEYWORD; }
 
 // Operators
@@ -159,6 +163,8 @@ color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
 "#resource" { return MQL4Elements.RESOURCE_PP_KEYWORD; }
 "#undef"    { return MQL4Elements.UNDEF_PP_KEYWORD; }
 
+"dynamic_cast"  { return MQL4Elements.DYNAMIC_CAST_KEYWORD; }
+"namespace" { return MQL4Elements.NAMESPACE_KEYWORD; }
 "template"  { return MQL4Elements.TEMPLATE_KEYWORD; }
 "typename"  { return MQL4Elements.TYPENAME_KEYWORD; }
 

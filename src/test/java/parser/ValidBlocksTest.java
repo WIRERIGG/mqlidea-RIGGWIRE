@@ -35,7 +35,7 @@ public class ValidBlocksTest extends MQL4ParserTestBase {
         int samplesDirPathLen = dir.getAbsolutePath().length();
         for (Path p : files) {
             String subPath = p.toFile().getAbsolutePath().substring(samplesDirPathLen);
-            if (subPath.contains("/comments/")) { // these files have no VALID block
+            if (subPath.contains("comments")) { // these files have no VALID block
                 continue;
             }
             testValidBlock(subPath);

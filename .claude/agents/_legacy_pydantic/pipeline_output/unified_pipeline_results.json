@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-09-03T02:54:13.080856",
+  "command": "fix-and-optimize",
+  "optimization_level": "advanced",
+  "files_processed": 1,
+  "successful": 0,
+  "results": {
+    "tests/safe_test.cpp": {
+      "success": false,
+      "warnings_fixed": 0,
+      "performance_improvement": 0.0,
+      "stage_completed": "initial_analysis",
+      "errors": [
+        "Clang-tidy validation failed"
+      ]
+    }
+  }
+}

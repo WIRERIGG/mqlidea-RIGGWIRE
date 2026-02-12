@@ -1,0 +1,23 @@
+<html>
+<body>
+Reports calls to <code>ArrayResize()</code> whose return value is not checked.
+<p>
+    <code>ArrayResize()</code> returns the new array size on success or <code>-1</code> on failure
+    (e.g., insufficient memory). Ignoring the return value can lead to out-of-bounds access
+    or silent data loss when the resize fails.
+</p>
+<p><b>Example (bad):</b></p>
+<pre>
+ArrayResize(prices, 1000);
+prices[999] = Ask; // May crash if resize failed
+</pre>
+<p><b>Example (good):</b></p>
+<pre>
+if (ArrayResize(prices, 1000) < 0) {
+    Print("Failed to resize array");
+    return;
+}
+prices[999] = Ask;
+</pre>
+</body>
+</html>

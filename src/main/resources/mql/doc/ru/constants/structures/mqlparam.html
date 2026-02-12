@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>MqlParam</h1>
+<p><span>Структура используется для передачи параметров при создании хэндлов индикаторов с помощью функции <a href="/indicators/indicatorcreate">IndicatorCreate()</a>.</span></p>
+<div style="text-align: left; text-indent: 0px; line-height: 1.0; page-break-inside: avoid; border-color: #b3b3b3; border-style: solid; border-width: thin; background: #fbf9f5; padding: 0px 0px 0px 0px; margin: 2px 17px 2px 17px;">
+ <table cellpadding="3" style="border:none; border-spacing:0px;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; padding:3px;"><p><span style="color: #0000ff;">struct&nbsp;</span><span style="font-weight: bold;">MqlParam</span><br> <span>&nbsp;&nbsp;{</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">ENUM_DATATYPE</span><span>&nbsp;</span><span>type</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;тип&nbsp;входного&nbsp;параметра</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">long</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>integer_value</span><span>;&nbsp;</span><span style="color: #808080;">//&nbsp;поле&nbsp;для&nbsp;хранения&nbsp;целочисленного&nbsp;типа</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>double_value</span><span>;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;поле&nbsp;для&nbsp;хранения&nbsp;типа&nbsp;double</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">string</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>string_value</span><span>;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;поле&nbsp;для&nbsp;хранения&nbsp;строкового&nbsp;типа</span><br> <span>&nbsp;&nbsp;};</span></p></td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>Примечание</span></p>
+<p><span>Поле type указывает, какое из оставшихся полей содержит фактическое значение. Тип может быть одним из значений ENUM_DATATYPE: TYPE_BOOL, TYPE_CHAR, TYPE_UCHAR, TYPE_SHORT, TYPE_USHORT, TYPE_INT, TYPE_UINT, TYPE_LONG, TYPE_ULONG, TYPE_FLOAT, TYPE_DOUBLE, TYPE_STRING, TYPE_DATETIME, TYPE_COLOR.</span></p>
+<p><span>Смотри также</span></p>
+<p><span><a href="/indicators/indicatorcreate">IndicatorCreate</a>, <a href="/constants/structures">Структуры данных</a></span></p>
+<br>

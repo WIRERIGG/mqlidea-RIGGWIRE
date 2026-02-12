@@ -1,0 +1,25 @@
+<html>
+<body>
+Reports object allocations using <code>new</code> inside <code>OnTick()</code> or <code>OnCalculate()</code> event handlers.
+<p>
+    Creating objects on the heap in high-frequency handlers causes allocation overhead every tick,
+    leading to performance degradation and potential memory fragmentation.
+</p>
+<p><b>Example (bad):</b></p>
+<pre>
+void OnTick() {
+    CTrade *trade = new CTrade();
+    trade.PositionOpen(...);
+    delete trade;
+}
+</pre>
+<p><b>Example (good):</b></p>
+<pre>
+CTrade trade; // Global or static
+
+void OnTick() {
+    trade.PositionOpen(...);
+}
+</pre>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<html>
+<body>
+Reports indicator handle creation (e.g., <code>iMA()</code>, <code>iRSI()</code>, <code>iCustom()</code>)
+inside <code>OnTick()</code> or <code>OnCalculate()</code> event handlers.
+<p>
+    Creating indicator handles is an expensive operation that allocates internal buffers.
+    Doing this every tick wastes resources and may leak handles if not properly released.
+    Handles should be created once in <code>OnInit()</code> and stored for reuse.
+</p>
+<p><b>Example (bad):</b></p>
+<pre>
+void OnTick() {
+    int maHandle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE);
+    double buf[];
+    CopyBuffer(maHandle, 0, 0, 1, buf);
+    IndicatorRelease(maHandle);
+}
+</pre>
+<p><b>Example (good):</b></p>
+<pre>
+int maHandle;
+
+int OnInit() {
+    maHandle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE);
+    return INIT_SUCCEEDED;
+}
+
+void OnTick() {
+    double buf[];
+    CopyBuffer(maHandle, 0, 0, 1, buf);
+}
+
+void OnDeinit(const int reason) {
+    IndicatorRelease(maHandle);
+}
+</pre>
+</body>
+</html>

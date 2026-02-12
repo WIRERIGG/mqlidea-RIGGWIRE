@@ -1,0 +1,30 @@
+<html>
+<body>
+Reports heavy computation (data copy operations) in <code>OnTick()</code> without a new bar check guard.
+<p>
+    Functions like <code>CopyRates()</code>, <code>CopyBuffer()</code>, and <code>CopyTicks()</code>
+    are expensive data operations. Running them on every tick wastes CPU when the strategy only
+    needs to recalculate on new bars. Use a new bar detection pattern to skip redundant ticks.
+</p>
+<p><b>Example (bad):</b></p>
+<pre>
+void OnTick() {
+    double close[];
+    CopyClose(_Symbol, PERIOD_H1, 0, 100, close);
+    // Runs on every single tick
+}
+</pre>
+<p><b>Example (good):</b></p>
+<pre>
+void OnTick() {
+    static datetime lastBar = 0;
+    datetime curBar = iTime(_Symbol, PERIOD_H1, 0);
+    if (curBar == lastBar) return;
+    lastBar = curBar;
+
+    double close[];
+    CopyClose(_Symbol, PERIOD_H1, 0, 100, close);
+}
+</pre>
+</body>
+</html>

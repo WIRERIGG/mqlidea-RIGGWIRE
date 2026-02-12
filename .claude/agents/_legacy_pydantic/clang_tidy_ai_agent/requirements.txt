@@ -1,0 +1,29 @@
+# Core dependencies
+pydantic-ai==0.8.1
+pydantic>=2.7.0
+pydantic-settings>=2.2.1
+python-dotenv>=1.0.1
+aiofiles>=23.2.1
+
+# LLM providers
+anthropic>=0.28.0
+openai>=1.12.0
+
+# Testing framework
+pytest>=7.4.4
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+pytest-benchmark>=4.0.0
+hypothesis>=6.88.0
+
+# Security and quality
+bandit>=1.7.5
+safety>=2.3.5
+
+# XML parsing for clang-tidy output
+lxml>=4.9.0
+
+# CLI utilities
+click>=8.1.7
+rich>=13.0.0
+typer>=0.9.0

@@ -1,0 +1,35 @@
+﻿<html>
+<body>
+This inspection reports <code>switch</code> statements that do not contain a
+<code>default</code> case. Without a <code>default</code> branch, unhandled enum values
+or unexpected inputs will silently fall through, potentially causing incorrect behavior
+in trading logic.
+<!-- tooltip end -->
+<p>Example of problematic code:</p>
+<pre>
+switch(orderType) {
+    case ORDER_TYPE_BUY:
+        // handle buy
+        break;
+    case ORDER_TYPE_SELL:
+        // handle sell
+        break;
+    // Missing default case for other order types
+}
+</pre>
+<p>Add a <code>default</code> case to handle unexpected values:</p>
+<pre>
+switch(orderType) {
+    case ORDER_TYPE_BUY:
+        // handle buy
+        break;
+    case ORDER_TYPE_SELL:
+        // handle sell
+        break;
+    default:
+        Print("Unexpected order type: ", orderType);
+        break;
+}
+</pre>
+</body>
+</html>

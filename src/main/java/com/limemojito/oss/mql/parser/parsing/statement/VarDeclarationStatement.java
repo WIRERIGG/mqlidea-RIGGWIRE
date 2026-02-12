@@ -23,7 +23,7 @@ import static com.limemojito.oss.mql.parser.parsing.util.ParsingUtils.checkToken
 
 public class VarDeclarationStatement implements MQL4Elements {
 
-    private static final TokenSet PRE_TYPES = TokenSet.create(CONST_KEYWORD, EXTERN_KEYWORD, INPUT_KEYWORD, STATIC_KEYWORD);
+    private static final TokenSet PRE_TYPES = TokenSet.create(CONST_KEYWORD, EXTERN_KEYWORD, INPUT_KEYWORD, SINPUT_KEYWORD, STATIC_KEYWORD);
 
     public static boolean parseVarDeclaration(PsiBuilder b, int l) {
         if (!recursion_guard_(b, l, "parseVarDeclaration")) {

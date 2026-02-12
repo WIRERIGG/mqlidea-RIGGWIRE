@@ -1,0 +1,25 @@
+<html>
+<body>
+Reports usage of the <code>new</code> keyword inside loop bodies (<code>for</code>, <code>while</code>, <code>do</code>).
+<p>
+    Heap allocation inside a loop causes repeated memory allocation overhead per iteration.
+    If objects are not properly deleted within the same iteration, this also leads to memory leaks.
+    Pre-allocate objects before the loop or use object pools.
+</p>
+<p><b>Example (bad):</b></p>
+<pre>
+for (int i = 0; i < total; i++) {
+    COrder *order = new COrder();
+    order.Process(i);
+    delete order;
+}
+</pre>
+<p><b>Example (good):</b></p>
+<pre>
+COrder order; // Stack allocation, reused each iteration
+for (int i = 0; i < total; i++) {
+    order.Process(i);
+}
+</pre>
+</body>
+</html>

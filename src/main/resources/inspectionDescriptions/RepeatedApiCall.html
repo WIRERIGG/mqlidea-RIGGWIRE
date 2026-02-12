@@ -1,0 +1,9 @@
+<html>
+<body>
+<p>Reports expensive MQL5 API functions called more than twice inside OnTick().
+Functions like SymbolInfoDouble, AccountInfoDouble, MarketInfo, iClose, and TimeCurrent
+involve platform calls that add up when repeated on every tick.
+Cache the result in a local variable to reduce overhead and improve performance.</p>
+<!-- tooltip end -->
+</body>
+</html>

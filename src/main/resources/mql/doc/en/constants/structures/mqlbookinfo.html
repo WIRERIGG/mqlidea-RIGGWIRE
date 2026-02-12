@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>MqlBookInfo</h1>
+<p><span>This structure provides information about the market depth data.</span></p>
+<div style="text-align: left; text-indent: 0px; line-height: 1.0; page-break-inside: avoid; border-color: #b3b3b3; border-style: solid; border-width: thin; background: #fbf9f5; padding: 0px 0px 0px 0px; margin: 2px 17px 2px 17px;">
+ <table cellpadding="3" style="border:none; border-spacing:0px;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; padding:3px;"><p><span style="color: #0000ff;">struct&nbsp;</span><span style="font-weight: bold;">MqlBookInfo</span><br> <span>&nbsp;&nbsp;{</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">ENUM_BOOK_TYPE</span><span>&nbsp;</span><span>type</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Order&nbsp;type&nbsp;from&nbsp;ENUM_BOOK_TYPE</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>price</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Price</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">long</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>volume</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Volume</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>volume_real</span><span>;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Volume&nbsp;with&nbsp;extended&nbsp;accuracy</span><br> <span>&nbsp;&nbsp;};</span></p></td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>Note</span></p>
+<p><span>The MqlBookInfo structure is used to obtain market depth information via the <a href="/series/marketbookget">MarketBookGet()</a> function.</span></p>
+<p><span>See also</span></p>
+<p><span><a href="/series/marketbookget">MarketBookGet</a>, <a href="/constants/structures">Data Structures</a></span></p>
+<br>

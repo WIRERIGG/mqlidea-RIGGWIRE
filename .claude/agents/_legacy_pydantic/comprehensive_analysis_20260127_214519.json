@@ -1,0 +1,842 @@
+{
+  "timestamp": "2026-01-27T21:45:19.412658",
+  "target_directory": "C:\\Users\\dorwi\\CLionProjects\\RIGGWIRE-EA\\RIGGWIRE-EA-FTMO-LIVE",
+  "agents": {
+    "awareness_orchestrator": {
+      "status": "completed",
+      "files_analyzed": 21,
+      "file_list": [
+        "LEIlight.mq5",
+        "RIGGWIRE_FINAL.mq5",
+        "TradingSessionsCandles.mq5",
+        "TrendCipher.mq5",
+        "DashboardStructs.mqh",
+        "DisplayTrendAnalysis.mqh",
+        "IsConsolidating.mqh",
+        "MagicNumbers.mqh",
+        "MoneyProtector.mqh",
+        "MQL5ReliabilityHelpers.mqh",
+        "NEWS.mqh",
+        "PositionManagement.mqh",
+        "RiggwireDashboard.mqh",
+        "RiskManager.mqh",
+        "SessionRules.mqh",
+        "SignalRouter_Refactored.mqh",
+        "StrategyManager.mqh",
+        "TradeDisciplineVerifier.mqh",
+        "TradeOperationWrapper.mqh",
+        "TradingConstants.mqh",
+        "TrendConfirmation.mqh"
+      ],
+      "findings": [
+        {
+          "file": "LEIlight.mq5",
+          "size": 88224,
+          "lines": 1878,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        },
+        {
+          "file": "RIGGWIRE_FINAL.mq5",
+          "size": 94894,
+          "lines": 1918,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        },
+        {
+          "file": "TradingSessionsCandles.mq5",
+          "size": 7764,
+          "lines": 207,
+          "issues": []
+        },
+        {
+          "file": "TrendCipher.mq5",
+          "size": 158404,
+          "lines": 3317,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        },
+        {
+          "file": "DashboardStructs.mqh",
+          "size": 4492,
+          "lines": 137,
+          "issues": []
+        },
+        {
+          "file": "DisplayTrendAnalysis.mqh",
+          "size": 5688,
+          "lines": 168,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            },
+            {
+              "type": "MEDIUM",
+              "category": "Error Handling",
+              "description": "Buffer access without EMPTY_VALUE validation"
+            }
+          ]
+        },
+        {
+          "file": "IsConsolidating.mqh",
+          "size": 4690,
+          "lines": 111,
+          "issues": []
+        },
+        {
+          "file": "MagicNumbers.mqh",
+          "size": 1213,
+          "lines": 25,
+          "issues": []
+        },
+        {
+          "file": "MoneyProtector.mqh",
+          "size": 49928,
+          "lines": 1227,
+          "issues": []
+        },
+        {
+          "file": "MQL5ReliabilityHelpers.mqh",
+          "size": 7959,
+          "lines": 185,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            },
+            {
+              "type": "MEDIUM",
+              "category": "Error Handling",
+              "description": "Buffer access without EMPTY_VALUE validation"
+            }
+          ]
+        },
+        {
+          "file": "NEWS.mqh",
+          "size": 34856,
+          "lines": 998,
+          "issues": []
+        },
+        {
+          "file": "PositionManagement.mqh",
+          "size": 42056,
+          "lines": 1076,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        },
+        {
+          "file": "RiggwireDashboard.mqh",
+          "size": 106179,
+          "lines": 1898,
+          "issues": []
+        },
+        {
+          "file": "RiskManager.mqh",
+          "size": 159500,
+          "lines": 4182,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            },
+            {
+              "type": "MEDIUM",
+              "category": "Error Handling",
+              "description": "Buffer access without EMPTY_VALUE validation"
+            }
+          ]
+        },
+        {
+          "file": "SessionRules.mqh",
+          "size": 39051,
+          "lines": 996,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            },
+            {
+              "type": "MEDIUM",
+              "category": "Error Handling",
+              "description": "Buffer access without EMPTY_VALUE validation"
+            }
+          ]
+        },
+        {
+          "file": "SignalRouter_Refactored.mqh",
+          "size": 25665,
+          "lines": 628,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        },
+        {
+          "file": "StrategyManager.mqh",
+          "size": 36524,
+          "lines": 898,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        },
+        {
+          "file": "TradeDisciplineVerifier.mqh",
+          "size": 6860,
+          "lines": 175,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        },
+        {
+          "file": "TradeOperationWrapper.mqh",
+          "size": 20265,
+          "lines": 568,
+          "issues": []
+        },
+        {
+          "file": "TradingConstants.mqh",
+          "size": 5572,
+          "lines": 85,
+          "issues": []
+        },
+        {
+          "file": "TrendConfirmation.mqh",
+          "size": 75501,
+          "lines": 1796,
+          "issues": [
+            {
+              "type": "MEDIUM",
+              "category": "Magic Numbers",
+              "description": "File contains buffer access with potential magic numbers"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_issues": 16,
+        "by_severity": {
+          "CRITICAL": 0,
+          "HIGH": 0,
+          "MEDIUM": 16,
+          "LOW": 0
+        }
+      }
+    },
+    "mt5_infinite_reliability_agent": {
+      "status": "completed",
+      "validation_areas": [
+        "Buffer index continuity",
+        "EMPTY_VALUE handling",
+        "Array bounds safety",
+        "String operation safety",
+        "Resource cleanup (handles)",
+        "Global variable persistence issues"
+      ],
+      "findings": [
+        {
+          "file": "LEIlight.mq5",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1240: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1334: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 619: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 620: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 621: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 622: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 623: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 624: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 625: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 626: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1226: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1227: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1228: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1229: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1230: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1231: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1318: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1319: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1320: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1321: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1322: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1323: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1324: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1325: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            }
+          ]
+        },
+        {
+          "file": "RIGGWIRE_FINAL.mq5",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 574: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 905: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            }
+          ]
+        },
+        {
+          "file": "TrendCipher.mq5",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1346: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1965: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 2391: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 2466: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 2551: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 3006: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 3007: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1625: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            }
+          ]
+        },
+        {
+          "file": "MQL5ReliabilityHelpers.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 81: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 87: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            }
+          ]
+        },
+        {
+          "file": "PositionManagement.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 274: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 288: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 788: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 796: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            }
+          ]
+        },
+        {
+          "file": "RiskManager.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 677: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 682: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1456: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 941: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 947: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 983: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1682: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1687: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1690: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1693: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1707: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1773: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1801: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1807: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 1884: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 2364: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            }
+          ]
+        },
+        {
+          "file": "SessionRules.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 357: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            }
+          ]
+        },
+        {
+          "file": "SignalRouter_Refactored.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 465: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 466: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            }
+          ]
+        },
+        {
+          "file": "StrategyManager.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 488: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "LOW",
+              "issue": "Array Resize Safety",
+              "description": "Line 136: ArrayResize() without bounds validation",
+              "mql5_rule": "Validate array size after resize operations"
+            }
+          ]
+        },
+        {
+          "file": "TradeDisciplineVerifier.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 30: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            }
+          ]
+        },
+        {
+          "file": "TrendConfirmation.mqh",
+          "mql5_issues": [
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 469: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 760: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 761: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 762: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1289: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1315: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1389: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1390: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1402: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1403: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1428: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            },
+            {
+              "severity": "MEDIUM",
+              "issue": "Missing Error Check",
+              "description": "Line 1429: CopyBuffer() without error validation",
+              "mql5_rule": "Always check CopyBuffer() return value and EMPTY_VALUE"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_mql5_issues": 74,
+        "critical_issues": 0,
+        "production_ready": true
+      }
+    },
+    "multi_agent_debugging_system": {
+      "status": "completed",
+      "debug_strategy": "Incremental validation with rollback capability",
+      "recommendations": [
+        {
+          "priority": "HIGH",
+          "category": "Code Quality",
+          "action": "Implement buffer access facade pattern",
+          "rationale": "Magic numbers reduce maintainability and increase debugging time",
+          "estimated_effort": "2 hours for enums, 1 week for full facade",
+          "documentation": "ARCHITECTURE_REFACTORING_STRATEGY.md"
+        }
+      ],
+      "debug_workflow": [
+        "1. Fix all CRITICAL issues (buffer gaps, null pointer risks)",
+        "2. Add comprehensive error checking (CopyBuffer, array access)",
+        "3. Implement buffer access enums",
+        "4. Run Strategy Tester validation (6-month backtest)",
+        "5. Deploy buffer facade pattern incrementally",
+        "6. Monitor production for regressions"
+      ]
+    }
+  },
+  "shared_context": {
+    "file_list": [
+      "LEIlight.mq5",
+      "RIGGWIRE_FINAL.mq5",
+      "TradingSessionsCandles.mq5",
+      "TrendCipher.mq5",
+      "DashboardStructs.mqh",
+      "DisplayTrendAnalysis.mqh",
+      "IsConsolidating.mqh",
+      "MagicNumbers.mqh",
+      "MoneyProtector.mqh",
+      "MQL5ReliabilityHelpers.mqh",
+      "NEWS.mqh",
+      "PositionManagement.mqh",
+      "RiggwireDashboard.mqh",
+      "RiskManager.mqh",
+      "SessionRules.mqh",
+      "SignalRouter_Refactored.mqh",
+      "StrategyManager.mqh",
+      "TradeDisciplineVerifier.mqh",
+      "TradeOperationWrapper.mqh",
+      "TradingConstants.mqh",
+      "TrendConfirmation.mqh"
+    ],
+    "priority_files": [
+      "LEIlight.mq5",
+      "RIGGWIRE_FINAL.mq5",
+      "TrendCipher.mq5",
+      "DisplayTrendAnalysis.mqh",
+      "MQL5ReliabilityHelpers.mqh",
+      "PositionManagement.mqh",
+      "RiskManager.mqh",
+      "SessionRules.mqh",
+      "SignalRouter_Refactored.mqh",
+      "StrategyManager.mqh",
+      "TradeDisciplineVerifier.mqh",
+      "TrendConfirmation.mqh"
+    ],
+    "critical_mql5_issues": []
+  },
+  "final_analysis": {}
+}

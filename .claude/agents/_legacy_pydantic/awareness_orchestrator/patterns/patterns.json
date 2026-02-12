@@ -1,0 +1,55 @@
+{
+  "success_tests/safe_test.cpp_3_agents": {
+    "pattern_id": "success_tests/safe_test.cpp_3_agents",
+    "pattern_type": "success_pattern",
+    "severity": "info",
+    "name": "Successful Resolution: 3 Agents",
+    "description": "Successfully resolved issues using clang-tidy-analyzer, clang-tidy-critical-fixer, zero-warnings-enforcer",
+    "occurrences": 1,
+    "first_seen": "2025-09-30T00:16:01.364752",
+    "last_seen": "2025-09-30T00:16:01.364753",
+    "files_affected": [
+      "tests/safe_test.cpp"
+    ],
+    "agents_involved": [
+      "clang-tidy-analyzer",
+      "clang-tidy-critical-fixer",
+      "zero-warnings-enforcer"
+    ],
+    "error_messages": [],
+    "resolution_strategies": [],
+    "success_rate": 1.0,
+    "avg_resolution_time": 45.2,
+    "metadata": {
+      "agent_sequence": [
+        "clang-tidy-analyzer",
+        "clang-tidy-critical-fixer",
+        "zero-warnings-enforcer"
+      ],
+      "fixes_applied": 3
+    }
+  },
+  "error_version_control_5389": {
+    "pattern_id": "error_version_control_5389",
+    "pattern_type": "error_pattern",
+    "severity": "high",
+    "name": "Version_Control Error",
+    "description": "Recurring version_control error pattern",
+    "occurrences": 1,
+    "first_seen": "2025-09-30T00:16:01.365019",
+    "last_seen": "2025-09-30T00:16:01.365020",
+    "files_affected": [
+      "tests/safe_test.cpp"
+    ],
+    "agents_involved": [
+      "clang-tidy-analyzer"
+    ],
+    "error_messages": [
+      "error: version control conflict marker in file"
+    ],
+    "resolution_strategies": [],
+    "success_rate": 0.0,
+    "avg_resolution_time": 0.0,
+    "metadata": {}
+  }
+}

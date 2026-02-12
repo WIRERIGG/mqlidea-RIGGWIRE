@@ -122,6 +122,8 @@ public class MQL4SyntaxHighlighter extends SyntaxHighlighterBase {
                     return MQL4Elements.SYNTAX_BUILT_IN_CONSTANT;
                 case BuiltInFunction:
                     return MQL4Elements.SYNTAX_BUILT_IN_FUNCTION;
+                case BuiltInType:
+                    return MQL4Elements.SYNTAX_BUILT_IN_CONSTANT;
             }
             return originalType;
         }

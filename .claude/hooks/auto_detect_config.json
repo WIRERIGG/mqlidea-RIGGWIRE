@@ -1,0 +1,9 @@
+{
+    "auto_fix_enabled": true,
+    "max_warnings_threshold": 5,
+    "critical_only_mode": false,
+    "exclude_patterns": ["*test*", "*benchmark*"],
+    "include_file_patterns": ["src/**/*.cpp", "include/**/*.hpp", "tests/**/*.cpp"],
+    "auto_fix_timeout": 300,
+    "session_persistence": true
+}

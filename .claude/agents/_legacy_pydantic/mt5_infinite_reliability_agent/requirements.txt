@@ -1,0 +1,30 @@
+# ============================================================================
+# MT5 Infinite Reliability Agent - Python Dependencies
+# ============================================================================
+
+# Core Pydantic AI Framework
+pydantic-ai>=0.1.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# LLM Provider (Anthropic only)
+anthropic>=0.40.0
+
+# Code Processing
+regex>=2023.0.0
+
+# Async Utilities
+aiofiles>=23.0.0
+
+# Testing Framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Code Quality Tools
+black>=23.0.0
+ruff>=0.1.0
+
+# Logging
+loguru>=0.7.0

@@ -8,3 +8,12 @@ local
 build
 .gradle
 .idea
+mql-problems.log
+mql-problems.log.tmp
+gradle/caches/
+gradle/daemon/
+gradle/kotlin-profile/
+gradle/native/
+gradle/wrapper/dists/
+.env
+*.env

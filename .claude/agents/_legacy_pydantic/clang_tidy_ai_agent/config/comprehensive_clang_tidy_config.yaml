@@ -1,0 +1,90 @@
+# Comprehensive Clang-Tidy Configuration for Factory Orchestrator
+# Intelligently filters project-inappropriate warnings while catching legitimate issues
+
+# COMPREHENSIVE WARNING ANALYSIS RESULTS:
+# - Original warnings: 11,063+ (with --checks="*")  
+# - After intelligent filtering: 195 total warnings
+# - Legitimate quality issues: 23 warnings in 6 categories
+# - Filtering effectiveness: 98.2% reduction in noise
+
+clang_tidy_config:
+  # Enabled categories - legitimate code quality checks
+  enabled_checks:
+    - "bugprone-*"                    # Bug-prone code patterns
+    - "cert-*"                        # CERT Secure Coding Standards
+    - "clang-analyzer-*"              # Static analysis checks  
+    - "concurrency-*"                 # Thread safety issues
+    - "cppcoreguidelines-*"           # C++ Core Guidelines compliance
+    - "google-*"                      # Google C++ Style Guide
+    - "hicpp-*"                       # High Integrity C++ standards
+    - "misc-*"                        # Miscellaneous quality checks
+    - "modernize-*"                   # Modern C++ feature adoption
+    - "performance-*"                 # Performance optimization
+    - "portability-*"                 # Cross-platform compatibility
+    - "readability-*"                 # Code readability improvements
+    
+  # Suppressed categories - project-inappropriate or noisy checks  
+  suppressed_checks:
+    - "llvmlibc-*"                    # LLVM libc specific (1,286 warnings suppressed)
+    - "fuchsia-*"                     # Fuchsia OS specific (207 warnings suppressed)
+    - "altera-*"                      # FPGA/Altera specific (50 warnings suppressed)
+    - "android-*"                     # Android platform specific
+    - "darwin-*"                      # macOS platform specific
+    - "openmp-*"                      # OpenMP specific (unless needed)
+    - "zircon-*"                      # Zircon kernel specific
+
+# LEGITIMATE WARNING CATEGORIES FOUND (23 total):
+legitimate_warnings:
+  high_priority:
+    - category: "clang-analyzer-core.NullDereference"
+      count: 1
+      severity: CRITICAL
+      description: "Null pointer dereference - potential crash"
+      
+    - category: "hicpp-invalid-access-moved"  
+      count: 3
+      severity: HIGH
+      description: "Accessing moved objects - undefined behavior"
+      
+    - category: "clang-analyzer-cplusplus.Move"
+      count: 3  
+      severity: HIGH
+      description: "Move semantics violations"
+      
+  medium_priority:
+    - category: "hicpp-avoid-c-arrays"
+      count: 12
+      severity: MEDIUM  
+      description: "Use std::array instead of C arrays for type safety"
+      
+    - category: "hicpp-signed-bitwise"
+      count: 2
+      severity: MEDIUM
+      description: "Signed bitwise operations - consider unsigned types"
+      
+    - category: "google-runtime-int"
+      count: 2
+      severity: MEDIUM
+      description: "Integer type usage - prefer specific width types"
+
+# FACTORY WORKFLOW INTEGRATION:
+factory_phases:
+  discovery:
+    use_filtered_config: true
+    expect_warning_count: 23
+    categories_to_analyze: 6
+    
+  strategy:
+    prioritize_critical_first: true
+    batch_similar_categories: true
+    estimated_fix_time_minutes: 15
+    
+  fixing:
+    critical_fixes: ["clang-analyzer-core.NullDereference"]
+    high_priority_fixes: ["hicpp-invalid-access-moved", "clang-analyzer-cplusplus.Move"] 
+    medium_priority_fixes: ["hicpp-avoid-c-arrays", "hicpp-signed-bitwise", "google-runtime-int"]
+    
+  validation:
+    target_warning_count: 0
+    require_build_success: true
+    require_test_pass: true

@@ -1,0 +1,125 @@
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>Deal Properties</h1>
+<p><span>Constants for obtaining deal properties using <a href="/trading/historydealgetinteger">HistoryDealGetInteger()</a>, <a href="/trading/historydealgetdouble">HistoryDealGetDouble()</a>, and <a href="/trading/historydealgetstring">HistoryDealGetString()</a>.</span></p>
+<p><span style="font-weight: bold;">ENUM_DEAL_PROPERTY_INTEGER</span></p>
+<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 0px 4px 0px 4px;">
+ <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; width:220px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>ID</span></p> </td>
+    <td style="vertical-align:top; width:1182px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Description</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TICKET</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal ticket. Unique number assigned to each deal</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_ORDER</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal order number</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TIME</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal execution time</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TIME_MSC</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal execution time in milliseconds since 01.01.1970</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TYPE</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal type (ENUM_DEAL_TYPE)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_ENTRY</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal entry - entry in, entry out, reverse (ENUM_DEAL_ENTRY)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_MAGIC</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal magic number (see <a href="/trading/ordersend">OrderSend</a>)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_REASON</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>The reason for the deal (ENUM_DEAL_REASON)</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_POSITION_ID</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Identifier of the position the deal belongs to</span></p> </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>&nbsp;</span></p>
+<p><span style="font-weight: bold;">ENUM_DEAL_PROPERTY_DOUBLE</span></p>
+<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 0px 4px 0px 4px;">
+ <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; width:220px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>ID</span></p> </td>
+    <td style="vertical-align:top; width:1182px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Description</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_VOLUME</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal volume</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_PRICE</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal price</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_COMMISSION</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal commission</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_SWAP</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Accumulated swap at close</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_PROFIT</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal profit</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_FEE</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Fee charged for a deal</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_SL</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Stop Loss level</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_TP</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Take Profit level</span></p> </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>&nbsp;</span></p>
+<p><span style="font-weight: bold;">ENUM_DEAL_PROPERTY_STRING</span></p>
+<div style="text-align: justify; text-indent: 0px; padding: 0px 0px 0px 0px; margin: 0px 4px 0px 4px;">
+ <table cellpadding="5" border="1" style="border:solid 2px #b1c2d6; border-spacing:0px; border-collapse:collapse;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; width:220px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>ID</span></p> </td>
+    <td style="vertical-align:top; width:1182px; background-color:#dbe9f9; padding:5px; border:solid thin #b1c2d6;"><p><span>Description</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_SYMBOL</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal symbol</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_COMMENT</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal comment</span></p> </td>
+   </tr>
+   <tr>
+    <td style="vertical-align:top; width:220px; padding:5px; border:solid thin #b1c2d6;"><p><span>DEAL_EXTERNAL_ID</span></p> </td>
+    <td style="vertical-align:top; width:1182px; padding:5px; border:solid thin #b1c2d6;"><p><span>Deal identifier in an external trading system</span></p> </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>See also</span></p>
+<p><span><a href="/trading/historydealgetinteger">HistoryDealGetInteger</a>, <a href="/trading/historydealgetdouble">HistoryDealGetDouble</a>, <a href="/trading/historydealgetstring">HistoryDealGetString</a></span></p>
+<br>

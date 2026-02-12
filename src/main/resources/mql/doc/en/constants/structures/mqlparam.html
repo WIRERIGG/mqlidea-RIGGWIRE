@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
+  -->
+
+<h1>MqlParam</h1>
+<p><span>This structure is used to pass parameters when creating indicator handles using the <a href="/indicators/indicatorcreate">IndicatorCreate()</a> function.</span></p>
+<div style="text-align: left; text-indent: 0px; line-height: 1.0; page-break-inside: avoid; border-color: #b3b3b3; border-style: solid; border-width: thin; background: #fbf9f5; padding: 0px 0px 0px 0px; margin: 2px 17px 2px 17px;">
+ <table cellpadding="3" style="border:none; border-spacing:0px;">
+  <tbody>
+   <tr>
+    <td style="vertical-align:top; padding:3px;"><p><span style="color: #0000ff;">struct&nbsp;</span><span style="font-weight: bold;">MqlParam</span><br> <span>&nbsp;&nbsp;{</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">ENUM_DATATYPE</span><span>&nbsp;</span><span>type</span><span>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Type&nbsp;of&nbsp;the&nbsp;input&nbsp;parameter</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">long</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>integer_value</span><span>;&nbsp;</span><span style="color: #808080;">//&nbsp;Field&nbsp;to&nbsp;store&nbsp;an&nbsp;integer&nbsp;type</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">double</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>double_value</span><span>;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Field&nbsp;to&nbsp;store&nbsp;a&nbsp;double&nbsp;type</span><br> <span>&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">string</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>string_value</span><span>;&nbsp;&nbsp;</span><span style="color: #808080;">//&nbsp;Field&nbsp;to&nbsp;store&nbsp;a&nbsp;string&nbsp;type</span><br> <span>&nbsp;&nbsp;};</span></p></td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<p><span>Note</span></p>
+<p><span>The type field specifies which of the remaining fields contains the actual value. The type can be one of the ENUM_DATATYPE values: TYPE_BOOL, TYPE_CHAR, TYPE_UCHAR, TYPE_SHORT, TYPE_USHORT, TYPE_INT, TYPE_UINT, TYPE_LONG, TYPE_ULONG, TYPE_FLOAT, TYPE_DOUBLE, TYPE_STRING, TYPE_DATETIME, TYPE_COLOR.</span></p>
+<p><span>See also</span></p>
+<p><span><a href="/indicators/indicatorcreate">IndicatorCreate</a>, <a href="/constants/structures">Data Structures</a></span></p>
+<br>
