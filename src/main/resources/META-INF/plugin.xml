@@ -452,6 +452,31 @@
         <projectService serviceImplementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerService"/>
         <postStartupActivity implementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerStartupActivity"/>
 
+        <!-- AI Healing Database -->
+        <projectService serviceImplementation="com.limemojito.oss.mql.healing.db.HealingDatabase"/>
+        <postStartupActivity implementation="com.limemojito.oss.mql.healing.db.HealingStartupActivity"/>
+
+        <!-- AI Healing Service -->
+        <projectService serviceImplementation="com.limemojito.oss.mql.healing.HealingService"/>
+
+        <!-- AI Healing UI -->
+        <!--suppress PluginXmlI18n -->
+        <toolWindow id="MQL Healing"
+                    anchor="bottom"
+                    secondary="true"
+                    doNotActivateOnStart="true"
+                    canCloseContents="false"
+                    factoryClass="com.limemojito.oss.mql.healing.ui.HealingToolWindowFactory"
+                    icon="/icons/mql_healing_16.png"/>
+
+        <codeInsight.lineMarkerProvider language="MQL4"
+                                         implementationClass="com.limemojito.oss.mql.healing.ui.HealingLineMarkerProvider"/>
+
+        <annotator language="MQL4"
+                   implementationClass="com.limemojito.oss.mql.healing.ui.HealingAnnotator"/>
+
+        <checkinHandlerFactory implementation="com.limemojito.oss.mql.healing.vcs.HealingCheckinHandlerFactory"/>
+
         <!-- Live Templates -->
         <defaultLiveTemplates>/liveTemplates/MQL5Templates</defaultLiveTemplates>
         <!--suppress PluginXmlI18n -->

@@ -17,6 +17,22 @@ public interface MQL4PluginSettings {
 
     void setPerformErrorAnalysis(boolean v);
 
+    int getHealingDelayMinutes();
+
+    void setHealingDelayMinutes(int minutes);
+
+    boolean isAutoHealEnabled();
+
+    void setAutoHealEnabled(boolean v);
+
+    String getGrokModel();
+
+    void setGrokModel(String model);
+
+    String getClaudeModel();
+
+    void setClaudeModel(String model);
+
     static MQL4PluginSettings getInstance() {
         return ApplicationManager.getApplication().getComponent(MQL4PluginSettings.class);
     }

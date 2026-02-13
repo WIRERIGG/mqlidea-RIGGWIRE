@@ -30,6 +30,10 @@ dependencies {
         testFramework(TestFrameworkType.Platform)
     }
 
+    implementation("org.xerial:sqlite-jdbc:3.45.1.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testImplementation("org.assertj:assertj-core:3.27.7")

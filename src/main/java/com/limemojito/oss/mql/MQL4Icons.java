@@ -26,6 +26,10 @@ public interface MQL4Icons {
     Icon MQL5FileGray = IconUtil.desaturate(MQL5File);
     Icon HeaderFileGray = IconUtil.desaturate(HeaderFile);
 
+    // Healing
+    Icon Healing = IconLoader.getIcon("/icons/mql_healing.png", callingClassLoader());
+    Icon Healing16 = IconLoader.getIcon("/icons/mql_healing_16.png", callingClassLoader());
+
     // Classes and structs
     Icon Class = AllIcons.Nodes.Class;
     Icon Struct = IconLoader.getIcon("/icons/struct.png", callingClassLoader());
