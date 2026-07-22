@@ -63,6 +63,18 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
         return null;
     }
 
+    /** True for MetaTrader 4 source (.mq4 / .mql4). */
+    protected boolean isMql4Source(@NotNull PsiFile file) {
+        String n = file.getName().toLowerCase();
+        return n.endsWith(".mq4") || n.endsWith(".mql4");
+    }
+
+    /** True for MetaTrader 5 source (.mq5 / .mql5). */
+    protected boolean isMql5Source(@NotNull PsiFile file) {
+        String n = file.getName().toLowerCase();
+        return n.endsWith(".mq5") || n.endsWith(".mql5");
+    }
+
     @NotNull
     protected List<MQL4FunctionElement> findFunctions(@NotNull PsiFile file) {
         List<MQL4FunctionElement> result = new ArrayList<>();

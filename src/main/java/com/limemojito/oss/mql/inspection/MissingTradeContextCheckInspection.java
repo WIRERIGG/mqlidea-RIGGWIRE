@@ -19,23 +19,37 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Set;
 
-public class IndicatorCreationInOnTickInspection extends MQL5SafetyInspectionBase {
+/**
+ * MQL4-only. Flags a function that performs a trade operation without any
+ * trade-context guard (IsTradeAllowed()/IsTradeContextBusy()) — in MQL4 the
+ * trade context is single-threaded and may be busy when the EA tries to trade.
+ */
+public class MissingTradeContextCheckInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "Indicator handle created in OnTick()/OnCalculate() — cache handle in OnInit() and reuse";
-    private static final Set<String> TICK_HANDLERS = Set.of("OnTick", "OnCalculate");
+    private static final String MESSAGE =
+            "Trade operation without an IsTradeAllowed()/IsTradeContextBusy() check — the trade context may be busy";
+
+    private static final Set<String> TRADE_OPERATIONS = Set.of(
+            "OrderSend", "OrderClose", "OrderModify", "OrderDelete"
+    );
+
+    private static final Set<String> SKIPPED_HANDLERS = Set.of("OnInit", "OnDeinit");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        if (isMql4Source(file)) return ProblemDescriptor.EMPTY_ARRAY;
+        if (isMql5Source(file)) return ProblemDescriptor.EMPTY_ARRAY;
         List<ProblemDescriptor> problems = new SmartList<>();
         for (PsiElement child : file.getChildren()) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func
                     && !func.isDeclaration()
-                    && TICK_HANDLERS.contains(func.getFunctionName())) {
+                    && !SKIPPED_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, MQL5_HANDLE_CREATORS)) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                if (body == null) continue;
+                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, TRADE_OPERATIONS)
+                        && !BracketBlockTokenWalker.containsFunctionCall(body, "IsTradeAllowed")
+                        && !BracketBlockTokenWalker.containsFunctionCall(body, "IsTradeContextBusy")) {
+                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
         }

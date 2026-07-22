@@ -1,0 +1,11 @@
+<html>
+<body>
+Reports a forward (ascending) loop over <code>OrdersTotal()</code> that closes or deletes orders inside (MQL4).
+<!-- tooltip end -->
+<p>
+    When an order is closed or deleted, the order pool re-indexes and every remaining order
+    shifts down by one position, so a forward loop silently skips the next order after each close.
+    Iterate downward instead: <code>for(int i = OrdersTotal() - 1; i &gt;= 0; i--)</code>.
+</p>
+</body>
+</html>

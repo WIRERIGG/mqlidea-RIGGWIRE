@@ -1,0 +1,12 @@
+<html>
+<body>
+Reports <code>return 0;</code> (or <code>return(0);</code>) inside <code>OnCalculate()</code> (MQL5).
+<!-- tooltip end -->
+<p>
+    The value returned from <code>OnCalculate()</code> becomes <code>prev_calculated</code> on the
+    next call. Returning 0 tells the terminal that nothing has been calculated yet, forcing a full
+    recalculation of all bars on every tick. Return <code>rates_total</code> on success
+    (or <code>prev_calculated</code> when waiting for data) so only new bars are recalculated.
+</p>
+</body>
+</html>

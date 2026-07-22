@@ -27,6 +27,7 @@ public class StaleHandleUsageInspection extends MQL5SafetyInspectionBase {
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
+        if (isMql4Source(file)) return ProblemDescriptor.EMPTY_ARRAY;
         List<ProblemDescriptor> problems = new SmartList<>();
         for (PsiElement child : file.getChildren()) {
             ProgressManager.checkCanceled();

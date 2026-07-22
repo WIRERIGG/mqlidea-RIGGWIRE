@@ -18,9 +18,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class UncheckedHandleInspection extends MQL5SafetyInspectionBase {
+/**
+ * MQL5-only. Flags {@code return 0;} / {@code return(0);} inside
+ * OnCalculate() — returning 0 tells the terminal that nothing was calculated,
+ * forcing a full indicator recalculation on every tick. Return rates_total
+ * (or prev_calculated) instead.
+ */
+public class OnCalculateReturnInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "Indicator handle should be checked against INVALID_HANDLE after creation";
+    private static final String MESSAGE =
+            "OnCalculate() returning 0 forces a full recalculation each tick — return rates_total (or prev_calculated)";
+
+    /** Whole-token return of literal 0, with or without parentheses. */
+    private static final String RETURN_ZERO_REGEX = "\\breturn\\s*\\(?\\s*0\\s*\\)?\\s*;";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -28,12 +38,13 @@ public class UncheckedHandleInspection extends MQL5SafetyInspectionBase {
         List<ProblemDescriptor> problems = new SmartList<>();
         for (PsiElement child : file.getChildren()) {
             ProgressManager.checkCanceled();
-            if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
+            if (child instanceof MQL4FunctionElement func
+                    && !func.isDeclaration()
+                    && "OnCalculate".equals(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, MQL5_HANDLE_CREATORS)) {
-                    if (!BracketBlockTokenWalker.containsIdentifier(body, "INVALID_HANDLE")) {
-                        problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE));
-                    }
+                if (body == null) continue;
+                if (BracketBlockTokenWalker.containsPattern(body, RETURN_ZERO_REGEX)) {
+                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
         }

@@ -1,0 +1,13 @@
+<html>
+<body>
+Reports live prices (<code>Bid</code>/<code>Ask</code>, or <code>MarketInfo()</code> with
+<code>MODE_BID</code>/<code>MODE_ASK</code>) read inside a loop without <code>RefreshRates()</code> (MQL4).
+<!-- tooltip end -->
+<p>
+    The predefined <code>Bid</code> and <code>Ask</code> variables are snapshots taken when the
+    event handler started; they do not update by themselves while a loop runs. Call
+    <code>RefreshRates()</code> inside the loop before each price read (typically before retrying
+    a trade operation) so the values reflect the current market.
+</p>
+</body>
+</html>

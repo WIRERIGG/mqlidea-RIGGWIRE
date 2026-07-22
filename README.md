@@ -9,19 +9,19 @@
 ![Version](https://img.shields.io/badge/version-2026.1.0-2381C4?style=flat-square)
 ![IntelliJ IDEA](https://img.shields.io/badge/IntelliJ%20IDEA-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
-![Inspections](https://img.shields.io/badge/inspections-75-2E8B57?style=flat-square)
+![Inspections](https://img.shields.io/badge/inspections-80-2E8B57?style=flat-square)
 ![AI Healing](https://img.shields.io/badge/AI%20healing-Grok%20%2B%20Claude-8A2BE2?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--3.0-777777?style=flat-square)
 
 <img src="src/main/resources/icons/mql4.svg" width="34" alt="MQL4" /> &nbsp; <img src="src/main/resources/icons/mql5.svg" width="34" alt="MQL5" /> &nbsp; <img src="src/main/resources/icons/mqh.svg" width="34" alt="MQH" /> &nbsp; <img src="src/main/resources/icons/mql_healing.svg" width="34" alt="AI Healing" />
 
-[**Features**](#features) &#8226; [**AI Healing**](#ai-code-healing) &#8226; [**Inspections**](#75-code-inspections) &#8226; [**Live Templates**](#live-templates) &#8226; [**Install**](#installation) &#8226; [**Build**](#building-from-source) &#8226; [**License**](#license)
+[**Features**](#features) &#8226; [**AI Healing**](#ai-code-healing) &#8226; [**Inspections**](#80-code-inspections) &#8226; [**Live Templates**](#live-templates) &#8226; [**Install**](#installation) &#8226; [**Build**](#building-from-source) &#8226; [**License**](#license)
 
 ---
 
 | Code Inspections | Doc Pages (EN + RU) | Live Templates | Inspection Categories |
 | :--------------: | :-----------------: | :------------: | :-------------------: |
-|      **75**      |      **1,400+**     |     **9**      |         **13**        |
+|      **80**      |      **1,400+**     |     **9**      |         **13**        |
 
 ---
 
@@ -42,7 +42,7 @@
 - New File actions for MQL4 and MQL5
 
 ### Background Analysis Engine
-- Continuous scanning against all 75 inspections
+- Continuous scanning against all 80 inspections
 - Incremental — only re-scans modified files
 - Batched read actions (5 files/lock) for zero UI lag
 - Structured `mql-problems.log` report at project root
@@ -87,24 +87,30 @@ Beyond *finding* problems, the plugin can *fix* them. An optional two-stage AI p
 
 ---
 
-## 75 Code Inspections
+## 80 Code Inspections
 
 Real-time analysis across 13 categories, catching bugs before they cost you money. In the IDE they appear under **Settings → Editor → Inspections → RIGGWIRE MQL**.
 
-<details>
-<summary><b>Trading Safety</b> &mdash; 9 inspections &nbsp;&nbsp;<code>Catch order failures before they go live</code></summary>
+Inspections are **dialect-aware**: MQL5-only checks (indicator handles, `IndicatorRelease()`, `OnCalculate()`) run only on `.mq5`/`.mqh`, and MQL4-only checks (`OrderSelect()`, order-close loop direction, `RefreshRates()`, trade-context) run only on `.mq4`/`.mqh` — so neither dialect gets false positives from the other's idioms.
 
-| Inspection                             | What it catches                                       |
-| :------------------------------------- | :---------------------------------------------------- |
-| **Unchecked OrderSend() result**       | `OrderSend()` without checking return value           |
-| **Unchecked indicator handle**         | Handle creation without `INVALID_HANDLE` check        |
-| **Missing IndicatorRelease()**         | Forgetting `IndicatorRelease(handle)` in `OnDeinit()` |
-| **Array access without size check**    | Array indexing without `ArraySize()` guard            |
-| **Missing input parameter validation** | `OnInit()` without parameter range checks             |
-| **FileOpen() without FileClose()**     | File handles left open                                |
-| **Unchecked CopyRates/CopyBuffer**     | Copy functions without return value check             |
-| **Double IndicatorRelease()**          | Releasing the same handle twice                       |
-| **Delete without NULL check**          | `delete ptr` without prior null guard                 |
+<details>
+<summary><b>Trading Safety</b> &mdash; 13 inspections &nbsp;&nbsp;<code>Catch order failures before they go live</code></summary>
+
+| Inspection                                          | What it catches                                                  |
+| :-------------------------------------------------- | :--------------------------------------------------------------- |
+| **Unchecked OrderSend() result**                    | `OrderSend()` without checking return value                      |
+| **Unchecked indicator handle**                      | Handle creation without `INVALID_HANDLE` check                   |
+| **Missing IndicatorRelease()**                      | Forgetting `IndicatorRelease(handle)` in `OnDeinit()`            |
+| **Array access without size check**                 | Array indexing without `ArraySize()` guard                       |
+| **Missing input parameter validation**              | `OnInit()` without parameter range checks                        |
+| **FileOpen() without FileClose()**                  | File handles left open                                           |
+| **Unchecked CopyRates/CopyBuffer**                  | Copy functions without return value check                        |
+| **Double IndicatorRelease()**                       | Releasing the same handle twice                                  |
+| **Delete without NULL check**                       | `delete ptr` without prior null guard                            |
+| **OrderSelect() result ignored** *(MQL4)*           | Reading order data without checking `OrderSelect()`              |
+| **Forward order-close loop** *(MQL4)*               | Closing orders in an ascending `OrdersTotal()` loop skips orders |
+| **Missing trade-context check** *(MQL4)*            | `OrderSend()` etc. without an `IsTradeAllowed()` guard           |
+| **Prices read in loop w/o RefreshRates()** *(MQL4)* | `Bid`/`Ask` re-read in a loop without `RefreshRates()`           |
 
 </details>
 
@@ -173,7 +179,7 @@ Real-time analysis across 13 categories, catching bugs before they cost you mone
 </details>
 
 <details>
-<summary><b>Function Signature</b> &mdash; 5 inspections &nbsp;&nbsp;<code>Get function signatures right</code></summary>
+<summary><b>Function Signature</b> &mdash; 6 inspections &nbsp;&nbsp;<code>Get function signatures right</code></summary>
 
 | Inspection                           | What it catches                                             |
 | :----------------------------------- | :---------------------------------------------------------- |
@@ -182,6 +188,7 @@ Real-time analysis across 13 categories, catching bugs before they cost you mone
 | **Missing const on reference param** | Reference parameters that should be `const`                 |
 | **Large struct by value**            | Passing `MqlTradeRequest` etc. by copy instead of reference |
 | **Missing destructor**               | Classes that allocate resources but have no destructor      |
+| **OnCalculate() returns 0** *(MQL5)* | Returning 0 forces a full indicator recalculation each tick |
 
 </details>
 
@@ -288,7 +295,7 @@ class      -->  Class with constructor and destructor
 pool       -->  Object pool pattern for reusable objects
 ```
 
-> Every template follows the patterns enforced by the inspections above — so generated code passes all 75 checks out of the box.
+> Every template follows the patterns enforced by the inspections above — so generated code passes all 80 checks out of the box.
 
 ---
 
@@ -332,7 +339,7 @@ export JAVA_HOME="/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.2/jbr"
 ```
 src/main/java/                       100+ Java source files
 src/main/resources/
-    META-INF/plugin.xml              Plugin manifest (75 inspections + healing registered)
+    META-INF/plugin.xml              Plugin manifest (80 inspections + healing registered)
     icons/                           SVG file-type badges (4, 5, h, struct) + AI healing icon
     inspectionDescriptions/          52 HTML inspection descriptions
     liveTemplates/                   MQL5 live template definitions

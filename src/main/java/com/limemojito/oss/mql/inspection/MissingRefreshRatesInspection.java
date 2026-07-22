@@ -18,22 +18,36 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class UncheckedHandleInspection extends MQL5SafetyInspectionBase {
+/**
+ * MQL4-only. Flags a function that reads live prices (Bid/Ask, or
+ * MarketInfo with MODE_BID/MODE_ASK) inside a loop without ever calling
+ * RefreshRates() — the predefined price variables are cached at event entry
+ * and go stale while a loop runs.
+ */
+public class MissingRefreshRatesInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "Indicator handle should be checked against INVALID_HANDLE after creation";
+    private static final String MESSAGE =
+            "Prices (Bid/Ask) read in a loop without RefreshRates() — values may be stale";
+
+    /**
+     * Whole-word Bid/Ask usage, or a MarketInfo() call requesting MODE_BID/MODE_ASK.
+     * Matched inside loop bodies only (via containsPatternInLoop) to stay conservative.
+     */
+    private static final String PRICE_USAGE_IN_LOOP_REGEX =
+            "\\b(?:Bid|Ask)\\b|\\bMarketInfo\\s*\\([^;)]*MODE_(?:BID|ASK)\\b";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        if (isMql4Source(file)) return ProblemDescriptor.EMPTY_ARRAY;
+        if (isMql5Source(file)) return ProblemDescriptor.EMPTY_ARRAY;
         List<ProblemDescriptor> problems = new SmartList<>();
         for (PsiElement child : file.getChildren()) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, MQL5_HANDLE_CREATORS)) {
-                    if (!BracketBlockTokenWalker.containsIdentifier(body, "INVALID_HANDLE")) {
-                        problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE));
-                    }
+                if (body == null) continue;
+                if (BracketBlockTokenWalker.containsPatternInLoop(body, PRICE_USAGE_IN_LOOP_REGEX)
+                        && !BracketBlockTokenWalker.containsFunctionCall(body, "RefreshRates")) {
+                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
         }

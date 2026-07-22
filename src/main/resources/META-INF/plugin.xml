@@ -14,7 +14,7 @@
         <![CDATA[
          <p><b>RIGGWIRE MQL &mdash; MetaQuotes MQL4 &amp; MQL5 support for IntelliJ IDEA, with AI code healing.</b></p>
          <p>Professional MQL4/MQL5 language support: syntax highlighting, code completion and
-            navigation, quick documentation (English &amp; Russian), 75 code-safety inspections, and
+            navigation, quick documentation (English &amp; Russian), 80 code-safety inspections, and
             an optional AI code-healing pipeline (Grok analysis &rarr; Claude fixes).</p>
          <p><i>A fork of the &quot;Lime MQL Editing&quot; plugin by Lime Mojito Pty Ltd (originally the
              <a href="https://plugins.jetbrains.com/plugin/9291-mql-idea">mqlidea plugin by investflow.ru</a>),
@@ -34,7 +34,7 @@
              <li>MQL4 &amp; MQL5 syntax highlighting.</li>
              <li>Code completion and navigation.</li>
              <li>Quick documentation in English and Russian (see settings).</li>
-             <li>75 code-safety inspections.</li>
+             <li>80 code-safety inspections.</li>
              <li>AI code healing (opt-in; bring your own Grok &amp; Claude keys).</li>
            </ul>
          </p>
@@ -53,7 +53,7 @@
     <change-notes>
         <![CDATA[
             <ul>
-             <li>2026.1.0 &ndash; RIGGWIRE MQL: rebrand of the Lime Mojito / investflow.ru mqlidea fork; adds 75 code-safety inspections and an AI code-healing pipeline.</li>
+             <li>2026.1.0 &ndash; RIGGWIRE MQL: rebrand of the Lime Mojito / investflow.ru mqlidea fork; adds 80 code-safety inspections and an AI code-healing pipeline.</li>
             </ul>
          ]]>
     </change-notes>
@@ -161,6 +161,22 @@
         <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
                          displayName="Delete without NULL check"
                          implementationClass="com.limemojito.oss.mql.inspection.DeleteWithoutNullCheckInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="OrderSelect() result ignored (MQL4)"
+                         implementationClass="com.limemojito.oss.mql.inspection.OrderSelectUncheckedInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+                         displayName="Forward order-close loop skips orders (MQL4)"
+                         implementationClass="com.limemojito.oss.mql.inspection.OrderCloseLoopDirectionInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Trade operation without IsTradeAllowed() check (MQL4)"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingTradeContextCheckInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="Prices read in loop without RefreshRates() (MQL4)"
+                         implementationClass="com.limemojito.oss.mql.inspection.MissingRefreshRatesInspection"/>
 
         <!-- MQL5 Safety: Function Signature -->
         <!--suppress PluginXmlI18n -->
@@ -183,6 +199,12 @@
         <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
                          displayName="Missing destructor in class"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingDestructorInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+                         displayName="OnCalculate() returns 0 (forces full recalculation) (MQL5)"
+                         implementationClass="com.limemojito.oss.mql.inspection.OnCalculateReturnInspection"/>
+
+        <!-- MQL5 Safety: Class Structure -->
         <!--suppress PluginXmlI18n -->
         <localInspection language="MQL4" groupName="Class Structure" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
                          displayName="Virtual methods without virtual destructor"

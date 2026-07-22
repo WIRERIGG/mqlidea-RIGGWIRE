@@ -1,0 +1,13 @@
+<html>
+<body>
+Reports an <code>OrderSelect()</code> call whose boolean result is ignored (MQL4).
+<!-- tooltip end -->
+<p>
+    If <code>OrderSelect()</code> fails, functions such as <code>OrderTicket()</code>,
+    <code>OrderLots()</code> and <code>OrderOpenPrice()</code> return stale data from the
+    previously selected order — or garbage if nothing was ever selected.
+    Always check the return value before reading order properties:
+    <code>if(OrderSelect(i, SELECT_BY_POS)) { ... }</code>.
+</p>
+</body>
+</html>

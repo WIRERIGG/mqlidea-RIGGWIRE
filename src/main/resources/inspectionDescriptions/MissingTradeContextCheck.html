@@ -1,0 +1,13 @@
+<html>
+<body>
+Reports a trade operation (<code>OrderSend()</code>, <code>OrderClose()</code>, <code>OrderModify()</code>,
+<code>OrderDelete()</code>) performed without a trade-context guard (MQL4).
+<!-- tooltip end -->
+<p>
+    In MQL4 the trade context is single-threaded: if another expert advisor or a manual action
+    is already trading, the operation fails with error 146 (trade context busy).
+    Check <code>IsTradeAllowed()</code> or <code>IsTradeContextBusy()</code> before trading,
+    and wait or retry when the context is busy.
+</p>
+</body>
+</html>

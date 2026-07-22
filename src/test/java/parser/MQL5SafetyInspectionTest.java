@@ -42,8 +42,19 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     }
 
     private void assertNoProblems(LocalInspectionTool inspection, String code) {
-        ProblemDescriptor[] problems = runInspection(inspection, code);
-        assertTrue("Expected no problems from " + inspection.getClass().getSimpleName(),
+        assertNoProblems(inspection, code, "test.mq4");
+    }
+
+    private void assertHasProblems(LocalInspectionTool inspection, String code, String fileName) {
+        ProblemDescriptor[] problems = runInspection(inspection, code, fileName);
+        assertNotNull("checkFile returned null for " + inspection.getClass().getSimpleName(), problems);
+        assertTrue("Expected problems from " + inspection.getClass().getSimpleName() + " on " + fileName,
+                problems.length > 0);
+    }
+
+    private void assertNoProblems(LocalInspectionTool inspection, String code, String fileName) {
+        ProblemDescriptor[] problems = runInspection(inspection, code, fileName);
+        assertTrue("Expected no problems from " + inspection.getClass().getSimpleName() + " on " + fileName,
                 problems == null || problems.length == 0);
     }
 
@@ -68,28 +79,32 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testUncheckedHandle() {
         assertHasProblems(new UncheckedHandleInspection(),
                 "int handle;\n" +
-                "int OnInit() { handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE); return 0; }");
+                "int OnInit() { handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE); return 0; }",
+                "test.mq5");
     }
 
     public void testUncheckedHandleClean() {
         assertNoProblems(new UncheckedHandleInspection(),
                 "int handle;\n" +
                 "int OnInit() { handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE);\n" +
-                "  if(handle == INVALID_HANDLE) return INIT_FAILED; return 0; }");
+                "  if(handle == INVALID_HANDLE) return INIT_FAILED; return 0; }",
+                "test.mq5");
     }
 
     public void testMissingIndicatorRelease() {
         assertHasProblems(new MissingIndicatorReleaseInspection(),
                 "int handle;\n" +
                 "int OnInit() { handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE); return 0; }\n" +
-                "void OnDeinit(const int reason) { }");
+                "void OnDeinit(const int reason) { }",
+                "test.mq5");
     }
 
     public void testMissingIndicatorReleaseClean() {
         assertNoProblems(new MissingIndicatorReleaseInspection(),
                 "int handle;\n" +
                 "int OnInit() { handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE); return 0; }\n" +
-                "void OnDeinit(const int reason) { IndicatorRelease(handle); }");
+                "void OnDeinit(const int reason) { IndicatorRelease(handle); }",
+                "test.mq5");
     }
 
     public void testArrayAccessWithoutSizeCheck() {
@@ -131,7 +146,8 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
 
     public void testDoubleIndicatorRelease() {
         assertHasProblems(new DoubleIndicatorReleaseInspection(),
-                "void OnDeinit(const int reason) { IndicatorRelease(h); IndicatorRelease(h); }");
+                "void OnDeinit(const int reason) { IndicatorRelease(h); IndicatorRelease(h); }",
+                "test.mq5");
     }
 
     public void testDeleteWithoutNullCheck() {
@@ -393,7 +409,8 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
 
     public void testStaleHandleUsage() {
         assertHasProblems(new StaleHandleUsageInspection(),
-                "void foo() { IndicatorRelease(handle); CopyBuffer(handle, 0, 0, 1, buf); }");
+                "void foo() { IndicatorRelease(handle); CopyBuffer(handle, 0, 0, 1, buf); }",
+                "test.mq5");
     }
 
     public void testIncompleteClass() {
@@ -478,12 +495,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
 
     public void testIndicatorCreationInOnTick() {
         assertHasProblems(new IndicatorCreationInOnTickInspection(),
-                "void OnTick() { int h = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE); }");
+                "void OnTick() { int h = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE); }",
+                "test.mq5");
     }
 
     public void testIndicatorCreationInOnTickClean() {
         assertNoProblems(new IndicatorCreationInOnTickInspection(),
-                "void OnTick() { CopyBuffer(handle, 0, 0, 1, buf); }");
+                "void OnTick() { CopyBuffer(handle, 0, 0, 1, buf); }",
+                "test.mq5");
     }
 
     public void testNewKeywordInLoop() {
@@ -517,5 +536,110 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertNoProblems(new UnconditionalOrderLoopInspection(),
                 "void OnTick() { static int prevTotal = 0;\n" +
                 "  int total = PositionsTotal(); }");
+    }
+
+    // ===== Dialect Breadth (MQL4-only inspections) =====
+
+    public void testOrderSelectUnchecked() {
+        assertHasProblems(new OrderSelectUncheckedInspection(),
+                "void CheckOrders() { OrderSelect(0, SELECT_BY_POS); double p = OrderOpenPrice(); }");
+    }
+
+    public void testOrderSelectUncheckedClean() {
+        assertNoProblems(new OrderSelectUncheckedInspection(),
+                "void CheckOrders() { if(OrderSelect(0, SELECT_BY_POS)) { double p = OrderOpenPrice(); } }");
+    }
+
+    public void testOrderSelectUncheckedAssignedClean() {
+        assertNoProblems(new OrderSelectUncheckedInspection(),
+                "void CheckOrders() { bool ok = OrderSelect(0, SELECT_BY_POS); if(ok) { double p = OrderOpenPrice(); } }");
+    }
+
+    public void testOrderSelectUncheckedWrongDialect() {
+        // MQL4-only inspection must not fire on an .mq5 file
+        assertNoProblems(new OrderSelectUncheckedInspection(),
+                "void CheckOrders() { OrderSelect(0, SELECT_BY_POS); double p = OrderOpenPrice(); }",
+                "test.mq5");
+    }
+
+    public void testOrderCloseLoopDirection() {
+        assertHasProblems(new OrderCloseLoopDirectionInspection(),
+                "void CloseAll() { for(int i = 0; i < OrdersTotal(); i++) {\n" +
+                "  if(OrderSelect(i, SELECT_BY_POS)) OrderClose(OrderTicket(), OrderLots(), Bid, 3); } }");
+    }
+
+    public void testOrderCloseLoopDirectionCleanDescending() {
+        assertNoProblems(new OrderCloseLoopDirectionInspection(),
+                "void CloseAll() { for(int i = OrdersTotal() - 1; i >= 0; i--) {\n" +
+                "  if(OrderSelect(i, SELECT_BY_POS)) OrderClose(OrderTicket(), OrderLots(), Bid, 3); } }");
+    }
+
+    public void testOrderCloseLoopDirectionWrongDialect() {
+        // MQL4-only inspection must not fire on an .mq5 file
+        assertNoProblems(new OrderCloseLoopDirectionInspection(),
+                "void CloseAll() { for(int i = 0; i < OrdersTotal(); i++) {\n" +
+                "  if(OrderSelect(i, SELECT_BY_POS)) OrderClose(OrderTicket(), OrderLots(), Bid, 3); } }",
+                "test.mq5");
+    }
+
+    public void testMissingTradeContextCheck() {
+        assertHasProblems(new MissingTradeContextCheckInspection(),
+                "void DoTrade() { OrderSend(Symbol(), OP_BUY, 0.1, Ask, 3, 0, 0); }");
+    }
+
+    public void testMissingTradeContextCheckClean() {
+        assertNoProblems(new MissingTradeContextCheckInspection(),
+                "void DoTrade() { if(IsTradeContextBusy()) return;\n" +
+                "  OrderSend(Symbol(), OP_BUY, 0.1, Ask, 3, 0, 0); }");
+    }
+
+    public void testMissingTradeContextCheckWrongDialect() {
+        // MQL4-only inspection must not fire on an .mq5 file
+        assertNoProblems(new MissingTradeContextCheckInspection(),
+                "void DoTrade() { OrderSend(Symbol(), OP_BUY, 0.1, Ask, 3, 0, 0); }",
+                "test.mq5");
+    }
+
+    public void testMissingRefreshRates() {
+        assertHasProblems(new MissingRefreshRatesInspection(),
+                "void RetryLoop() { for(int i = 0; i < 3; i++) { double price = Bid; Print(price); } }");
+    }
+
+    public void testMissingRefreshRatesClean() {
+        assertNoProblems(new MissingRefreshRatesInspection(),
+                "void RetryLoop() { for(int i = 0; i < 3; i++) { RefreshRates(); double price = Bid; Print(price); } }");
+    }
+
+    public void testMissingRefreshRatesWrongDialect() {
+        // MQL4-only inspection must not fire on an .mq5 file
+        assertNoProblems(new MissingRefreshRatesInspection(),
+                "void RetryLoop() { for(int i = 0; i < 3; i++) { double price = Bid; Print(price); } }",
+                "test.mq5");
+    }
+
+    // ===== Dialect Breadth (MQL5-only inspections) =====
+
+    public void testOnCalculateReturn() {
+        assertHasProblems(new OnCalculateReturnInspection(),
+                "int OnCalculate() { return 0; }",
+                "test.mq5");
+    }
+
+    public void testOnCalculateReturnParenthesized() {
+        assertHasProblems(new OnCalculateReturnInspection(),
+                "int OnCalculate() { return(0); }",
+                "test.mq5");
+    }
+
+    public void testOnCalculateReturnClean() {
+        assertNoProblems(new OnCalculateReturnInspection(),
+                "int OnCalculate() { return rates_total; }",
+                "test.mq5");
+    }
+
+    public void testOnCalculateReturnWrongDialect() {
+        // MQL5-only inspection must not fire on an .mq4 file
+        assertNoProblems(new OnCalculateReturnInspection(),
+                "int OnCalculate() { return 0; }");
     }
 }
