@@ -2,7 +2,7 @@
 
 <br/>
 
-<img src="src/main/resources/icons/mql4.png" alt="MQL4" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mql5.png" alt="MQL5" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mqh.png" alt="MQH" width="64" />
+<img src="src/main/resources/icons/mql4.svg" alt="MQL4" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mql5.svg" alt="MQL5" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mqh.svg" alt="MQH" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mql_healing.svg" alt="AI Healing" width="64" />
 
 <br/><br/>
 
@@ -14,7 +14,7 @@
 
 <br/>
 
-[**Features**](#features) &#8226; [**Inspections**](#-75-code-inspections) &#8226; [**Live Templates**](#-live-templates) &#8226; [**Install**](#-installation) &#8226; [**Build**](#-building-from-source) &#8226; [**License**](#-license)
+[**Features**](#features) &#8226; [**AI Healing**](#-ai-code-healing) &#8226; [**Inspections**](#-75-code-inspections) &#8226; [**Live Templates**](#-live-templates) &#8226; [**Install**](#-installation) &#8226; [**Build**](#-building-from-source) &#8226; [**License**](#-license)
 
 <br/>
 
@@ -82,6 +82,52 @@
 </td>
 </tr>
 </table>
+
+<br/>
+
+---
+
+<br/>
+
+## <img src="src/main/resources/icons/mql_healing.svg" width="22" height="22" align="top" alt="healing" /> AI Code Healing
+
+Beyond *finding* problems, the plugin can *fix* them. An optional two-stage AI pipeline turns inspection findings into reviewable, one-click patches — entirely under your control.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### How it works
+1. **Scan** — the background engine records every inspection finding in a local SQLite database (`.idea/mql-healing.db`)
+2. **Analyze** — [**Grok**](https://x.ai) reviews each problem with MQL5 context and produces an insight
+3. **Refactor** — [**Claude**](https://www.anthropic.com/claude) turns each insight into a unified-diff fix
+4. **Apply** — you approve it; the diff is applied in a single undoable `WriteCommandAction`
+
+</td>
+<td width="50%" valign="top">
+
+### Where fixes surface
+- **Alt+Enter** intentions — *"Apply AI fix"* right at the problem
+- **Gutter icons** on any file that has a pending fix
+- **AI Healing tool window** — review and apply the full queue
+- **Pre-commit prompt** — get reminded of pending fixes before you commit
+- Every patch is **reviewable and undoable** — nothing changes without your say-so
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+| Setting | Default | Purpose |
+|:--|:--|:--|
+| **Auto-heal** | `off` | Master switch for automatic healing cycles |
+| **Healing interval** | `5 min` | Time between background analysis cycles |
+| **Grok model** | `grok-2` | Model used for problem analysis |
+| **Claude model** | `claude-sonnet-4-5` | Model used to generate diffs |
+| **API keys** | — | Stored in IntelliJ **PasswordSafe**, never on disk or in settings |
+
+> Healing is **opt-in and off by default**. Bring your own Grok and Claude API keys; all analysis data stays in your project's local database.
 
 <br/>
 
@@ -375,8 +421,8 @@ export JAVA_HOME="/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.2/jbr"
 ```
 src/main/java/                       100+ Java source files
 src/main/resources/
-    META-INF/plugin.xml              Plugin manifest (75 inspections registered)
-    icons/                           File type icons (mq4, mq5, mqh + gray variants)
+    META-INF/plugin.xml              Plugin manifest (75 inspections + healing registered)
+    icons/                           SVG file-type badges (4, 5, h, struct) + AI healing icon
     inspectionDescriptions/          52 HTML inspection descriptions
     liveTemplates/                   MQL5 live template definitions
     mql/doc/                         1,314 HTML docs + JSON catalogs (en + ru)

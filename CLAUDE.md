@@ -66,8 +66,8 @@ src/main/java/com/limemojito/oss/mql/
 src/main/resources/
 ├── META-INF/plugin.xml                   # Plugin manifest — ALL extensions registered here
 ├── icons/
-│   ├── mql_healing.png                   # 13x13 healing icon
-│   ├── mql_healing_16.png               # 16x16 healing icon (tool window, gutter)
+│   ├── mql_healing.svg                   # AI healing icon (red ECG-pulse badge)
+│   ├── mql_healing_16.svg               # healing icon (tool window, gutter)
 │   └── ...                               # File type icons
 ├── inspectionDescriptions/               # 52 HTML inspection descriptions
 ├── liveTemplates/                        # MQL5 live templates

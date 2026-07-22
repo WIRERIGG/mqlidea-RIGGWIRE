@@ -17,9 +17,9 @@ import java.util.Objects;
 
 public interface MQL4Icons {
     // File type icons
-    Icon File = IconLoader.getIcon("/icons/mql4.png", callingClassLoader());
-    Icon MQL5File = IconLoader.getIcon("/icons/mql5.png", callingClassLoader());
-    Icon HeaderFile = IconLoader.getIcon("/icons/mqh.png", callingClassLoader());
+    Icon File = IconLoader.getIcon("/icons/mql4.svg", callingClassLoader());
+    Icon MQL5File = IconLoader.getIcon("/icons/mql5.svg", callingClassLoader());
+    Icon HeaderFile = IconLoader.getIcon("/icons/mqh.svg", callingClassLoader());
 
     // Desaturated (gray) variants for files with problems
     Icon FileGray = IconUtil.desaturate(File);
@@ -27,12 +27,12 @@ public interface MQL4Icons {
     Icon HeaderFileGray = IconUtil.desaturate(HeaderFile);
 
     // Healing
-    Icon Healing = IconLoader.getIcon("/icons/mql_healing.png", callingClassLoader());
-    Icon Healing16 = IconLoader.getIcon("/icons/mql_healing_16.png", callingClassLoader());
+    Icon Healing = IconLoader.getIcon("/icons/mql_healing.svg", callingClassLoader());
+    Icon Healing16 = IconLoader.getIcon("/icons/mql_healing_16.svg", callingClassLoader());
 
     // Classes and structs
     Icon Class = AllIcons.Nodes.Class;
-    Icon Struct = IconLoader.getIcon("/icons/struct.png", callingClassLoader());
+    Icon Struct = IconLoader.getIcon("/icons/struct.svg", callingClassLoader());
     Icon Interface = AllIcons.Nodes.Interface;
 
     // Functions and methods
