@@ -13,13 +13,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.limemojito.oss.mql.healing.db.ClaudeTask;
-import com.limemojito.oss.mql.healing.db.HealingDatabase;
-import com.limemojito.oss.mql.healing.db.ProblemRecord;
+import com.limemojito.oss.mql.healing.HealingService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public class HealingLineMarkerProvider implements LineMarkerProvider {
 
@@ -37,15 +33,8 @@ public class HealingLineMarkerProvider implements LineMarkerProvider {
         if (vf == null) return null;
 
         Project project = element.getProject();
-        HealingDatabase db = HealingDatabase.getInstance(project);
-        List<ClaudeTask> tasks = db.getClaudeTasksForFile(vf.getUrl());
-
-        if (tasks.isEmpty()) return null;
-
-        // Count completed tasks with diffs ready to apply
-        long readyCount = tasks.stream()
-                .filter(t -> ClaudeTask.STATUS_COMPLETED.equals(t.status()) && t.diff() != null)
-                .count();
+        // Read the in-memory cache — never query SQLite from line marker computation
+        int readyCount = HealingService.getInstance(project).getReadyFixCountForFile(vf.getUrl());
 
         if (readyCount == 0) return null;
 

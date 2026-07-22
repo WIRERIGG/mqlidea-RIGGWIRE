@@ -11,7 +11,7 @@ import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.changes.CommitContext;
 import com.intellij.openapi.vcs.checkin.CheckinHandler;
 import com.intellij.openapi.vcs.checkin.CheckinHandlerFactory;
-import com.limemojito.oss.mql.healing.db.HealingDatabase;
+import com.limemojito.oss.mql.healing.HealingService;
 import org.jetbrains.annotations.NotNull;
 
 public class HealingCheckinHandlerFactory extends CheckinHandlerFactory {
@@ -34,8 +34,8 @@ public class HealingCheckinHandlerFactory extends CheckinHandlerFactory {
         @Override
         public ReturnResult beforeCheckin() {
             Project project = panel.getProject();
-            HealingDatabase db = HealingDatabase.getInstance(project);
-            int pendingCount = db.getPendingClaudeTaskCount();
+            // Read the in-memory cache — beforeCheckin runs on the EDT, no SQLite here
+            int pendingCount = HealingService.getInstance(project).getPendingFixCount();
 
             if (pendingCount <= 0) {
                 return ReturnResult.COMMIT;

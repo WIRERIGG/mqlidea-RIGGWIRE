@@ -7,6 +7,7 @@ package com.limemojito.oss.mql.healing.ai;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.limemojito.oss.mql.healing.db.ProblemRecord;
@@ -92,12 +93,24 @@ public final class GrokClient {
             }
 
             String responseBody = response.body() != null ? response.body().string() : "";
-            JsonObject json = GSON.fromJson(responseBody, JsonObject.class);
-            JsonArray choices = json.getAsJsonArray("choices");
-            if (choices != null && !choices.isEmpty()) {
-                return choices.get(0).getAsJsonObject()
-                        .getAsJsonObject("message")
-                        .get("content").getAsString();
+            try {
+                JsonObject json = GSON.fromJson(responseBody, JsonObject.class);
+                if (json == null) {
+                    LOG.warn("Grok API returned an empty response body");
+                    return null;
+                }
+                JsonArray choices = json.getAsJsonArray("choices");
+                if (choices != null && !choices.isEmpty()) {
+                    JsonObject message = choices.get(0).getAsJsonObject().getAsJsonObject("message");
+                    JsonElement content = message != null ? message.get("content") : null;
+                    if (content != null && !content.isJsonNull()) {
+                        return content.getAsString();
+                    }
+                }
+                LOG.warn("Grok API response missing expected content");
+            } catch (RuntimeException e) {
+                // Malformed JSON (JsonSyntaxException etc.) — treat as a normal failure
+                LOG.warn("Failed to parse Grok API response", e);
             }
         } catch (IOException e) {
             LOG.warn("Grok API request failed", e);

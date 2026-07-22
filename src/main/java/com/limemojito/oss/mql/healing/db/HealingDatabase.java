@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -133,7 +134,8 @@ public final class HealingDatabase implements Disposable {
 
             // Upsert each current problem
             try (PreparedStatement findStmt = conn.prepareStatement(
-                    "SELECT id FROM problems WHERE file_url = ? AND line = ? AND inspection_name = ? AND resolved_at = ?");
+                    "SELECT id FROM problems WHERE file_url = ? AND line = ? AND inspection_name = ? AND message = ? " +
+                            "ORDER BY id DESC LIMIT 1");
                  PreparedStatement updateStmt = conn.prepareStatement(
                          "UPDATE problems SET last_seen_at = ?, resolved_at = 0, message = ?, fix_hint = ?, severity = ? WHERE id = ?");
                  PreparedStatement insertStmt = conn.prepareStatement(
@@ -143,11 +145,13 @@ public final class HealingDatabase implements Disposable {
                 for (Map.Entry<String, List<ProblemSnapshot>> entry : fileProblems.entrySet()) {
                     String fileUrl = entry.getKey();
                     for (ProblemSnapshot p : entry.getValue()) {
-                        // Try to find an existing problem that was just marked resolved
+                        // Match any existing row for this problem — whether just marked resolved
+                        // this cycle or resolved in a prior cycle — and revive it instead of
+                        // inserting a duplicate row
                         findStmt.setString(1, fileUrl);
                         findStmt.setInt(2, p.line());
                         findStmt.setString(3, p.inspectionName());
-                        findStmt.setLong(4, now);
+                        findStmt.setString(4, p.message());
                         try (ResultSet rs = findStmt.executeQuery()) {
                             if (rs.next()) {
                                 long existingId = rs.getLong(1);
@@ -203,11 +207,14 @@ public final class HealingDatabase implements Disposable {
 
     @NotNull
     public List<ProblemRecord> getProblemsWithInsightButNoClaudeTask() {
+        // A problem is eligible when it has no non-failed task: failed tasks must not
+        // permanently block a retry.
         return queryProblems(
-                "SELECT p.* FROM problems p " +
+                "SELECT DISTINCT p.* FROM problems p " +
                         "INNER JOIN grok_insights g ON p.id = g.problem_id " +
-                        "LEFT JOIN claude_tasks c ON p.id = c.problem_id " +
-                        "WHERE p.resolved_at = 0 AND c.id IS NULL ORDER BY p.id");
+                        "WHERE p.resolved_at = 0 AND NOT EXISTS (" +
+                        "SELECT 1 FROM claude_tasks c WHERE c.problem_id = p.id AND c.status <> 'failed'" +
+                        ") ORDER BY p.id");
     }
 
     public void insertGrokInsight(long problemId, @NotNull String insight) {
@@ -393,6 +400,36 @@ public final class HealingDatabase implements Disposable {
             lock.unlock();
         }
         return 0;
+    }
+
+    /**
+     * Counts of completed Claude tasks (with diffs, ready to apply) grouped by file URL.
+     * Used to populate the {@code HealingService} pending-fix cache read by EDT consumers.
+     */
+    @NotNull
+    public Map<String, Integer> getReadyClaudeTaskCountsByFile() {
+        Connection conn = connection;
+        if (conn == null) return Map.of();
+
+        lock.lock();
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "SELECT p.file_url, COUNT(*) FROM claude_tasks c " +
+                        "INNER JOIN problems p ON c.problem_id = p.id " +
+                        "WHERE c.status = ? AND c.diff IS NOT NULL GROUP BY p.file_url")) {
+            stmt.setString(1, ClaudeTask.STATUS_COMPLETED);
+            try (ResultSet rs = stmt.executeQuery()) {
+                Map<String, Integer> counts = new HashMap<>();
+                while (rs.next()) {
+                    counts.put(rs.getString(1), rs.getInt(2));
+                }
+                return counts;
+            }
+        } catch (SQLException e) {
+            LOG.warn("Failed to query ready Claude task counts", e);
+        } finally {
+            lock.unlock();
+        }
+        return Map.of();
     }
 
     @NotNull

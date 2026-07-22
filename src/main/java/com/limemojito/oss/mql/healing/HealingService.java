@@ -24,7 +24,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +42,11 @@ public final class HealingService implements Disposable {
     private volatile ScheduledFuture<?> scheduledTask;
     private volatile GrokClient grokClient;
     private volatile ClaudeClient claudeClient;
+
+    // In-memory snapshot of claude_tasks state so EDT consumers (line markers, quick fixes,
+    // checkin handler) never run SQLite queries on the EDT. Refreshed after task mutations.
+    private volatile Map<String, Integer> readyFixCountsByFile = Map.of();
+    private volatile int pendingFixCount;
 
     public HealingService(@NotNull Project project) {
         this.project = project;
@@ -90,6 +97,37 @@ public final class HealingService implements Disposable {
         this.claudeClient = new ClaudeClient(model);
     }
 
+    /** EDT-safe: number of Claude fixes that are pending or ready to apply (cached). */
+    public int getPendingFixCount() {
+        return pendingFixCount;
+    }
+
+    /** EDT-safe: number of completed Claude fixes with diffs for the given file (cached). */
+    public int getReadyFixCountForFile(@NotNull String fileUrl) {
+        return readyFixCountsByFile.getOrDefault(fileUrl, 0);
+    }
+
+    /** Refreshes the pending-fix cache on the service's background thread. */
+    public void refreshPendingFixCacheAsync() {
+        if (project.isDisposed()) return;
+        try {
+            executor.submit(this::refreshPendingFixCache);
+        } catch (RejectedExecutionException ignored) {
+            // Service disposed — nothing to refresh
+        }
+    }
+
+    private void refreshPendingFixCache() {
+        if (project.isDisposed()) return;
+        try {
+            HealingDatabase db = HealingDatabase.getInstance(project);
+            pendingFixCount = db.getPendingClaudeTaskCount();
+            readyFixCountsByFile = Map.copyOf(db.getReadyClaudeTaskCountsByFile());
+        } catch (Exception e) {
+            LOG.warn("Failed to refresh pending fix cache", e);
+        }
+    }
+
     private void runHealingCycle() {
         if (project.isDisposed()) return;
 
@@ -104,6 +142,8 @@ public final class HealingService implements Disposable {
 
             // Phase 2: Claude refactoring for problems with insights but no tasks
             runClaudeRefactoring(db);
+
+            refreshPendingFixCache();
 
         } catch (Exception e) {
             LOG.warn("Healing cycle failed", e);
@@ -123,14 +163,19 @@ public final class HealingService implements Disposable {
         for (ProblemRecord problem : problems) {
             if (project.isDisposed() || processed >= MAX_PROBLEMS_PER_CYCLE) break;
 
-            String context = readFileContext(problem.fileUrl(), problem.line());
-            String insight = grok.analyzeProblems(problem, context);
+            try {
+                FileContext context = readFileContext(problem.fileUrl(), problem.line());
+                String insight = grok.analyzeProblems(problem, context != null ? context.text() : null);
 
-            if (insight != null) {
-                db.insertGrokInsight(problem.id(), insight);
-                processed++;
-                LOG.info("Grok analyzed: " + problem.filePath() + ":" + problem.line()
-                        + " [" + problem.inspectionName() + "]");
+                if (insight != null) {
+                    db.insertGrokInsight(problem.id(), insight);
+                    processed++;
+                    LOG.info("Grok analyzed: " + problem.filePath() + ":" + problem.line()
+                            + " [" + problem.inspectionName() + "]");
+                }
+            } catch (Exception e) {
+                // One bad problem must never abort the whole cycle
+                LOG.warn("Grok analysis failed for " + problem.filePath() + ":" + problem.line(), e);
             }
 
             // Rate limit: pause between API calls
@@ -156,25 +201,26 @@ public final class HealingService implements Disposable {
         for (ProblemRecord problem : problems) {
             if (project.isDisposed() || processed >= MAX_PROBLEMS_PER_CYCLE) break;
 
-            GrokInsight insight = db.getGrokInsightForProblem(problem.id());
-            if (insight == null) continue;
+            try {
+                GrokInsight insight = db.getGrokInsightForProblem(problem.id());
+                if (insight == null) continue;
 
-            String context = readFileContext(problem.fileUrl(), problem.line());
-            if (context == null) continue;
+                FileContext context = readFileContext(problem.fileUrl(), problem.line());
+                if (context == null) continue;
 
-            long taskId = db.insertClaudeTask(problem.id(), null, ClaudeTask.STATUS_IN_PROGRESS);
-            if (taskId < 0) continue;
+                String diff = claude.generateFix(problem, insight.insight(),
+                                                 context.text(), context.startLine());
 
-            String diff = claude.generateFix(problem, insight.insight(), context);
-
-            if (diff != null) {
-                db.insertClaudeTask(problem.id(), diff, ClaudeTask.STATUS_COMPLETED);
-                // Remove the in-progress placeholder
-                db.updateClaudeTaskStatus(taskId, ClaudeTask.STATUS_APPLIED);
-                processed++;
-                LOG.info("Claude generated fix for: " + problem.filePath() + ":" + problem.line());
-            } else {
-                db.updateClaudeTaskStatus(taskId, ClaudeTask.STATUS_FAILED);
+                if (diff != null) {
+                    // Single task row per generated fix: COMPLETED means "generated, pending
+                    // application". APPLIED is only set by DiffApplier after a successful apply.
+                    db.insertClaudeTask(problem.id(), diff, ClaudeTask.STATUS_COMPLETED);
+                    processed++;
+                    LOG.info("Claude generated fix for: " + problem.filePath() + ":" + problem.line());
+                }
+            } catch (Exception e) {
+                // One bad problem must never abort the whole cycle
+                LOG.warn("Claude refactoring failed for " + problem.filePath() + ":" + problem.line(), e);
             }
 
             try {
@@ -187,7 +233,7 @@ public final class HealingService implements Disposable {
     }
 
     @Nullable
-    private String readFileContext(@NotNull String fileUrl, int problemLine) {
+    private FileContext readFileContext(@NotNull String fileUrl, int problemLine) {
         return ReadAction.compute(() -> {
             VirtualFile vf = VirtualFileManager.getInstance().findFileByUrl(fileUrl);
             if (vf == null || !vf.isValid()) return null;
@@ -196,14 +242,26 @@ public final class HealingService implements Disposable {
             if (doc == null) return null;
 
             int lineCount = doc.getLineCount();
-            int startLine = Math.max(0, problemLine - 1 - CONTEXT_LINES);
-            int endLine = Math.min(lineCount - 1, problemLine - 1 + CONTEXT_LINES);
+            int line = problemLine - 1;
+            if (line >= lineCount) {
+                // Stale problem line beyond the current end of file — skip this problem
+                LOG.info("Problem line " + problemLine + " is beyond end of " + fileUrl + " — skipping");
+                return null;
+            }
+            if (line < 0) line = 0;
+
+            int startLine = Math.max(0, line - CONTEXT_LINES);
+            int endLine = Math.min(lineCount - 1, line + CONTEXT_LINES);
 
             int startOffset = doc.getLineStartOffset(startLine);
             int endOffset = doc.getLineEndOffset(endLine);
 
-            return doc.getText().substring(startOffset, endOffset);
+            return new FileContext(doc.getText().substring(startOffset, endOffset), startLine + 1);
         });
+    }
+
+    /** A snippet of file text plus the 1-based file line at which the snippet begins. */
+    private record FileContext(@NotNull String text, int startLine) {
     }
 
     @Override

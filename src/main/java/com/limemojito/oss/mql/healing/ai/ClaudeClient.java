@@ -7,6 +7,7 @@ package com.limemojito.oss.mql.healing.ai;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.limemojito.oss.mql.healing.db.ProblemRecord;
@@ -41,16 +42,20 @@ public final class ClaudeClient {
                 .build();
     }
 
+    /**
+     * @param contextStartLine the 1-based absolute file line at which {@code codeContext} begins;
+     *                         Claude is instructed to emit hunk headers with absolute line numbers.
+     */
     @Nullable
     public String generateFix(@NotNull ProblemRecord problem, @NotNull String grokInsight,
-                               @NotNull String codeContext) {
+                               @NotNull String codeContext, int contextStartLine) {
         String apiKey = ApiKeyStorage.getApiKey(ApiKeyStorage.CLAUDE_KEY);
         if (apiKey == null || apiKey.isBlank()) {
             LOG.info("Claude API key not configured — skipping fix generation");
             return null;
         }
 
-        String prompt = buildPrompt(problem, grokInsight, codeContext);
+        String prompt = buildPrompt(problem, grokInsight, codeContext, contextStartLine);
 
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", model);
@@ -63,6 +68,9 @@ public final class ClaudeClient {
                         "that fixes the specified problem. The diff must be valid and directly applicable. " +
                         "Do not include explanations outside the diff. Use the standard unified diff format:\n" +
                         "--- a/filepath\n+++ b/filepath\n@@ -line,count +line,count @@\n" +
+                        "The code snippet you receive is an excerpt of the file; it begins at file line " +
+                        contextStartLine + ". Emit @@ hunk headers using ABSOLUTE file line numbers, " +
+                        "not positions relative to the snippet. " +
                         "Make minimal, focused changes. Preserve existing code style and indentation.");
 
         JsonArray systemArr = new JsonArray();
@@ -104,13 +112,25 @@ public final class ClaudeClient {
             }
 
             String responseBody = response.body() != null ? response.body().string() : "";
-            JsonObject json = GSON.fromJson(responseBody, JsonObject.class);
-            JsonArray content = json.getAsJsonArray("content");
-            if (content != null && !content.isEmpty()) {
-                JsonObject first = content.get(0).getAsJsonObject();
-                if ("text".equals(first.get("type").getAsString())) {
-                    return extractDiff(first.get("text").getAsString());
+            try {
+                JsonObject json = GSON.fromJson(responseBody, JsonObject.class);
+                if (json == null) {
+                    LOG.warn("Claude API returned an empty response body");
+                    return null;
                 }
+                JsonArray content = json.getAsJsonArray("content");
+                if (content != null && !content.isEmpty()) {
+                    JsonObject first = content.get(0).getAsJsonObject();
+                    JsonElement type = first.get("type");
+                    JsonElement text = first.get("text");
+                    if (type != null && "text".equals(type.getAsString()) && text != null) {
+                        return extractDiff(text.getAsString());
+                    }
+                }
+                LOG.warn("Claude API response missing expected content");
+            } catch (RuntimeException e) {
+                // Malformed JSON (JsonSyntaxException etc.) — treat as a normal failure
+                LOG.warn("Failed to parse Claude API response", e);
             }
         } catch (IOException e) {
             LOG.warn("Claude API request failed", e);
@@ -121,7 +141,7 @@ public final class ClaudeClient {
 
     @NotNull
     private static String buildPrompt(@NotNull ProblemRecord problem, @NotNull String grokInsight,
-                                       @NotNull String codeContext) {
+                                       @NotNull String codeContext, int contextStartLine) {
         return "Fix this MQL5 code problem by generating a unified diff.\n\n" +
                 "**File:** " + problem.filePath() + "\n" +
                 "**Line:** " + problem.line() + "\n" +
@@ -130,8 +150,10 @@ public final class ClaudeClient {
                 "**Message:** " + problem.message() + "\n" +
                 (problem.fixHint() != null ? "**Fix Hint:** " + problem.fixHint() + "\n" : "") +
                 "\n**AI Analysis:**\n" + grokInsight + "\n" +
-                "\n**Code Context:**\n```mql5\n" + codeContext + "\n```\n\n" +
-                "Generate a unified diff to fix this problem. Output ONLY the diff, nothing else.";
+                "\n**Code Context (snippet begins at file line " + contextStartLine + "):**\n```mql5\n" +
+                codeContext + "\n```\n\n" +
+                "Generate a unified diff to fix this problem. Output ONLY the diff, nothing else. " +
+                "Remember: @@ hunk headers must use ABSOLUTE file line numbers.";
     }
 
     @NotNull

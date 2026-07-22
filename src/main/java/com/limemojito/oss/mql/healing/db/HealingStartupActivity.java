@@ -27,6 +27,7 @@ public class HealingStartupActivity implements StartupActivity.DumbAware {
         HealingService service = HealingService.getInstance(project);
         service.setGrokModel(settings.getGrokModel());
         service.setClaudeModel(settings.getClaudeModel());
+        service.refreshPendingFixCacheAsync();
 
         if (settings.isAutoHealEnabled()) {
             service.start();

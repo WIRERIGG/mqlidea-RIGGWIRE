@@ -7,8 +7,13 @@ package com.limemojito.oss.mql.healing.actions;
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.limemojito.oss.mql.healing.HealingService;
 import com.limemojito.oss.mql.healing.ai.DiffParser;
 import com.limemojito.oss.mql.healing.db.ClaudeTask;
 import com.limemojito.oss.mql.healing.db.HealingDatabase;
@@ -37,38 +42,65 @@ public class ApplyClaudeDiffFix implements LocalQuickFix {
     }
 
     @Override
+    public boolean startInWriteAction() {
+        return false; // DB lookups run on a pooled thread; DiffApplier runs its own write command
+    }
+
+    @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-        HealingDatabase db = HealingDatabase.getInstance(project);
+        // Never run SQLite queries on the EDT — look up the task on a pooled thread
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (project.isDisposed()) return;
+            HealingDatabase db = HealingDatabase.getInstance(project);
 
-        // Find the Claude task
-        var tasks = db.getPendingClaudeTasks();
-        ClaudeTask task = null;
-        for (ClaudeTask t : tasks) {
-            if (t.id() == claudeTaskId) {
-                task = t;
-                break;
+            // Find the Claude task
+            ClaudeTask task = null;
+            for (ClaudeTask t : db.getPendingClaudeTasks()) {
+                if (t.id() == claudeTaskId) {
+                    task = t;
+                    break;
+                }
             }
-        }
 
-        if (task == null || task.diff() == null) {
-            LOG.warn("Claude task not found or has no diff: " + claudeTaskId);
-            return;
-        }
+            if (task == null || task.diff() == null) {
+                LOG.warn("Claude task not found or has no diff: " + claudeTaskId);
+                return;
+            }
 
-        DiffParser.DiffPatch patch = DiffParser.parse(task.diff());
-        if (patch == null) {
-            LOG.warn("Failed to parse diff for Claude task: " + claudeTaskId);
-            db.updateClaudeTaskStatus(claudeTaskId, ClaudeTask.STATUS_FAILED);
-            return;
-        }
+            DiffParser.DiffPatch patch = DiffParser.parse(task.diff());
+            if (patch == null) {
+                LOG.warn("Failed to parse diff for Claude task: " + claudeTaskId);
+                db.updateClaudeTaskStatus(claudeTaskId, ClaudeTask.STATUS_FAILED);
+                HealingService.getInstance(project).refreshPendingFixCacheAsync();
+                notifyNotApplied(project);
+                return;
+            }
 
-        boolean success = DiffApplier.apply(project, patch);
-        if (success) {
-            db.markClaudeTaskApplied(claudeTaskId);
-            LOG.info("Applied AI fix for task: " + claudeTaskId);
-        } else {
-            db.updateClaudeTaskStatus(claudeTaskId, ClaudeTask.STATUS_FAILED);
-            LOG.warn("Failed to apply AI fix for task: " + claudeTaskId);
-        }
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (project.isDisposed()) return;
+                boolean success = DiffApplier.apply(project, patch);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    if (project.isDisposed()) return;
+                    if (success) {
+                        db.markClaudeTaskApplied(claudeTaskId);
+                        LOG.info("Applied AI fix for task: " + claudeTaskId);
+                    } else {
+                        // Leave the task un-applied so it can be retried once the file settles
+                        LOG.warn("Failed to apply AI fix for task: " + claudeTaskId);
+                        notifyNotApplied(project);
+                    }
+                    HealingService.getInstance(project).refreshPendingFixCacheAsync();
+                });
+            });
+        });
+    }
+
+    private static void notifyNotApplied(@NotNull Project project) {
+        Notifications.Bus.notify(new Notification(
+                "MQL AI Healing",
+                "AI fix not applied",
+                "The AI-generated diff could not be applied cleanly. " +
+                        "The file may have changed since the fix was generated.",
+                NotificationType.WARNING), project);
     }
 }

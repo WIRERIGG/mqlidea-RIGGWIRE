@@ -5,6 +5,7 @@
 
 package com.limemojito.oss.mql.healing.ui;
 
+import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.util.IntentionFamilyName;
@@ -12,18 +13,24 @@ import com.intellij.codeInspection.util.IntentionName;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.IncorrectOperationException;
+import com.limemojito.oss.mql.healing.HealingService;
 import com.limemojito.oss.mql.healing.ai.DiffParser;
 import com.limemojito.oss.mql.healing.actions.DiffApplier;
 import com.limemojito.oss.mql.healing.db.ClaudeTask;
 import com.limemojito.oss.mql.healing.db.HealingDatabase;
 import com.limemojito.oss.mql.healing.db.ProblemRecord;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -91,11 +98,33 @@ public class HealingAnnotator implements Annotator {
         @Override
         public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
             DiffParser.DiffPatch patch = DiffParser.parse(diff);
-            if (patch == null) return;
+            if (patch == null) {
+                showNotApplied(project, editor);
+                return;
+            }
 
             boolean success = DiffApplier.apply(project, patch);
             if (success) {
-                HealingDatabase.getInstance(project).markClaudeTaskApplied(taskId);
+                // JDBC must not run on the EDT
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    if (project.isDisposed()) return;
+                    HealingDatabase.getInstance(project).markClaudeTaskApplied(taskId);
+                    HealingService.getInstance(project).refreshPendingFixCacheAsync();
+                });
+            } else {
+                // Leave the task un-applied and tell the user
+                showNotApplied(project, editor);
+            }
+        }
+
+        private static void showNotApplied(@NotNull Project project, @Nullable Editor editor) {
+            String message = "AI fix could not be applied cleanly — the file may have changed";
+            if (editor != null) {
+                HintManager.getInstance().showErrorHint(editor, message);
+            } else {
+                Notifications.Bus.notify(new Notification(
+                        "MQL AI Healing", "AI fix not applied", message,
+                        NotificationType.WARNING), project);
             }
         }
 
