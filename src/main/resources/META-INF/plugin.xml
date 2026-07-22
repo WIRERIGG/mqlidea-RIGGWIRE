@@ -1,38 +1,41 @@
 <!--
   ~ Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+  ~ Modified 2026 by RIGGWIRE Trading Systems (fork; see git history for changes).
   ~ This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
   -->
 
 <idea-plugin require-restart="true"
-             url="https://limemojito.com/articles/limemojito-mql-idea">
-    <id>com.limemojito.oss.mqlidea</id>
-    <name>Lime MQL Editing</name>
+             url="https://github.com/WIRERIGG">
+    <id>io.riggwire.mql</id>
+    <name>RIGGWIRE MQL</name>
     <version>2026.1.0</version>
-    <vendor email="admin@limemojito.com"
-            url="https://limemojito.com/">
-        Lime Mojito Pty Ltd
-    </vendor>
+    <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
-         <p><b>MetaQuotes MQL4 and MQL5 support for IntelliJ IDEA.</b></p>
-         <p><i>Forked from the
-             <a href="https://plugins.jetbrains.com/plugin/9291-mql-idea>original mqlidea plugin by investflow.ru</a>
-             and updated for the latest IDE.</i></p>
+         <p><b>RIGGWIRE MQL &mdash; MetaQuotes MQL4 &amp; MQL5 support for IntelliJ IDEA, with AI code healing.</b></p>
+         <p>Professional MQL4/MQL5 language support: syntax highlighting, code completion and
+            navigation, quick documentation (English &amp; Russian), 75 code-safety inspections, and
+            an optional AI code-healing pipeline (Grok analysis &rarr; Claude fixes).</p>
+         <p><i>A fork of the &quot;Lime MQL Editing&quot; plugin by Lime Mojito Pty Ltd (originally the
+             <a href="https://plugins.jetbrains.com/plugin/9291-mql-idea">mqlidea plugin by investflow.ru</a>),
+             independently maintained by RIGGWIRE Trading Systems. Licensed under GPL-3.0.</i></p>
          <p>
             <b>Setup:</b>
             <ol>
-             <li>Please Uninstall any other versions of the MQLIdea plugin (such as investflow.ru)</li>
+             <li>Uninstall any other MQL/MQLIdea plugins (e.g. investflow.ru or Lime MQL Editing).</li>
              <li>Restart IntelliJ IDEA.</li>
-             <li>Install the Lime MQL Editing plugin from the Marketplace</li>
+             <li>Install <b>RIGGWIRE MQL</b> from the Marketplace.</li>
              <li>Restart IntelliJ IDEA.</li>
             </ol>
          </p>
          <p>
            <b>Supports:</b>
            <ul>
-             <li>MQL Syntax highlighting.</li>
-             <li>Code completion and navigation for MQL4 and MQL5</li>
+             <li>MQL4 &amp; MQL5 syntax highlighting.</li>
+             <li>Code completion and navigation.</li>
              <li>Quick documentation in English and Russian (see settings).</li>
+             <li>75 code-safety inspections.</li>
+             <li>AI code healing (opt-in; bring your own Grok &amp; Claude keys).</li>
            </ul>
          </p>
          <p>
@@ -41,7 +44,7 @@
              <li>Code formatting</li>
              <li>Code refactoring</li>
              <li>Debugging</li>
-             <li>Launching MQL compiler on Windows, Linux</li>
+             <li>Launching the MQL compiler on Windows, Linux</li>
            </ul>
          </p>
          ]]>
@@ -50,7 +53,7 @@
     <change-notes>
         <![CDATA[
             <ul>
-             <li>Version 2026.1.0 – Initial release with basic MQL4 and MQL5 support from fork of mqlidea investflow.ru plugin</li>
+             <li>2026.1.0 &ndash; RIGGWIRE MQL: rebrand of the Lime Mojito / investflow.ru mqlidea fork; adds 75 code-safety inspections and an AI code-healing pipeline.</li>
             </ul>
          ]]>
     </change-notes>
@@ -119,7 +122,7 @@
         <!--suppress PluginXmlI18n -->
         <projectConfigurable id="settings.mql4"
                              groupId="language"
-                             displayName="Lime Mojito MQL Idea"
+                             displayName="RIGGWIRE MQL"
                              instance="com.limemojito.oss.mql.settings.MQL4PluginSettingsPanel"/>
 
         <!--Inspections-->
@@ -467,7 +470,7 @@
                     doNotActivateOnStart="true"
                     canCloseContents="false"
                     factoryClass="com.limemojito.oss.mql.healing.ui.HealingToolWindowFactory"
-                    icon="/icons/mql_healing_16.svg"/>
+                    icon="/icons/mql_healing_16.png"/>
 
         <codeInsight.lineMarkerProvider language="MQL4"
                                          implementationClass="com.limemojito.oss.mql.healing.ui.HealingLineMarkerProvider"/>

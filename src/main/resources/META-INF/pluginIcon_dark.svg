@@ -1,6 +1,6 @@
-<!-- RIGGWIRE MQL — marketplace icon (healing ECG-pulse badge). GPL-3.0. -->
+<!-- RIGGWIRE MQL — marketplace icon, dark theme. GPL-3.0. -->
 <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-  <rect x="2" y="2" width="36" height="36" rx="9" fill="#E5393B"/>
+  <rect x="2" y="2" width="36" height="36" rx="9" fill="#F04A4C"/>
   <path d="M6 21.5 H13 L16 11 L20.5 30.5 L24 16.5 L26.5 21.5 H34"
         fill="none" stroke="#ffffff" stroke-width="3.1"
         stroke-linecap="round" stroke-linejoin="round"/>

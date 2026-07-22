@@ -2,15 +2,19 @@
 
 <br/>
 
-<img src="src/main/resources/icons/mql4.svg" alt="MQL4" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mql5.svg" alt="MQL5" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mqh.svg" alt="MQH" width="64" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="src/main/resources/icons/mql_healing.svg" alt="AI Healing" width="64" />
+<img src="src/main/resources/META-INF/pluginIcon.svg" alt="RIGGWIRE MQL" width="96" />
 
 <br/><br/>
 
-# Lime MQL Editing
+# RIGGWIRE MQL
 
-### Professional MQL4 & MQL5 Language Support for IntelliJ IDEA
+### Professional MQL4 &amp; MQL5 Language Support for IntelliJ IDEA — with AI Code Healing
 
 *The most comprehensive MetaTrader development environment available inside a JetBrains IDE.*
+
+<br/>
+
+<img src="src/main/resources/icons/mql4.svg" alt="MQL4" width="40" />&nbsp;&nbsp;<img src="src/main/resources/icons/mql5.svg" alt="MQL5" width="40" />&nbsp;&nbsp;<img src="src/main/resources/icons/mqh.svg" alt="MQH" width="40" />&nbsp;&nbsp;<img src="src/main/resources/icons/mql_healing.svg" alt="AI Healing" width="40" />
 
 <br/>
 
@@ -374,7 +378,7 @@ pool       -->  Object pool pattern for reusable objects
 1. Uninstall any previous MQL plugins
 2. Restart IntelliJ IDEA
 3. **Settings > Plugins > Marketplace**
-4. Search **"Lime MQL Editing"**
+4. Search **"RIGGWIRE MQL"**
 5. Install and restart
 
 </td>
@@ -382,7 +386,7 @@ pool       -->  Object pool pattern for reusable objects
 
 ### From Disk
 
-1. Download the latest `.zip` from [Releases](https://github.com/LimeMojito/mqlidea/releases)
+1. Download the latest `.zip` from [Releases](https://github.com/WIRERIGG/mqlidea/releases)
 2. **Settings > Plugins > Install Plugin from Disk**
 3. Select the `.zip` file
 4. Restart IntelliJ IDEA
@@ -461,7 +465,7 @@ cpp_tests/                           134 GoogleTest safety pattern cases
 
 GPL-3.0 -- see [LICENSE.txt](LICENSE.txt) for details.
 
-Forked from the unmaintained [InvestFlow MQL Idea](https://github.com/investflow/mqlidea). Continued by [Lime Mojito Pty Ltd](https://limemojito.com/) and enhanced by [RIGGWIRE Trading Systems](https://github.com/WIRERIGG).
+**RIGGWIRE MQL** is maintained by [RIGGWIRE Trading Systems](https://github.com/WIRERIGG). It is a fork of the [Lime MQL Editing](https://github.com/LimeMojito/mqlidea) plugin by [Lime Mojito Pty Ltd](https://limemojito.com/), which was itself forked from the [InvestFlow MQL Idea](https://github.com/investflow/mqlidea) plugin. All original copyright notices are retained per GPL-3.0; the original authors do not endorse this fork.
 
 <br/>
 
@@ -469,7 +473,7 @@ Forked from the unmaintained [InvestFlow MQL Idea](https://github.com/investflow
 
 **Found a bug or have a feature request?**
 
-[Open an issue](https://github.com/LimeMojito/mqlidea/issues)
+[Open an issue](https://github.com/WIRERIGG/mqlidea/issues)
 
 <br/><br/>
 
