@@ -35,6 +35,6 @@ public interface MQL4PluginSettings {
     void setClaudeModel(String model);
 
     static MQL4PluginSettings getInstance() {
-        return ApplicationManager.getApplication().getComponent(MQL4PluginSettings.class);
+        return ApplicationManager.getApplication().getService(MQL4PluginSettings.class);
     }
 }

@@ -18,7 +18,7 @@
 
 <br/>
 
-[**Features**](#features) &#8226; [**AI Healing**](#-ai-code-healing) &#8226; [**Inspections**](#-75-code-inspections) &#8226; [**Live Templates**](#-live-templates) &#8226; [**Install**](#-installation) &#8226; [**Build**](#-building-from-source) &#8226; [**License**](#-license)
+[**Features**](#features) &#8226; [**AI Healing**](#ai-code-healing) &#8226; [**Inspections**](#75-code-inspections) &#8226; [**Live Templates**](#live-templates) &#8226; [**Install**](#installation) &#8226; [**Build**](#building-from-source) &#8226; [**License**](#license)
 
 <br/>
 
@@ -29,9 +29,9 @@
 <table>
 <tr>
 <td align="center"><h3>75</h3>Code Inspections</td>
-<td align="center"><h3>1,300+</h3>Documented APIs</td>
+<td align="center"><h3>1,400+</h3>Doc Pages (EN + RU)</td>
 <td align="center"><h3>9</h3>Live Templates</td>
-<td align="center"><h3>12</h3>Safety Categories</td>
+<td align="center"><h3>13</h3>Inspection Categories</td>
 </tr>
 </table>
 
@@ -93,7 +93,7 @@
 
 <br/>
 
-## <img src="src/main/resources/icons/mql_healing.svg" width="22" height="22" align="top" alt="healing" /> AI Code Healing
+## AI Code Healing
 
 Beyond *finding* problems, the plugin can *fix* them. An optional two-stage AI pipeline turns inspection findings into reviewable, one-click patches — entirely under your control.
 
@@ -123,13 +123,13 @@ Beyond *finding* problems, the plugin can *fix* them. An optional two-stage AI p
 
 <br/>
 
-| Setting | Default | Purpose |
-|:--|:--|:--|
-| **Auto-heal** | `off` | Master switch for automatic healing cycles |
-| **Healing interval** | `5 min` | Time between background analysis cycles |
-| **Grok model** | `grok-2` | Model used for problem analysis |
-| **Claude model** | `claude-sonnet-4-5` | Model used to generate diffs |
-| **API keys** | — | Stored in IntelliJ **PasswordSafe**, never on disk or in settings |
+| Setting              | Default             | Purpose                                                           |
+| :------------------- | :------------------ | :---------------------------------------------------------------- |
+| **Auto-heal**        | `off`               | Master switch for automatic healing cycles                        |
+| **Healing interval** | `5 min`             | Time between background analysis cycles                           |
+| **Grok model**       | `grok-2`            | Model used for problem analysis                                   |
+| **Claude model**     | `claude-sonnet-4-5` | Model used to generate diffs                                      |
+| **API keys**         | —                   | Stored in IntelliJ **PasswordSafe**, never on disk or in settings |
 
 > Healing is **opt-in and off by default**. Bring your own Grok and Claude API keys; all analysis data stays in your project's local database.
 
@@ -139,9 +139,9 @@ Beyond *finding* problems, the plugin can *fix* them. An optional two-stage AI p
 
 <br/>
 
-## <img src="https://img.shields.io/badge/75-inspections-blue?style=flat-square" alt="75 inspections" /> 75 Code Inspections
+## 75 Code Inspections
 
-Real-time analysis across 12 categories, catching bugs before they cost you money.
+Real-time analysis across 13 categories, catching bugs before they cost you money. In the IDE they appear under **Settings → Editor → Inspections → RIGGWIRE MQL**.
 
 <br/>
 
@@ -149,17 +149,17 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Trading Safety</b> &mdash; 9 inspections &nbsp;&nbsp;<code>Catch order failures before they go live</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Unchecked OrderSend() result** | `OrderSend()` without checking return value |
-| **Unchecked indicator handle** | Handle creation without `INVALID_HANDLE` check |
-| **Missing IndicatorRelease()** | Forgetting `IndicatorRelease(handle)` in `OnDeinit()` |
-| **Array access without size check** | Array indexing without `ArraySize()` guard |
-| **Missing input parameter validation** | `OnInit()` without parameter range checks |
-| **FileOpen() without FileClose()** | File handles left open |
-| **Unchecked CopyRates/CopyBuffer** | Copy functions without return value check |
-| **Double IndicatorRelease()** | Releasing the same handle twice |
-| **Delete without NULL check** | `delete ptr` without prior null guard |
+| Inspection                             | What it catches                                       |
+| :------------------------------------- | :---------------------------------------------------- |
+| **Unchecked OrderSend() result**       | `OrderSend()` without checking return value           |
+| **Unchecked indicator handle**         | Handle creation without `INVALID_HANDLE` check        |
+| **Missing IndicatorRelease()**         | Forgetting `IndicatorRelease(handle)` in `OnDeinit()` |
+| **Array access without size check**    | Array indexing without `ArraySize()` guard            |
+| **Missing input parameter validation** | `OnInit()` without parameter range checks             |
+| **FileOpen() without FileClose()**     | File handles left open                                |
+| **Unchecked CopyRates/CopyBuffer**     | Copy functions without return value check             |
+| **Double IndicatorRelease()**          | Releasing the same handle twice                       |
+| **Delete without NULL check**          | `delete ptr` without prior null guard                 |
 
 </details>
 
@@ -167,15 +167,15 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Memory & Allocation</b> &mdash; 7 inspections &nbsp;&nbsp;<code>Stop leaks and per-tick allocations</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Object allocation in OnTick()** | Creating objects on every tick |
-| **Unchecked ArrayResize() return** | Ignoring `ArrayResize()` failure |
-| **Missing NULL after delete** | Dangling pointer after `delete` |
-| **Indicator handle in OnTick()** | Creating indicator handles per tick |
-| **Heap allocation in loop** | `new` inside loops without object pooling |
-| **Missing new bar check** | `OnTick()` without bar-change guard |
-| **Unconditional order loop** | Sending orders without conditions in a loop |
+| Inspection                         | What it catches                             |
+| :--------------------------------- | :------------------------------------------ |
+| **Object allocation in OnTick()**  | Creating objects on every tick              |
+| **Unchecked ArrayResize() return** | Ignoring `ArrayResize()` failure            |
+| **Missing NULL after delete**      | Dangling pointer after `delete`             |
+| **Indicator handle in OnTick()**   | Creating indicator handles per tick         |
+| **Heap allocation in loop**        | `new` inside loops without object pooling   |
+| **Missing new bar check**          | `OnTick()` without bar-change guard         |
+| **Unconditional order loop**       | Sending orders without conditions in a loop |
 
 </details>
 
@@ -183,16 +183,16 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Performance</b> &mdash; 8 inspections &nbsp;&nbsp;<code>Keep your EA fast on every tick</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **ArrayResize() in loop** | Resizing arrays inside loops instead of pre-allocating |
-| **Print/Comment in OnTick()** | Logging on every tick (kills performance) |
-| **Sleep() in event handler** | Blocking calls in event handlers |
-| **Redundant calculations in OnTick()** | Recomputing values that only change per bar |
-| **String concatenation in loop** | Using `+` for strings in loops |
-| **Suboptimal container usage** | Inefficient data structure patterns |
-| **Missing array pre-allocation** | Arrays that grow without reserve parameter |
-| **Lazy evaluation missed** | Expensive conditions checked before cheap ones |
+| Inspection                             | What it catches                                        |
+| :------------------------------------- | :----------------------------------------------------- |
+| **ArrayResize() in loop**              | Resizing arrays inside loops instead of pre-allocating |
+| **Print/Comment in OnTick()**          | Logging on every tick (kills performance)              |
+| **Sleep() in event handler**           | Blocking calls in event handlers                       |
+| **Redundant calculations in OnTick()** | Recomputing values that only change per bar            |
+| **String concatenation in loop**       | Using `+` for strings in loops                         |
+| **Suboptimal container usage**         | Inefficient data structure patterns                    |
+| **Missing array pre-allocation**       | Arrays that grow without reserve parameter             |
+| **Lazy evaluation missed**             | Expensive conditions checked before cheap ones         |
 
 </details>
 
@@ -200,20 +200,20 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Advanced Patterns</b> &mdash; 12 inspections &nbsp;&nbsp;<code>Deep analysis for production-grade code</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Stack overflow risk** | Unbounded recursion without depth limits |
-| **Dangling object reference** | Pointers to deleted or out-of-scope objects |
-| **Stale handle usage** | Using handles after `IndicatorRelease()` |
-| **Incomplete class (Rule of Three)** | Missing copy constructor or assignment operator |
-| **GlobalVariableSet() conflicts** | Multiple functions writing the same global variable |
-| **Missing error recovery** | `OrderSend()` failures without retry logic |
-| **Over-complex error handling** | Deeply nested error-checking blocks |
-| **Unsafe ArrayCopy()** | `ArrayCopy()` without size validation |
-| **Deprecated MQL4 in MQL5** | Using deprecated MQL4 functions in MQL5 context |
-| **Price comparison sans NormalizeDouble()** | Floating-point price comparisons |
-| **Missing ArraySetAsSeries()** | Timeseries data without direction set |
-| **Secure coding patterns** | General secure coding pattern violations |
+| Inspection                                  | What it catches                                     |
+| :------------------------------------------ | :-------------------------------------------------- |
+| **Stack overflow risk**                     | Unbounded recursion without depth limits            |
+| **Dangling object reference**               | Pointers to deleted or out-of-scope objects         |
+| **Stale handle usage**                      | Using handles after `IndicatorRelease()`            |
+| **Incomplete class (Rule of Three)**        | Missing copy constructor or assignment operator     |
+| **GlobalVariableSet() conflicts**           | Multiple functions writing the same global variable |
+| **Missing error recovery**                  | `OrderSend()` failures without retry logic          |
+| **Over-complex error handling**             | Deeply nested error-checking blocks                 |
+| **Unsafe ArrayCopy()**                      | `ArrayCopy()` without size validation               |
+| **Deprecated MQL4 in MQL5**                 | Using deprecated MQL4 functions in MQL5 context     |
+| **Price comparison sans NormalizeDouble()** | Floating-point price comparisons                    |
+| **Missing ArraySetAsSeries()**              | Timeseries data without direction set               |
+| **Secure coding patterns**                  | General secure coding pattern violations            |
 
 </details>
 
@@ -221,13 +221,13 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Security & Data</b> &mdash; 5 inspections &nbsp;&nbsp;<code>Protect credentials and account data</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Account info exposure** | Logging sensitive account details |
-| **Hardcoded credentials** | Passwords/keys embedded in source code |
+| Inspection                                | What it catches                             |
+| :---------------------------------------- | :------------------------------------------ |
+| **Account info exposure**                 | Logging sensitive account details           |
+| **Hardcoded credentials**                 | Passwords/keys embedded in source code      |
 | **OrderSend() without volume validation** | Trading without `SymbolInfoDouble()` checks |
-| **File read without error check** | File I/O without return value validation |
-| **Deterministic random seed** | Using `MathSrand()` with predictable seeds |
+| **File read without error check**         | File I/O without return value validation    |
+| **Deterministic random seed**             | Using `MathSrand()` with predictable seeds  |
 
 </details>
 
@@ -235,13 +235,13 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Function Signature</b> &mdash; 5 inspections &nbsp;&nbsp;<code>Get function signatures right</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **OnInit() returns void** | `void OnInit()` instead of `int OnInit()` with return code |
-| **Empty event handler** | Event handlers with empty bodies |
-| **Missing const on reference param** | Reference parameters that should be `const` |
-| **Large struct by value** | Passing `MqlTradeRequest` etc. by copy instead of reference |
-| **Missing destructor** | Classes that allocate resources but have no destructor |
+| Inspection                           | What it catches                                             |
+| :----------------------------------- | :---------------------------------------------------------- |
+| **OnInit() returns void**            | `void OnInit()` instead of `int OnInit()` with return code  |
+| **Empty event handler**              | Event handlers with empty bodies                            |
+| **Missing const on reference param** | Reference parameters that should be `const`                 |
+| **Large struct by value**            | Passing `MqlTradeRequest` etc. by copy instead of reference |
+| **Missing destructor**               | Classes that allocate resources but have no destructor      |
 
 </details>
 
@@ -249,14 +249,14 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Class Structure</b> &mdash; 6 inspections &nbsp;&nbsp;<code>Clean OOP for MQL5</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Virtual methods without virtual destructor** | Polymorphic class missing `virtual ~Destructor()` |
-| **Public data members** | Public fields that should be private with accessors |
-| **Missing #property description** | Scripts/indicators without `#property description` |
-| **Missing #property version** | Missing `#property version` directive |
-| **Excessive global variables** | Too many globals -- should be encapsulated |
-| **Input parameter reassignment** | Modifying `input` parameters directly |
+| Inspection                                     | What it catches                                     |
+| :--------------------------------------------- | :-------------------------------------------------- |
+| **Virtual methods without virtual destructor** | Polymorphic class missing `virtual ~Destructor()`   |
+| **Public data members**                        | Public fields that should be private with accessors |
+| **Missing #property description**              | Scripts/indicators without `#property description`  |
+| **Missing #property version**                  | Missing `#property version` directive               |
+| **Excessive global variables**                 | Too many globals -- should be encapsulated          |
+| **Input parameter reassignment**               | Modifying `input` parameters directly               |
 
 </details>
 
@@ -264,11 +264,11 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Type Safety</b> &mdash; 3 inspections &nbsp;&nbsp;<code>Prevent silent precision loss</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Narrowing return type** | Returning `double` from an `int` function |
+| Inspection                 | What it catches                           |
+| :------------------------- | :---------------------------------------- |
+| **Narrowing return type**  | Returning `double` from an `int` function |
 | **Uninitialized variable** | Variables declared without initial values |
-| **Implicit type cast** | Implicit narrowing conversions |
+| **Implicit type cast**     | Implicit narrowing conversions            |
 
 </details>
 
@@ -276,11 +276,11 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Naming & Style</b> &mdash; 4 inspections &nbsp;&nbsp;<code>Consistent, readable code</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Function naming convention** | Functions not in PascalCase |
-| **Variable naming convention** | Variables not following naming conventions |
-| **Class naming convention** | Classes without `C` prefix (`CMyClass`) |
+| Inspection                       | What it catches                                |
+| :------------------------------- | :--------------------------------------------- |
+| **Function naming convention**   | Functions not in PascalCase                    |
+| **Variable naming convention**   | Variables not following naming conventions     |
+| **Class naming convention**      | Classes without `C` prefix (`CMyClass`)        |
 | **Missing function doc comment** | Public functions without `//---` documentation |
 
 </details>
@@ -289,14 +289,14 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Control Flow</b> &mdash; 6 inspections &nbsp;&nbsp;<code>Catch structural bugs</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Use of `goto`** | `goto` statements (always flagged) |
-| **Suspicious semicolon** | `;` immediately after `if`/`for`/`while` |
-| **Empty loop body** | Loops with no body |
-| **Switch without default** | `switch` missing `default:` case |
-| **Switch fall-through** | Missing `break` in `case` blocks |
-| **Infinite loop risk** | Loops without clear termination |
+| Inspection                 | What it catches                          |
+| :------------------------- | :--------------------------------------- |
+| **Use of `goto`**          | `goto` statements (always flagged)       |
+| **Suspicious semicolon**   | `;` immediately after `if`/`for`/`while` |
+| **Empty loop body**        | Loops with no body                       |
+| **Switch without default** | `switch` missing `default:` case         |
+| **Switch fall-through**    | Missing `break` in `case` blocks         |
+| **Infinite loop risk**     | Loops without clear termination          |
 
 </details>
 
@@ -304,13 +304,13 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Code Complexity</b> &mdash; 5 inspections &nbsp;&nbsp;<code>Keep code maintainable</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
+| Inspection                  | What it catches                    |
+| :-------------------------- | :--------------------------------- |
 | **Excessive nesting depth** | Code nested too deeply (>4 levels) |
-| **Function too long** | Functions exceeding 200 lines |
-| **Too many parameters** | Functions with >7 parameters |
-| **Unused parameter** | Parameters declared but never used |
-| **TODO/FIXME markers** | Unresolved work items in code |
+| **Function too long**       | Functions exceeding 200 lines      |
+| **Too many parameters**     | Functions with >7 parameters       |
+| **Unused parameter**        | Parameters declared but never used |
+| **TODO/FIXME markers**      | Unresolved work items in code      |
 
 </details>
 
@@ -318,11 +318,11 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Trading-Specific</b> &mdash; 4 inspections &nbsp;&nbsp;<code>MetaTrader best practices</code></summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
-| **Hardcoded magic numbers** | Literal values in trading operations |
-| **Return value ignored** | Ignoring return values of important functions |
-| **Virtual call in constructor** | Calling virtual methods from constructors |
+| Inspection                         | What it catches                                           |
+| :--------------------------------- | :-------------------------------------------------------- |
+| **Hardcoded magic numbers**        | Literal values in trading operations                      |
+| **Return value ignored**           | Ignoring return values of important functions             |
+| **Virtual call in constructor**    | Calling virtual methods from constructors                 |
 | **Repeated API calls in OnTick()** | Calling `SymbolInfoDouble()` etc. multiple times per tick |
 
 </details>
@@ -331,8 +331,8 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 <summary><b>Preprocessor</b> &mdash; 1 inspection</summary>
 <br/>
 
-| Inspection | What it catches |
-|:--|:--|
+| Inspection                     | What it catches                             |
+| :----------------------------- | :------------------------------------------ |
 | **#property directive issues** | Invalid or malformed `#property` directives |
 
 </details>
@@ -343,7 +343,7 @@ Real-time analysis across 12 categories, catching bugs before they cost you mone
 
 <br/>
 
-## <img src="https://img.shields.io/badge/9-templates-green?style=flat-square" alt="9 templates" /> Live Templates
+## Live Templates
 
 Type the abbreviation, press **Tab**, and get production-ready code with proper error handling.
 
@@ -367,7 +367,7 @@ pool       -->  Object pool pattern for reusable objects
 
 <br/>
 
-## <img src="https://img.shields.io/badge/quick-start-orange?style=flat-square" alt="quick start" /> Installation
+## Installation
 
 <table>
 <tr>
@@ -401,7 +401,7 @@ pool       -->  Object pool pattern for reusable objects
 
 <br/>
 
-## <img src="https://img.shields.io/badge/dev-build-purple?style=flat-square" alt="build" /> Building from Source
+## Building from Source
 
 ```bash
 # Requirements: Java 21 (JetBrains Runtime), Gradle 9.3 (wrapper included)
@@ -446,12 +446,12 @@ cpp_tests/                           134 GoogleTest safety pattern cases
 
 <div align="center">
 
-| | Requirement |
-|:--|:--|
-| **IDE** | IntelliJ IDEA 2025.3.2+ &nbsp; (build 253.30387+) |
-| **Java** | 21 &nbsp; (JetBrains Runtime) |
-| **Platform** | Windows, Linux |
-| **File Types** | `.mq4` `.mql4` `.mq5` `.mql5` `.mqh` |
+|                | Requirement                                       |
+| :------------- | :------------------------------------------------ |
+| **IDE**        | IntelliJ IDEA 2025.3.2+ &nbsp; (build 253.30387+) |
+| **Java**       | 21 &nbsp; (JetBrains Runtime)                     |
+| **Platform**   | Windows, Linux                                    |
+| **File Types** | `.mq4` `.mql4` `.mq5` `.mql5` `.mqh`              |
 
 </div>
 
@@ -461,7 +461,7 @@ cpp_tests/                           134 GoogleTest safety pattern cases
 
 <br/>
 
-## <img src="https://img.shields.io/badge/GPL-3.0-lightgrey?style=flat-square" alt="GPL-3.0" /> License
+## License
 
 GPL-3.0 -- see [LICENSE.txt](LICENSE.txt) for details.
 
