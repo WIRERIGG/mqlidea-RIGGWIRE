@@ -21,6 +21,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.extensions.ExtensionPointName;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.util.ProgressIndicatorUtils;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -167,8 +168,12 @@ public final class MqlProblemsLoggerService implements Disposable {
 
     // Cache: file URL -> (modStamp, problems)
     private final ConcurrentHashMap<String, CachedFileResult> cache = new ConcurrentHashMap<>();
-    // Dirty files needing re-scan (null = full scan needed)
-    private volatile Set<String> dirtyFileUrls;
+    // Guards all access to dirtyFileUrls (contents and reference swap)
+    private final Object dirtyLock = new Object();
+    // Guards cancel+reschedule of pendingScan
+    private final Object scheduleLock = new Object();
+    // Dirty files needing re-scan (null = full scan needed); access only under dirtyLock
+    private Set<String> dirtyFileUrls;
     // Track which file URLs had problems on the previous scan, for icon refresh
     private volatile Set<String> previousProblemUrls = new HashSet<>();
 
@@ -197,25 +202,27 @@ public final class MqlProblemsLoggerService implements Disposable {
 
     public void scanAllFiles() {
         if (project.isDisposed()) return;
-        dirtyFileUrls = null; // null = full scan
+        synchronized (dirtyLock) {
+            dirtyFileUrls = null; // null = full scan
+        }
         executor.submit(this::doScan);
     }
 
     public void scheduleScan() {
         if (project.isDisposed()) return;
-        ScheduledFuture<?> prev = pendingScan;
-        if (prev != null) {
-            prev.cancel(false);
+        synchronized (scheduleLock) {
+            ScheduledFuture<?> prev = pendingScan;
+            if (prev != null) {
+                prev.cancel(false);
+            }
+            pendingScan = executor.schedule(this::doScan, 1000, TimeUnit.MILLISECONDS);
         }
-        pendingScan = executor.schedule(this::doScan, 1000, TimeUnit.MILLISECONDS);
     }
 
     public void markDirty(@NotNull Collection<String> fileUrls) {
-        Set<String> current = dirtyFileUrls;
-        if (current == null) return; // already pending full scan
-        if (current.isEmpty()) {
-            dirtyFileUrls = new LinkedHashSet<>(fileUrls);
-        } else {
+        synchronized (dirtyLock) {
+            Set<String> current = dirtyFileUrls;
+            if (current == null) return; // already pending full scan
             current.addAll(fileUrls);
         }
     }
@@ -236,23 +243,24 @@ public final class MqlProblemsLoggerService implements Disposable {
                 return files;
             });
 
-            // Get dirty set and reset
-            Set<String> dirty = dirtyFileUrls;
-            dirtyFileUrls = new LinkedHashSet<>();
+            // Atomically snapshot the dirty set and reset it, then scan over the snapshot
+            Set<String> dirty;
+            synchronized (dirtyLock) {
+                dirty = dirtyFileUrls;
+                dirtyFileUrls = new LinkedHashSet<>();
+            }
 
             String basePath = project.getBasePath();
             if (basePath == null) return;
 
             List<LocalInspectionTool> tools = ReadAction.compute(this::discoverInspections);
 
-            // Lazy cache cleanup: only when cache exceeds file count by 20%
+            // Prune cache entries for deleted/renamed files so the report stays current
             Set<String> currentUrls = new LinkedHashSet<>();
             for (VirtualFile vf : allFiles) {
                 currentUrls.add(vf.getUrl());
             }
-            if (cache.size() > currentUrls.size() * 1.2) {
-                cache.keySet().retainAll(currentUrls);
-            }
+            cache.keySet().retainAll(currentUrls);
 
             // Build batches of files that need scanning
             List<VirtualFile> filesToScan = new ArrayList<>();
@@ -301,18 +309,29 @@ public final class MqlProblemsLoggerService implements Disposable {
     }
 
     private void processBatch(@NotNull List<VirtualFile> files, @NotNull String basePath,
-                              @NotNull List<LocalInspectionTool> tools) {
-        ReadAction.run(() -> {
-            for (VirtualFile vf : files) {
-                if (project.isDisposed()) return;
-                List<ProblemInfo> problems = scanSingleFile(vf, basePath, tools);
-                if (problems != null) {
-                    String relativePath = getRelativePath(basePath, vf);
-                    cache.put(vf.getUrl(), new CachedFileResult(vf.getModificationStamp(),
-                            relativePath, problems));
+                              @NotNull List<LocalInspectionTool> tools) throws InterruptedException {
+        // Cancellable read with write-action priority: a pending write action (e.g. the user
+        // typing) cancels the read via ProgressManager.checkCanceled() and we retry the batch
+        // after yielding, so the EDT is never blocked for the duration of a batch.
+        boolean success = false;
+        while (!success) {
+            if (project.isDisposed()) return;
+            success = ProgressIndicatorUtils.runInReadActionWithWriteActionPriority(() -> {
+                for (VirtualFile vf : files) {
+                    if (project.isDisposed()) return;
+                    List<ProblemInfo> problems = scanSingleFile(vf, basePath, tools);
+                    if (problems != null) {
+                        String relativePath = getRelativePath(basePath, vf);
+                        cache.put(vf.getUrl(), new CachedFileResult(vf.getModificationStamp(),
+                                relativePath, problems));
+                    }
                 }
+            });
+            if (!success) {
+                // A write action interrupted the read; yield briefly before retrying
+                Thread.sleep(YIELD_SLEEP_MS);
             }
-        });
+        }
     }
 
     private void refreshIconsIfChanged() {

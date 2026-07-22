@@ -38,11 +38,22 @@ public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase 
                     String deletedVar = m.group(1);
                     int afterDelete = m.end();
                     String remaining = text.substring(afterDelete);
+                    // Skip array-element deletes such as "delete arr[i];" — the element,
+                    // not the identifier itself, is being deleted.
+                    if (remaining.stripLeading().startsWith("[")) {
+                        continue;
+                    }
                     if (Pattern.compile("\\b" + Pattern.quote(deletedVar) + "\\b").matcher(remaining).find()) {
-                        String afterDeleteTrimmed = remaining.trim();
-                        if (!afterDeleteTrimmed.startsWith(deletedVar + " = NULL")
-                                && !afterDeleteTrimmed.startsWith(deletedVar + "=NULL")) {
-                            problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                        // Strip the trailing ";" of the delete statement itself so the safe
+                        // pattern "delete obj; obj = NULL;" is recognised.
+                        String afterDeleteTrimmed = remaining.stripLeading();
+                        if (afterDeleteTrimmed.startsWith(";")) {
+                            afterDeleteTrimmed = afterDeleteTrimmed.substring(1).stripLeading();
+                        }
+                        Pattern nullAssign = Pattern.compile(
+                                "^" + Pattern.quote(deletedVar) + "\\s*=\\s*(?i:NULL)");
+                        if (!nullAssign.matcher(afterDeleteTrimmed).find()) {
+                            problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                             break;
                         }
                     }

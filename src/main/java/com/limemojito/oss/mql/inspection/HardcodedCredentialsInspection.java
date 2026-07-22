@@ -30,7 +30,7 @@ public class HardcodedCredentialsInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (BracketBlockTokenWalker.containsStringLiteralMatching(body, CREDENTIAL_PATTERN)) {
-                    problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE));
+                    problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
         }

@@ -16,10 +16,12 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class MissingInputValidationInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "OnInit() should validate input parameters before use";
+    private static final Pattern IF_KEYWORD_PATTERN = Pattern.compile("\\bif\\b");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -40,17 +42,19 @@ public class MissingInputValidationInspection extends MQL5SafetyInspectionBase {
             if (onInit.isDeclaration()) continue;
             ASTNode body = findBracketsBlock(onInit);
             if (body == null || bracketBlockIsEmpty(body)) {
-                problems.add(createWarning(manager, onInit.getNavigationElement(), MESSAGE));
+                problems.add(createWarning(manager, onInit.getNavigationElement(), MESSAGE, isOnTheFly));
             } else {
                 String bodyText = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                boolean hasValidation = bodyText.contains("if") || bodyText.contains("INIT_PARAMETERS_INCORRECT");
+                boolean hasValidation = IF_KEYWORD_PATTERN.matcher(bodyText).find()
+                        || bodyText.contains("INIT_PARAMETERS_INCORRECT");
                 if (!hasValidation) {
-                    problems.add(createWeakWarning(manager, onInit.getNavigationElement(), MESSAGE));
+                    problems.add(createWeakWarning(manager, onInit.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
         }
         if (hasInputVars && onInitFuncs.isEmpty()) {
-            problems.add(createWarning(manager, file, "File has input parameters but no OnInit() to validate them"));
+            problems.add(createWarning(manager, file,
+                    "File has input parameters but no OnInit() to validate them", isOnTheFly));
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }

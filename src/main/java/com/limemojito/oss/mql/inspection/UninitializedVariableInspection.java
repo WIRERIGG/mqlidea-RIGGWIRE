@@ -16,8 +16,10 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.IElementType;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
+import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -62,25 +64,53 @@ public class UninitializedVariableInspection extends MQL5SafetyInspectionBase {
 
             ASTNode defList = node.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
             if (defList == null) continue;
-            ASTNode def = defList.findChildByType(MQL4Elements.VAR_DEFINITION);
-            if (def == null) continue;
 
-            boolean hasInitializer = def.findChildByType(MQL4Elements.EQ) != null;
-            if (!hasInitializer) {
-                String name = getVariableName(child);
-                if (name != null) {
-                    String initValue = isStringType ? " = \"\"" : " = 0";
-                    problems.add(manager.createProblemDescriptor(child, child,
-                            String.format(MESSAGE, name),
-                            ProblemHighlightType.WARNING, true,
-                            new AddInitializerFix(initValue)));
+            for (ASTNode def = defList.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+                if (def.getElementType() != MQL4Elements.VAR_DEFINITION) continue;
+                if (isArrayDeclarator(def)) continue;
+
+                boolean hasInitializer = def.findChildByType(MQL4Elements.EQ) != null;
+                if (!hasInitializer) {
+                    ASTNode id = def.findChildByType(MQL4Elements.IDENTIFIER);
+                    if (id != null) {
+                        String initValue = isStringType ? " = \"\"" : " = 0";
+                        problems.add(manager.createProblemDescriptor(child, child,
+                                String.format(MESSAGE, id.getText()),
+                                ProblemHighlightType.WARNING, true,
+                                new AddInitializerFix(initValue, id.getText())));
+                    }
                 }
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
-    private record AddInitializerFix(@NotNull String initValue) implements LocalQuickFix {
+    /**
+     * True if the var definition declares an array (e.g. {@code double buffer[];}) — such declarators
+     * cannot take a scalar initializer. The parser may keep the bracket tokens inside the
+     * VAR_DEFINITION, or (via error recovery) as following siblings of the VAR_DEFINITION_LIST,
+     * so both locations are checked.
+     */
+    private static boolean isArrayDeclarator(@NotNull ASTNode def) {
+        if (def.findChildByType(MQL4Elements.L_SQUARE_BRACKET) != null) return true;
+        ASTNode next = def.getTreeNext();
+        ASTNode scope = def.getTreeParent();
+        while (next == null && scope != null
+                && scope.getElementType() != MQL4Elements.VAR_DECLARATION_STATEMENT) {
+            next = scope.getTreeNext();
+            scope = scope.getTreeParent();
+        }
+        while (next != null) {
+            IElementType type = next.getElementType();
+            if (type == MQL4Elements.L_SQUARE_BRACKET) return true;
+            if (!MQL4TokenSets.COMMENTS_OR_WS.contains(type)) return false;
+            next = next.getTreeNext();
+        }
+        return false;
+    }
+
+    private record AddInitializerFix(@NotNull String initValue,
+                                     @NotNull String variableName) implements LocalQuickFix {
 
         @NotNull
         @Override
@@ -97,17 +127,20 @@ public class UninitializedVariableInspection extends MQL5SafetyInspectionBase {
         @Override
         public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
             PsiElement element = descriptor.getPsiElement();
+            if (element == null) return;
             Document doc = PsiDocumentManager.getInstance(project).getDocument(element.getContainingFile());
             if (doc == null) return;
             ASTNode node = element.getNode();
             ASTNode defList = node.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
             if (defList == null) return;
-            ASTNode def = defList.findChildByType(MQL4Elements.VAR_DEFINITION);
-            if (def == null) return;
-            ASTNode id = def.findChildByType(MQL4Elements.IDENTIFIER);
-            if (id == null) return;
-            int offset = id.getTextRange().getEndOffset();
-            doc.insertString(offset, initValue);
+            for (ASTNode def = defList.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+                if (def.getElementType() != MQL4Elements.VAR_DEFINITION) continue;
+                ASTNode id = def.findChildByType(MQL4Elements.IDENTIFIER);
+                if (id == null || !variableName.equals(id.getText())) continue;
+                if (isArrayDeclarator(def)) return; // arrays cannot take a scalar initializer
+                doc.insertString(id.getTextRange().getEndOffset(), initValue);
+                return;
+            }
         }
     }
 }

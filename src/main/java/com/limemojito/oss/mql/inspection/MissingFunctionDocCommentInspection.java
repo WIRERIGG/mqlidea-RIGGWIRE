@@ -13,6 +13,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -78,9 +79,12 @@ public class MissingFunctionDocCommentInspection extends MQL5SafetyInspectionBas
         @Override
         public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
             PsiElement element = descriptor.getPsiElement();
+            if (element == null) return;
             Document doc = PsiDocumentManager.getInstance(project).getDocument(element.getContainingFile());
             if (doc == null) return;
-            int offset = element.getTextRange().getStartOffset();
+            TextRange range = element.getTextRange();
+            if (range == null) return;
+            int offset = range.getStartOffset();
             String comment = "//+------------------------------------------------------------------+\n" +
                     "//| " + functionName + "                                                |\n" +
                     "//+------------------------------------------------------------------+\n";

@@ -60,7 +60,8 @@ public class MQL4Annotator implements Annotator {
         ASTNode child = node.getFirstChildNode();
         boolean isInput = false;
         while (child != null) {
-            if (child.getElementType() == MQL4Elements.INPUT_KEYWORD) {
+            if (child.getElementType() == MQL4Elements.INPUT_KEYWORD
+                    || child.getElementType() == MQL4Elements.SINPUT_KEYWORD) {
                 isInput = true;
                 break;
             }

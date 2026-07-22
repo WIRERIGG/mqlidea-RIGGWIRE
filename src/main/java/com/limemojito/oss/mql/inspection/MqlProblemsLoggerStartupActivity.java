@@ -10,16 +10,20 @@ import com.intellij.openapi.startup.StartupActivity;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import org.jetbrains.annotations.NotNull;
 
+// TODO: migrate to ProjectActivity (StartupActivity is deprecated but still works on 2025.3)
 @SuppressWarnings("deprecation")
 public class MqlProblemsLoggerStartupActivity implements StartupActivity.DumbAware {
 
     @Override
     public void runActivity(@NotNull Project project) {
-        // Register file change listener for ongoing monitoring
-        project.getMessageBus().connect()
+        MqlProblemsLoggerService service = MqlProblemsLoggerService.getInstance(project);
+
+        // Register file change listener for ongoing monitoring, scoped to the service's
+        // lifetime so the connection is disposed with it
+        project.getMessageBus().connect(service)
                 .subscribe(VirtualFileManager.VFS_CHANGES, new MqlProblemsLoggerFileListener(project));
 
         // Trigger initial full scan (defers automatically if still indexing)
-        MqlProblemsLoggerService.getInstance(project).scanAllFiles();
+        service.scanAllFiles();
     }
 }

@@ -116,24 +116,48 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
     protected ProblemDescriptor createProblem(@NotNull InspectionManager manager,
                                               @NotNull PsiElement element,
                                               @NotNull String message) {
+        return createProblem(manager, element, message, true);
+    }
+
+    @NotNull
+    protected ProblemDescriptor createProblem(@NotNull InspectionManager manager,
+                                              @NotNull PsiElement element,
+                                              @NotNull String message,
+                                              boolean onTheFly) {
         return manager.createProblemDescriptor(element, element, message,
-                ProblemHighlightType.GENERIC_ERROR_OR_WARNING, true);
+                ProblemHighlightType.GENERIC_ERROR_OR_WARNING, onTheFly);
     }
 
     @NotNull
     protected ProblemDescriptor createWarning(@NotNull InspectionManager manager,
                                               @NotNull PsiElement element,
                                               @NotNull String message) {
+        return createWarning(manager, element, message, true);
+    }
+
+    @NotNull
+    protected ProblemDescriptor createWarning(@NotNull InspectionManager manager,
+                                              @NotNull PsiElement element,
+                                              @NotNull String message,
+                                              boolean onTheFly) {
         return manager.createProblemDescriptor(element, element, message,
-                ProblemHighlightType.WARNING, true);
+                ProblemHighlightType.WARNING, onTheFly);
     }
 
     @NotNull
     protected ProblemDescriptor createWeakWarning(@NotNull InspectionManager manager,
                                                   @NotNull PsiElement element,
                                                   @NotNull String message) {
+        return createWeakWarning(manager, element, message, true);
+    }
+
+    @NotNull
+    protected ProblemDescriptor createWeakWarning(@NotNull InspectionManager manager,
+                                                  @NotNull PsiElement element,
+                                                  @NotNull String message,
+                                                  boolean onTheFly) {
         return manager.createProblemDescriptor(element, element, message,
-                ProblemHighlightType.WEAK_WARNING, true);
+                ProblemHighlightType.WEAK_WARNING, onTheFly);
     }
 
     protected boolean isEventHandler(@NotNull MQL4FunctionElement function) {

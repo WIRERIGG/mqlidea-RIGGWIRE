@@ -95,7 +95,7 @@ public final class BracketBlockTokenWalker {
 
     public static boolean containsStringLiteralMatching(@Nullable ASTNode block, @NotNull String regex) {
         if (block == null) return false;
-        String text = block.getText();
+        String text = stripComments(block.getText());
         Matcher m = STRING_LITERAL_PATTERN.matcher(text);
         Pattern p = getCachedPatternCI(regex);
         while (m.find()) {
@@ -198,6 +198,52 @@ public final class BracketBlockTokenWalker {
                     i++;
                 }
                 sb.append("''");
+                continue;
+            }
+            sb.append(c);
+            i++;
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Removes line and block comments while preserving string and character literals
+     * (so patterns can still be matched against literal contents). Comment markers
+     * inside literals are left untouched.
+     */
+    @NotNull
+    private static String stripComments(@NotNull String text) {
+        StringBuilder sb = new StringBuilder(text.length());
+        int i = 0;
+        while (i < text.length()) {
+            char c = text.charAt(i);
+            if (c == '/' && i + 1 < text.length()) {
+                char next = text.charAt(i + 1);
+                if (next == '/') {
+                    while (i < text.length() && text.charAt(i) != '\n') i++;
+                    continue;
+                } else if (next == '*') {
+                    i += 2;
+                    while (i + 1 < text.length() && !(text.charAt(i) == '*' && text.charAt(i + 1) == '/')) i++;
+                    i += 2;
+                    continue;
+                }
+            }
+            if (c == '"' || c == '\'') {
+                char quote = c;
+                sb.append(c);
+                i++;
+                while (i < text.length()) {
+                    char literalChar = text.charAt(i);
+                    if (literalChar == '\\' && i + 1 < text.length()) {
+                        sb.append(literalChar).append(text.charAt(i + 1));
+                        i += 2;
+                        continue;
+                    }
+                    sb.append(literalChar);
+                    i++;
+                    if (literalChar == quote) break;
+                }
                 continue;
             }
             sb.append(c);

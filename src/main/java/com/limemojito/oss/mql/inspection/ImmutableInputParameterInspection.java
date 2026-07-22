@@ -17,10 +17,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Input parameter '%s' appears to be reassigned — input variables should be treated as immutable";
+    private static final ConcurrentHashMap<String, Pattern> REASSIGN_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -44,15 +47,26 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
                 if (body == null) continue;
                 String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
                 for (String inputName : inputNames) {
-                    if (text.contains(inputName + " =") || text.contains(inputName + "=")
-                            || text.contains(inputName + "++") || text.contains(inputName + "--")
-                            || text.contains("++" + inputName) || text.contains("--" + inputName)) {
+                    if (buildReassignmentPattern(inputName).matcher(text).find()) {
                         problems.add(createWarning(manager, child.getNavigationElement(),
-                                String.format(MESSAGE, inputName)));
+                                String.format(MESSAGE, inputName), isOnTheFly));
                     }
                 }
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+
+    /**
+     * Matches a genuine reassignment of the input variable (assignment, compound assignment
+     * or increment/decrement) as a whole word, without matching comparisons such as
+     * {@code ==}, {@code <=}, {@code >=} or {@code !=}, and without matching the name
+     * inside a longer identifier (e.g. {@code Period} inside {@code myPeriod}).
+     */
+    private static Pattern buildReassignmentPattern(@NotNull String inputName) {
+        String name = Pattern.quote(inputName);
+        return REASSIGN_CACHE.computeIfAbsent(inputName, key -> Pattern.compile(
+                "\\b" + name + "\\s*(?:(?<![!<>+\\-*/%&|^=])=(?!=)|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|>>=|<<=|\\+\\+|--)"
+                        + "|(?:\\+\\+|--)\\s*\\b" + name + "\\b"));
     }
 }

@@ -37,9 +37,10 @@ public class StaleHandleUsageInspection extends MQL5SafetyInspectionBase {
                 while (m.find()) {
                     String handle = m.group(1);
                     String remaining = text.substring(m.end());
-                    if (BracketBlockTokenWalker.containsPattern(
-                            body, "CopyBuffer\\s*\\([^)]*\\b" + Pattern.quote(handle) + "\\b")) {
-                        problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                    Pattern reusePattern = Pattern.compile(
+                            "CopyBuffer\\s*\\([^)]*\\b" + Pattern.quote(handle) + "\\b");
+                    if (reusePattern.matcher(remaining).find()) {
+                        problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                         break;
                     }
                 }
