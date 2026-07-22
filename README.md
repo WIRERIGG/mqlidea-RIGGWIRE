@@ -14,7 +14,7 @@
 
 | Code Inspections | Doc Pages (EN + RU) | Live Templates | Inspection Categories |
 | :--------------: | :-----------------: | :------------: | :-------------------: |
-|      **75**      |     **1,400+**      |     **9**      |        **13**         |
+|      **75**      |      **1,400+**     |     **9**      |         **13**        |
 
 ---
 
@@ -232,13 +232,13 @@ Real-time analysis across 13 categories, catching bugs before they cost you mone
 <details>
 <summary><b>Code Complexity</b> &mdash; 5 inspections &nbsp;&nbsp;<code>Keep code maintainable</code></summary>
 
-| Inspection                  | What it catches                     |
-| :-------------------------- | :---------------------------------- |
+| Inspection                  | What it catches                        |
+| :-------------------------- | :------------------------------------- |
 | **Excessive nesting depth** | Code nested too deeply (over 4 levels) |
-| **Function too long**       | Functions exceeding 200 lines       |
-| **Too many parameters**     | Functions with more than 7 parameters |
-| **Unused parameter**        | Parameters declared but never used  |
-| **TODO/FIXME markers**      | Unresolved work items in code       |
+| **Function too long**       | Functions exceeding 200 lines          |
+| **Too many parameters**     | Functions with more than 7 parameters  |
+| **Unused parameter**        | Parameters declared but never used     |
+| **TODO/FIXME markers**      | Unresolved work items in code          |
 
 </details>
 
