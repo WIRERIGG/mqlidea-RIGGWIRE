@@ -1,4 +1,4 @@
-![RIGGWIRE MQL](src/main/resources/META-INF/pluginIcon.svg)
+<img src="src/main/resources/META-INF/pluginIcon.svg" width="96" alt="RIGGWIRE MQL" />
 
 # RIGGWIRE MQL
 
@@ -6,7 +6,14 @@
 
 *The most comprehensive MetaTrader development environment available inside a JetBrains IDE.*
 
-![MQL4](src/main/resources/icons/mql4.svg) ![MQL5](src/main/resources/icons/mql5.svg) ![MQH](src/main/resources/icons/mqh.svg) ![AI Healing](src/main/resources/icons/mql_healing.svg)
+![Version](https://img.shields.io/badge/version-2026.1.0-2381C4?style=flat-square)
+![IntelliJ IDEA](https://img.shields.io/badge/IntelliJ%20IDEA-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
+![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
+![Inspections](https://img.shields.io/badge/inspections-75-2E8B57?style=flat-square)
+![AI Healing](https://img.shields.io/badge/AI%20healing-Grok%20%2B%20Claude-8A2BE2?style=flat-square)
+![License](https://img.shields.io/badge/license-GPL--3.0-777777?style=flat-square)
+
+<img src="src/main/resources/icons/mql4.svg" width="34" alt="MQL4" /> &nbsp; <img src="src/main/resources/icons/mql5.svg" width="34" alt="MQL5" /> &nbsp; <img src="src/main/resources/icons/mqh.svg" width="34" alt="MQH" /> &nbsp; <img src="src/main/resources/icons/mql_healing.svg" width="34" alt="AI Healing" />
 
 [**Features**](#features) &#8226; [**AI Healing**](#ai-code-healing) &#8226; [**Inspections**](#75-code-inspections) &#8226; [**Live Templates**](#live-templates) &#8226; [**Install**](#installation) &#8226; [**Build**](#building-from-source) &#8226; [**License**](#license)
 
