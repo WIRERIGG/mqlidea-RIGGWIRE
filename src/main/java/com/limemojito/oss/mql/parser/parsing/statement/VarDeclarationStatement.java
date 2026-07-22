@@ -16,8 +16,6 @@ import com.limemojito.oss.mql.parser.parsing.util.TokenAdvanceMode;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
-import static com.intellij.lang.parser.GeneratedParserUtilBase.enter_section_;
-import static com.intellij.lang.parser.GeneratedParserUtilBase.exit_section_;
 import static com.intellij.lang.parser.GeneratedParserUtilBase.recursion_guard_;
 import static com.limemojito.oss.mql.parser.parsing.util.ParsingErrors.error;
 import static com.limemojito.oss.mql.parser.parsing.util.ParsingUtils.checkTokenOrFail;
@@ -38,28 +36,32 @@ public class VarDeclarationStatement implements MQL4Elements {
         if (!(firstIsType && b.lookAhead(n + 1) == IDENTIFIER)) {
             return false;
         }
-        PsiBuilder.Marker m = enter_section_(b);
+        PsiBuilder.Marker m = b.mark();
         if (n == 1) {
+            skipComments(b);
             b.advanceLexer(); // pre-type
         }
+        skipComments(b);
         b.advanceLexer(); // type
+        skipComments(b);
         boolean ok = parseVarDefinitionList(b, l + 1);
         if (!ok) {
             ParsingUtils.advanceLexerUntil(b, SEMICOLON, TokenAdvanceMode.ADVANCE);
         }
-        exit_section_(b, m, VAR_DECLARATION_STATEMENT, true);
+        m.done(VAR_DECLARATION_STATEMENT);
         return true;
     }
 
     public static boolean parseVarDefinitionList(PsiBuilder b, int l) {
         assert b.getTokenType() == IDENTIFIER;
-        PsiBuilder.Marker m0 = enter_section_(b);
+        PsiBuilder.Marker m0 = b.mark();
         try {
             boolean ok = true;
             do {
-                PsiBuilder.Marker m1 = enter_section_(b);
+                PsiBuilder.Marker m1 = b.mark();
                 try {
                     b.advanceLexer();
+                    skipComments(b);
                     if (b.getTokenType() == SEMICOLON) {
                         b.advanceLexer();
                         break;
@@ -79,12 +81,18 @@ public class VarDeclarationStatement implements MQL4Elements {
                         ok = false;
                     }
                 } finally {
-                    exit_section_(b, m1, VAR_DEFINITION, true);
+                    m1.done(VAR_DEFINITION);
                 }
             } while (ok && b.getTokenType() == IDENTIFIER);
             return ok;
         } finally {
-            exit_section_(b, m0, VAR_DEFINITION_LIST, true);
+            m0.done(VAR_DEFINITION_LIST);
+        }
+    }
+
+    private static void skipComments(PsiBuilder b) {
+        //noinspection StatementWithEmptyBody
+        while (com.limemojito.oss.mql.parser.parsing.CommentParsing.parseComment(b)) {
         }
     }
 
@@ -96,7 +104,7 @@ public class VarDeclarationStatement implements MQL4Elements {
             return false;
         }
         boolean firstIsType = MQL4TokenSets.DATA_TYPES.contains(b.getTokenType());
-        PsiBuilder.Marker m = enter_section_(b);
+        PsiBuilder.Marker m = b.mark();
         try {
             if (firstIsType) {
                 b.advanceLexer();
@@ -107,7 +115,7 @@ public class VarDeclarationStatement implements MQL4Elements {
             }
             return parseEmbeddedVarAssignmentsListOrFail(b, l + 1, assignmentSectionType, SEMICOLON);
         } finally {
-            exit_section_(b, m, sectionType, true);
+            m.done(sectionType);
         }
     }
 
@@ -115,7 +123,7 @@ public class VarDeclarationStatement implements MQL4Elements {
         if (!recursion_guard_(b, l, "parseEmbeddedVarAssignmentsList")) {
             return false;
         }
-        PsiBuilder.Marker m = enter_section_(b);
+        PsiBuilder.Marker m = b.mark();
         try {
             if (b.getTokenType() == stopToken) {
                 return true;
@@ -136,7 +144,7 @@ public class VarDeclarationStatement implements MQL4Elements {
                 }
             }
         } finally {
-            exit_section_(b, m, sectionType, true);
+            m.done(sectionType);
         }
 
     }

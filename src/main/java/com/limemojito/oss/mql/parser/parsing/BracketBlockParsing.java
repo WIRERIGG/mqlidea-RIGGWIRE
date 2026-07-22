@@ -21,6 +21,7 @@ import static com.limemojito.oss.mql.parser.parsing.preprocessor.PreprocessorIfD
 import static com.limemojito.oss.mql.parser.parsing.preprocessor.PreprocessorIfDefParsing.parseUndef;
 import static com.limemojito.oss.mql.parser.parsing.statement.EnumParsing.parseEnum;
 import static com.limemojito.oss.mql.parser.parsing.statement.StatementParsing.parseEmptyStatement;
+import static com.limemojito.oss.mql.parser.parsing.statement.StatementParsing.parseStatement;
 import static com.limemojito.oss.mql.parser.parsing.util.ParsingErrors.NO_MATCHING_CLOSING_BRACKET;
 import static com.limemojito.oss.mql.parser.parsing.util.ParsingErrors.advanceWithError;
 import static com.limemojito.oss.mql.parser.parsing.util.ParsingErrors.error;
@@ -73,6 +74,17 @@ public class BracketBlockParsing implements MQL4Elements {
                 boolean res;
                 if (doNotParseContent) {
                     res = parseBracketsBlock(b, l + 1, true);
+                } else if (codeBlock) {
+                    // {} code block: parse real statements. parseStatement is tolerant — it either
+                    // consumes a statement or returns false so the advanceLexer() fallback below
+                    // keeps the old behavior for anything unrecognized.
+                    res = parseEnum(b, l + 1)
+                            || parseDefine(b)
+                            || parseUndef(b)
+                            || parseStatement(b, l + 1)
+                            || parseBracketsBlock(b, l + 1, false)
+                            || parseEmptyStatement(b)
+                            || parseComment(b);
                 } else {
                     res = parseEnum(b, l + 1)
                             || parseDefine(b)

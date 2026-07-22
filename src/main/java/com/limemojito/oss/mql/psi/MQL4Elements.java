@@ -36,6 +36,14 @@ public interface MQL4Elements extends MQL4StubElements, MQL4LexerElements {
     IElementType EMPTY_STATEMENT = new MQL4ElementType("EMPTY_STATEMENT");
     IElementType SINGLE_WORD_STATEMENT = new MQL4ElementType("SINGLE_WORD_STATEMENT");
 
+    IElementType IF_STATEMENT = new MQL4ElementType("IF_STATEMENT");
+    IElementType FOR_STATEMENT = new MQL4ElementType("FOR_STATEMENT");
+    IElementType WHILE_STATEMENT = new MQL4ElementType("WHILE_STATEMENT");
+    IElementType DO_STATEMENT = new MQL4ElementType("DO_STATEMENT");
+    IElementType SWITCH_STATEMENT = new MQL4ElementType("SWITCH_STATEMENT");
+    IElementType RETURN_STATEMENT = new MQL4ElementType("RETURN_STATEMENT");
+    IElementType EXPRESSION_STATEMENT = new MQL4ElementType("EXPRESSION_STATEMENT");
+
     IElementType VAR_DECLARATION_STATEMENT = new MQL4ElementType("VAR_DECLARATION_STATEMENT");
     IElementType VAR_DEFINITION_LIST = new MQL4ElementType("VAR_DEFINITION_LIST");
     IElementType VAR_DEFINITION = new MQL4ElementType("VAR_DEFINITION");
