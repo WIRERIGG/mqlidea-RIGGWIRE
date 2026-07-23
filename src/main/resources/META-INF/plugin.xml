@@ -35,6 +35,13 @@
              <li>MQL4 &amp; MQL5 syntax highlighting.</li>
              <li>Keyword and built-in-symbol code completion.</li>
              <li>Go-to-symbol navigation and structure view.</li>
+             <li>Go-to-declaration (Ctrl-click) and Find Usages for functions, classes/structs,
+                 enums, enum constants, parameters and variables (local, global and member field),
+                 including across files reached via <code>#include</code>.</li>
+             <li>Rename refactoring (Shift-F6 / in-place) for the same symbol kinds, updating call
+                 sites project-wide.</li>
+             <li><code>#include "X.mqh"</code> and <code>#include &lt;Trade/Trade.mqh&gt;</code> are
+                 navigable links.</li>
              <li>Quick documentation in English and Russian (see settings).</li>
              <li>MQL-specific code-safety inspections (trading/handle/lifecycle), on by default; style inspections opt-in.</li>
            </ul>
@@ -43,8 +50,10 @@
            <b>Not yet supported:</b>
            <ul>
              <li>Code formatting</li>
-             <li>Refactoring (rename / find-usages / safe-delete)</li>
-             <li>Reference resolution across files (#include)</li>
+             <li>Safe-delete refactoring</li>
+             <li>Member access resolution (<code>obj.field</code> / <code>obj.Method()</code>) --
+                 needs type inference, planned for a later phase</li>
+             <li>Built-in functions/constants resolve as "known", not yet to browsable documentation PSI</li>
              <li>Inline compiler diagnostics and debugging</li>
            </ul>
          </p>
@@ -512,7 +521,19 @@
 
         <gotoClassContributor implementation="com.limemojito.oss.mql.index.MQL4GotoClassContributor"/>
         <gotoSymbolContributor implementation="com.limemojito.oss.mql.index.MQL4GotoSymbolContributor"/>
-        <gotoDeclarationHandler implementation="com.limemojito.oss.mql.index.MQL4GotoDeclarationHandler"/>
+
+        <!-- Keystone: resolution + rename (REVAMP_PLAN.md Phase 4). Real PsiReference resolution
+             (locals/params -> scope walk, same file, #include closure, project stub indexes)
+             supersedes the old name-string MQL4GotoDeclarationHandler (deleted), and also drives
+             Ctrl-click/go-to-declaration for free via the platform's default reference-based
+             navigation. -->
+        <!-- Identifier leaves must opt into contributor-based references (see MQL4IdentifierLeaf
+             for why the default LeafPsiElement doesn't) before psi.referenceContributor below can
+             ever be consulted by Ctrl-click/Find Usages/rename. -->
+        <lang.ast.factory language="MQL4" implementationClass="com.limemojito.oss.mql.psi.impl.MQL4ASTFactory"/>
+        <psi.referenceContributor language="MQL4" implementation="com.limemojito.oss.mql.reference.MqlReferenceContributor"/>
+        <lang.findUsagesProvider language="MQL4" implementationClass="com.limemojito.oss.mql.findusages.MqlFindUsagesProvider"/>
+        <lang.refactoringSupport language="MQL4" implementationClass="com.limemojito.oss.mql.refactoring.MqlRefactoringSupportProvider"/>
 
     </extensions>
 </idea-plugin>

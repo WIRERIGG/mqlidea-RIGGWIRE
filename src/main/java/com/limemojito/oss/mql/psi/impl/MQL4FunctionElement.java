@@ -11,9 +11,13 @@ import com.intellij.navigation.ColoredItemPresentation;
 import com.intellij.navigation.ItemPresentation;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiNameIdentifierOwner;
+import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.MQL4Icons;
 import com.limemojito.oss.mql.psi.MQL4Elements;
+import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
 import com.limemojito.oss.mql.psi.stub.MQL4FunctionElementStub;
 import com.limemojito.oss.mql.util.ASTUtils;
 
@@ -22,7 +26,7 @@ import javax.swing.Icon;
 import static com.limemojito.oss.mql.util.TextUtils.abbreviate;
 import static com.limemojito.oss.mql.util.TextUtils.simplify;
 
-public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionElementStub> {
+public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionElementStub> implements PsiNameIdentifierOwner {
 
     public static final String UNKNOWN_NAME = "<unknown>";
 
@@ -48,6 +52,36 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
         }
         ASTNode prevNode = ASTUtils.getPrevIgnoreCommentsAndWs(nameNode);
         return (prevNode != null && prevNode.getElementType() == MQL4Elements.TILDA ? "~" : "") + nameNode.getText();
+    }
+
+    /**
+     * Locates the identifier AST node holding the function's name, independent of the stub
+     * (forces the real AST -- {@link #getNode()} transparently switches away from the stub when
+     * called, exactly like every other AST-based accessor on this class). Shared by
+     * {@link #getNameIdentifier()} and {@link #setName(String)}; {@link #getFunctionName()} keeps
+     * its own stub-fast-path copy of this search so the common (non-renaming) case never forces
+     * an AST parse.
+     */
+    @Nullable
+    private ASTNode getNameIdentifierNode() {
+        ASTNode argsListStartNode = getNode().findChildByType(MQL4Elements.L_ROUND_BRACKET);
+        return argsListStartNode == null ? null : ASTUtils.findLastPrevByType(argsListStartNode, MQL4Elements.IDENTIFIER);
+    }
+
+    @Nullable
+    @Override
+    public PsiElement getNameIdentifier() {
+        ASTNode node = getNameIdentifierNode();
+        return node == null ? null : node.getPsi();
+    }
+
+    @Override
+    public PsiElement setName(@NotNull String name) throws IncorrectOperationException {
+        ASTNode nameNode = getNameIdentifierNode();
+        if (nameNode != null) {
+            getNode().replaceChild(nameNode, MQL4ElementsFactory.createIdentifierNode(getProject(), name));
+        }
+        return this;
     }
 
     public boolean isDeclaration() {

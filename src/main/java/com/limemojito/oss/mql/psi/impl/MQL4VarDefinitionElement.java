@@ -14,54 +14,50 @@ import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+/**
+ * PSI for a single VAR_DEFINITION -- one name inside a VAR_DEFINITION_LIST of a
+ * VAR_DECLARATION_STATEMENT (see {@link com.limemojito.oss.mql.parser.parsing.statement.VarDeclarationStatement}).
+ * Covers local variables, global variables (top-level) and class/struct member fields (Phase 4,
+ * REVAMP_PLAN.md #3b) -- all three now share this exact PSI shape since
+ * {@link com.limemojito.oss.mql.parser.MQL4Parser} and
+ * {@link com.limemojito.oss.mql.parser.parsing.ClassParsing} were wired to reuse the same
+ * tolerant var-declaration parse.
+ */
+public class MQL4VarDefinitionElement extends MQL4PsiElement implements PsiNameIdentifierOwner {
 
-public class MQL4EnumElement extends MQL4PsiElement implements PsiNameIdentifierOwner {
-
-    public MQL4EnumElement(@NotNull ASTNode node) {
+    public MQL4VarDefinitionElement(@NotNull ASTNode node) {
         super(node);
     }
 
     @Nullable
-    public String getTypeName() {
-        ASTNode typeNameElement = getTypeNameNode();
-        return typeNameElement == null ? null : typeNameElement.getText();
-    }
-
-    @Nullable
-    public ASTNode getTypeNameNode() {
+    private ASTNode getNameIdentifierNode() {
         return getNode().findChildByType(MQL4Elements.IDENTIFIER);
     }
 
     @Nullable
     @Override
     public PsiElement getNameIdentifier() {
-        ASTNode node = getTypeNameNode();
+        ASTNode node = getNameIdentifierNode();
         return node == null ? null : node.getPsi();
     }
 
     @Override
     public String getName() {
-        return getTypeName();
+        PsiElement id = getNameIdentifier();
+        return id == null ? null : id.getText();
     }
 
     @Override
     public PsiElement setName(@NotNull String name) throws IncorrectOperationException {
-        ASTNode nameNode = getTypeNameNode();
+        ASTNode nameNode = getNameIdentifierNode();
         if (nameNode != null) {
             getNode().replaceChild(nameNode, MQL4ElementsFactory.createIdentifierNode(getProject(), name));
         }
         return this;
     }
 
-    public List<MQL4EnumFieldElement> getFields() {
-        PsiElement list = findChildByType(MQL4Elements.ENUM_FIELDS_LIST);
-        if (list == null) {
-            return Collections.emptyList();
-        }
-        return Arrays.stream(list.getChildren()).map(e -> (MQL4EnumFieldElement) e).collect(Collectors.toList());
+    @Override
+    public String toString() {
+        return "VAR_DEFINITION:" + getName();
     }
 }

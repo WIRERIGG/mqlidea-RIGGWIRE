@@ -8,16 +8,20 @@ package com.limemojito.oss.mql.psi.impl;
 import com.intellij.extapi.psi.StubBasedPsiElementBase;
 import com.intellij.lang.ASTNode;
 import com.intellij.navigation.ItemPresentation;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiNameIdentifierOwner;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.MQL4Icons;
 import com.limemojito.oss.mql.psi.MQL4Elements;
+import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
 import com.limemojito.oss.mql.psi.stub.MQL4ClassElementStub;
 
 import javax.swing.Icon;
 
-public class MQL4ClassElement extends StubBasedPsiElementBase<MQL4ClassElementStub> {
+public class MQL4ClassElement extends StubBasedPsiElementBase<MQL4ClassElementStub> implements PsiNameIdentifierOwner {
 
     public static final String UNKNOWN_NAME = "<unknown>";
 
@@ -42,6 +46,32 @@ public class MQL4ClassElement extends StubBasedPsiElementBase<MQL4ClassElementSt
     public boolean isDeclaration() {
         MQL4ClassElementStub stub = getStub();
         return stub == null && getInnerBlockNode() == null;
+    }
+
+    /**
+     * The class/struct/interface name is always the first direct IDENTIFIER child (the
+     * inheritance list's identifiers live under a nested CLASS_INHERITANCE_LIST composite, so a
+     * direct-child search never confuses a base-class name with this type's own name).
+     */
+    @Nullable
+    private ASTNode getNameIdentifierNode() {
+        return getNode().findChildByType(MQL4Elements.IDENTIFIER);
+    }
+
+    @Nullable
+    @Override
+    public PsiElement getNameIdentifier() {
+        ASTNode node = getNameIdentifierNode();
+        return node == null ? null : node.getPsi();
+    }
+
+    @Override
+    public PsiElement setName(@NotNull String name) throws IncorrectOperationException {
+        ASTNode nameNode = getNameIdentifierNode();
+        if (nameNode != null) {
+            getNode().replaceChild(nameNode, MQL4ElementsFactory.createIdentifierNode(getProject(), name));
+        }
+        return this;
     }
 
     @Nullable

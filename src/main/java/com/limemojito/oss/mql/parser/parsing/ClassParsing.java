@@ -20,6 +20,7 @@ import static com.limemojito.oss.mql.parser.parsing.FunctionsParsing.parseFuncti
 import static com.limemojito.oss.mql.parser.parsing.preprocessor.PreprocessorParsing.parsePreprocessorBlock;
 import static com.limemojito.oss.mql.parser.parsing.statement.EnumParsing.parseEnum;
 import static com.limemojito.oss.mql.parser.parsing.statement.StatementParsing.parseEmptyStatement;
+import static com.limemojito.oss.mql.parser.parsing.statement.StatementParsing.parseLocalVarDeclaration;
 import static com.limemojito.oss.mql.parser.parsing.util.ParsingErrors.error;
 import static com.limemojito.oss.mql.parser.parsing.util.ParsingUtils.advanceLexerUntil;
 import static com.limemojito.oss.mql.psi.MQL4TokenSets.CLASS_STRUCT_INTERFACE;
@@ -151,6 +152,10 @@ public class ClassParsing implements MQL4Elements {
                         || parseFunction(b)
                         || parseEnum(b, l + 1)
                         || parseClassOrStruct(b, l + 1)
+                        // Phase 4 (REVAMP_PLAN.md #3b): class/struct member field declarations get
+                        // named VAR_DEFINITION PSI too, using the same narrow/tolerant gate as
+                        // locals and globals.
+                        || parseLocalVarDeclaration(b, l + 1)
                         || parseBracketsBlock(b, l + 1);
                 if (!r) {
                     b.advanceLexer();

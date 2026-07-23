@@ -202,7 +202,16 @@ public class StatementParsing implements MQL4Elements {
      * Anything else (arrays, declaration lists, constructor-call declarations) is left for the
      * expression-statement fallback which is fully tolerant.
      */
-    private static boolean parseLocalVarDeclaration(PsiBuilder b, int l) {
+    /**
+     * Public entry point so callers outside a {@code {}} code block (top-level globals, class
+     * member fields) can reuse this exact gated shape too (Phase 4, REVAMP_PLAN.md #3b: named PSI
+     * for variables needs this same tolerant, narrow match everywhere a simple
+     * {@code [modifier] type name (';' | '= ...')} declaration can legally appear). The gate
+     * (requires the token right after the name to be ';' or '=') is what keeps this safe to widen:
+     * anything else (arrays, comma lists, ctor-call declarations) falls through untouched to
+     * whatever fallback the caller already has, exactly as it does inside function bodies today.
+     */
+    public static boolean parseLocalVarDeclaration(PsiBuilder b, int l) {
         int n = 0;
         if (DECLARATION_PRE_TYPES.contains(b.lookAhead(0))) {
             n++;

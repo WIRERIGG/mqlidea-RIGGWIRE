@@ -25,7 +25,10 @@ import com.limemojito.oss.mql.psi.stub.type.MQL4FunctionElementStubType;
 
 public interface MQL4StubElements {
 
-    int STUB_SCHEMA_VERSION = 20;
+    // Phase 4 (REVAMP_PLAN.md #3b): named PSI (PsiNameIdentifierOwner + setName) and reference
+    // resolution semantics changed for FUNCTION/FUNCTION_DECLARATION/CLASS stubs; bump so existing
+    // indexes are rebuilt rather than trusted stale.
+    int STUB_SCHEMA_VERSION = 21;
 
     ILightStubFileElementType FILE = new ILightStubFileElementType(MQL4Language.INSTANCE) {
         @Override

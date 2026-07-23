@@ -20,6 +20,7 @@ import static com.limemojito.oss.mql.parser.parsing.CommentParsing.parseComment;
 import static com.limemojito.oss.mql.parser.parsing.FunctionsParsing.parseFunction;
 import static com.limemojito.oss.mql.parser.parsing.preprocessor.PreprocessorParsing.parsePreprocessorBlock;
 import static com.limemojito.oss.mql.parser.parsing.statement.EnumParsing.parseEnum;
+import static com.limemojito.oss.mql.parser.parsing.statement.StatementParsing.parseLocalVarDeclaration;
 
 public class MQL4Parser implements PsiParser, MQL4Elements {
 
@@ -43,6 +44,11 @@ public class MQL4Parser implements PsiParser, MQL4Elements {
                     || parseFunction(b)
                     || parseEnum(b, 0)
                     || parseClassOrStruct(b, 0)
+                    // Phase 4 (REVAMP_PLAN.md #3b): global variable declarations get the same
+                    // named VAR_DECLARATION_STATEMENT/VAR_DEFINITION structure locals already get,
+                    // so globals become resolvable/renamable named PSI too. Reuses the exact same
+                    // narrow, tolerant, already-proven-safe gate used inside {} blocks.
+                    || parseLocalVarDeclaration(b, 0)
                     || parseBracketsBlock(b, 0);
             if (!r) {
                 b.advanceLexer();
