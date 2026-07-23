@@ -15,6 +15,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.limemojito.oss.mql.healing.ai.ClaudeClient;
+import com.limemojito.oss.mql.healing.ai.ClaudeCliClient;
+import com.limemojito.oss.mql.healing.ai.ClaudeFixGenerator;
 import com.limemojito.oss.mql.healing.ai.GrokClient;
 import com.limemojito.oss.mql.healing.db.ClaudeTask;
 import com.limemojito.oss.mql.healing.db.GrokInsight;
@@ -42,7 +44,7 @@ public final class HealingService implements Disposable {
     private final ScheduledExecutorService executor;
     private volatile ScheduledFuture<?> scheduledTask;
     private volatile GrokClient grokClient;
-    private volatile ClaudeClient claudeClient;
+    private volatile ClaudeFixGenerator claudeClient;
 
     // In-memory snapshot of claude_tasks state so EDT consumers (line markers, quick fixes,
     // checkin handler) never run SQLite queries on the EDT. Refreshed after task mutations.
@@ -95,7 +97,20 @@ public final class HealingService implements Disposable {
     }
 
     public void setClaudeModel(@NotNull String model) {
-        this.claudeClient = new ClaudeClient(model);
+        this.claudeClient = createClaudeFixGenerator(model);
+    }
+
+    /**
+     * Picks the fix provider from settings: the local Claude Code CLI ({@code claude -p},
+     * using the user's Claude Code login) when enabled, otherwise the Anthropic HTTP API.
+     */
+    @NotNull
+    private static ClaudeFixGenerator createClaudeFixGenerator(@NotNull String model) {
+        MQL4PluginSettings settings = MQL4PluginSettings.getInstance();
+        if (settings.isUseClaudeCli()) {
+            return new ClaudeCliClient(model, settings.getClaudeCliPath());
+        }
+        return new ClaudeClient(model);
     }
 
     /** EDT-safe: number of Claude fixes that are pending or ready to apply (cached). */
@@ -190,9 +205,9 @@ public final class HealingService implements Disposable {
     }
 
     private void runClaudeRefactoring(@NotNull HealingDatabase db) {
-        ClaudeClient claude = this.claudeClient;
+        ClaudeFixGenerator claude = this.claudeClient;
         if (claude == null) {
-            claude = new ClaudeClient("claude-sonnet-4-5-20250929");
+            claude = createClaudeFixGenerator("claude-sonnet-4-5-20250929");
             this.claudeClient = claude;
         }
 

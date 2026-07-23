@@ -34,6 +34,17 @@ public interface MQL4PluginSettings {
 
     void setClaudeModel(String model);
 
+    /** When true, healing fixes are generated via the local Claude Code CLI ({@code claude -p})
+     *  using the user's Claude Code login instead of an Anthropic API key. */
+    boolean isUseClaudeCli();
+
+    void setUseClaudeCli(boolean v);
+
+    /** Explicit path to the {@code claude} binary; blank means auto-detect. */
+    String getClaudeCliPath();
+
+    void setClaudeCliPath(String p);
+
     static MQL4PluginSettings getInstance() {
         return ApplicationManager.getApplication().getService(MQL4PluginSettings.class);
     }

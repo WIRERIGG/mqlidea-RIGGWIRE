@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.time.Duration;
 
-public final class ClaudeClient {
+public final class ClaudeClient implements ClaudeFixGenerator {
 
     private static final Logger LOG = Logger.getInstance(ClaudeClient.class);
     private static final String API_URL = "https://api.anthropic.com/v1/messages";
@@ -47,6 +47,7 @@ public final class ClaudeClient {
      * @param contextStartLine the 1-based absolute file line at which {@code codeContext} begins;
      *                         Claude is instructed to emit hunk headers with absolute line numbers.
      */
+    @Override
     @Nullable
     public String generateFix(@NotNull ProblemRecord problem, @NotNull String grokInsight,
                                @NotNull String codeContext, int contextStartLine) {
@@ -64,15 +65,7 @@ public final class ClaudeClient {
 
         JsonObject systemContent = new JsonObject();
         systemContent.addProperty("type", "text");
-        systemContent.addProperty("text",
-                "You are an expert MQL5 code refactoring assistant. Generate ONLY a unified diff " +
-                        "that fixes the specified problem. The diff must be valid and directly applicable. " +
-                        "Do not include explanations outside the diff. Use the standard unified diff format:\n" +
-                        "--- a/filepath\n+++ b/filepath\n@@ -line,count +line,count @@\n" +
-                        "The code snippet you receive is an excerpt of the file; it begins at file line " +
-                        contextStartLine + ". Emit @@ hunk headers using ABSOLUTE file line numbers, " +
-                        "not positions relative to the snippet. " +
-                        "Make minimal, focused changes. Preserve existing code style and indentation.");
+        systemContent.addProperty("text", systemPrompt(contextStartLine));
 
         JsonArray systemArr = new JsonArray();
         systemArr.add(systemContent);
@@ -140,8 +133,25 @@ public final class ClaudeClient {
         return null;
     }
 
+    /**
+     * The system prompt shared by both the HTTP client and the Claude Code CLI client.
+     *
+     * @param contextStartLine the 1-based absolute file line at which the code snippet begins.
+     */
     @NotNull
-    private static String buildPrompt(@NotNull ProblemRecord problem, @NotNull String grokInsight,
+    static String systemPrompt(int contextStartLine) {
+        return "You are an expert MQL5 code refactoring assistant. Generate ONLY a unified diff " +
+                "that fixes the specified problem. The diff must be valid and directly applicable. " +
+                "Do not include explanations outside the diff. Use the standard unified diff format:\n" +
+                "--- a/filepath\n+++ b/filepath\n@@ -line,count +line,count @@\n" +
+                "The code snippet you receive is an excerpt of the file; it begins at file line " +
+                contextStartLine + ". Emit @@ hunk headers using ABSOLUTE file line numbers, " +
+                "not positions relative to the snippet. " +
+                "Make minimal, focused changes. Preserve existing code style and indentation.";
+    }
+
+    @NotNull
+    static String buildPrompt(@NotNull ProblemRecord problem, @NotNull String grokInsight,
                                        @NotNull String codeContext, int contextStartLine) {
         return "Fix this MQL5 code problem by generating a unified diff.\n\n" +
                 "**File:** " + problem.filePath() + "\n" +
@@ -158,7 +168,7 @@ public final class ClaudeClient {
     }
 
     @NotNull
-    private static String extractDiff(@NotNull String response) {
+    static String extractDiff(@NotNull String response) {
         // Extract the diff block if wrapped in markdown code fences
         int diffStart = response.indexOf("--- ");
         if (diffStart < 0) {

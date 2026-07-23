@@ -22,6 +22,8 @@ public class MQL4PluginSettingsImpl implements MQL4PluginSettings, PersistentSta
     public boolean autoHealEnabled = false;
     public String grokModel = "grok-2";
     public String claudeModel = "claude-sonnet-4-5-20250929";
+    public boolean useClaudeCli = true;
+    public String claudeCliPath = "";
 
     @Override
     public boolean isUseEnDocs() {
@@ -81,6 +83,26 @@ public class MQL4PluginSettingsImpl implements MQL4PluginSettings, PersistentSta
     @Override
     public void setClaudeModel(String model) {
         claudeModel = model;
+    }
+
+    @Override
+    public boolean isUseClaudeCli() {
+        return useClaudeCli;
+    }
+
+    @Override
+    public void setUseClaudeCli(boolean v) {
+        useClaudeCli = v;
+    }
+
+    @Override
+    public String getClaudeCliPath() {
+        return claudeCliPath;
+    }
+
+    @Override
+    public void setClaudeCliPath(String p) {
+        claudeCliPath = p != null ? p : "";
     }
 
     @Nullable

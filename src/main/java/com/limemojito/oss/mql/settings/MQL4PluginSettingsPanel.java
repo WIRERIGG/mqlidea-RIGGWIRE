@@ -23,6 +23,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JSeparator;
 import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
@@ -47,6 +48,8 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
     private final JComboBox<String> claudeModelCombo;
     private final JSpinner healingDelaySpinner;
     private final JCheckBox autoHealCheckbox;
+    private final JCheckBox useClaudeCliCheckbox;
+    private final JTextField claudeCliPathField;
 
     public MQL4PluginSettingsPanel() {
         this.settings = MQL4PluginSettings.getInstance();
@@ -151,20 +154,51 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
         claudeModelCombo.setSelectedItem(settings.getClaudeModel());
         form.add(claudeModelCombo, gc);
 
-        // Healing Delay
+        // Claude Code CLI toggle — when on, the Claude API key above is not required
         gc.gridx = 0;
         gc.gridy = 8;
+        gc.gridwidth = 2;
+        useClaudeCliCheckbox = new JCheckBox(
+                "Power healing with Claude Code CLI (claude -p) — uses your Claude Code login instead of an API key",
+                settings.isUseClaudeCli());
+        useClaudeCliCheckbox.setToolTipText(
+                "When enabled, the Claude API key above is unused for healing (Grok still needs its key).");
+        form.add(useClaudeCliCheckbox, gc);
+        gc.gridwidth = 1;
+
+        // Claude CLI path
+        gc.gridx = 0;
+        gc.gridy = 9;
+        form.add(new JLabel("Claude CLI path (blank = auto-detect): "), gc);
+
+        gc.gridx = 1;
+        gc.gridy = 9;
+        claudeCliPathField = new JTextField(30);
+        claudeCliPathField.setText(settings.getClaudeCliPath() != null ? settings.getClaudeCliPath() : "");
+        form.add(claudeCliPathField, gc);
+
+        // Grey out the (unused) Claude API key field while the CLI powers healing
+        claudeApiKeyField.setEnabled(!useClaudeCliCheckbox.isSelected());
+        claudeCliPathField.setEnabled(useClaudeCliCheckbox.isSelected());
+        useClaudeCliCheckbox.addItemListener(e -> {
+            claudeApiKeyField.setEnabled(!useClaudeCliCheckbox.isSelected());
+            claudeCliPathField.setEnabled(useClaudeCliCheckbox.isSelected());
+        });
+
+        // Healing Delay
+        gc.gridx = 0;
+        gc.gridy = 10;
         form.add(new JLabel("Healing interval (minutes): "), gc);
 
         gc.gridx = 1;
-        gc.gridy = 8;
+        gc.gridy = 10;
         healingDelaySpinner = new JSpinner(new SpinnerNumberModel(
                 settings.getHealingDelayMinutes(), 1, 60, 1));
         form.add(healingDelaySpinner, gc);
 
         // Auto-heal checkbox
         gc.gridx = 0;
-        gc.gridy = 9;
+        gc.gridy = 11;
         gc.gridwidth = 2;
         autoHealCheckbox = new JCheckBox("Enable automatic AI healing", settings.isAutoHealEnabled());
         form.add(autoHealCheckbox, gc);
@@ -218,10 +252,18 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
 
         return spinnerValue != settings.getHealingDelayMinutes()
                 || autoHealCheckbox.isSelected() != settings.isAutoHealEnabled()
+                || useClaudeCliCheckbox.isSelected() != settings.isUseClaudeCli()
+                || !claudeCliPathField.getText().trim().equals(storedClaudeCliPath())
                 || (grokModel != null && !grokModel.equals(settings.getGrokModel()))
                 || (claudeModel != null && !claudeModel.equals(settings.getClaudeModel()))
                 || isApiKeyChanged(grokApiKeyField, ApiKeyStorage.GROK_KEY)
                 || isApiKeyChanged(claudeApiKeyField, ApiKeyStorage.CLAUDE_KEY);
+    }
+
+    @NotNull
+    private String storedClaudeCliPath() {
+        String stored = settings.getClaudeCliPath();
+        return stored != null ? stored : "";
     }
 
     private static boolean isApiKeyChanged(@NotNull JPasswordField field, @NotNull String keyName) {
@@ -244,6 +286,8 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
         // Save healing settings
         settings.setHealingDelayMinutes((Integer) healingDelaySpinner.getValue());
         settings.setAutoHealEnabled(autoHealCheckbox.isSelected());
+        settings.setUseClaudeCli(useClaudeCliCheckbox.isSelected());
+        settings.setClaudeCliPath(claudeCliPathField.getText().trim());
 
         String grokModel = (String) grokModelCombo.getSelectedItem();
         if (grokModel != null) settings.setGrokModel(grokModel);
@@ -269,6 +313,10 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
 
         healingDelaySpinner.setValue(settings.getHealingDelayMinutes());
         autoHealCheckbox.setSelected(settings.isAutoHealEnabled());
+        useClaudeCliCheckbox.setSelected(settings.isUseClaudeCli());
+        claudeCliPathField.setText(storedClaudeCliPath());
+        claudeApiKeyField.setEnabled(!settings.isUseClaudeCli());
+        claudeCliPathField.setEnabled(settings.isUseClaudeCli());
         grokModelCombo.setSelectedItem(settings.getGrokModel());
         claudeModelCombo.setSelectedItem(settings.getClaudeModel());
 
