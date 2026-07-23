@@ -485,7 +485,7 @@
                     doNotActivateOnStart="true"
                     canCloseContents="false"
                     factoryClass="com.limemojito.oss.mql.healing.ui.HealingToolWindowFactory"
-                    icon="/icons/mql_healing_16.svg"/>
+                    icon="/icons/mql_healing_tab.svg"/>
 
         <codeInsight.lineMarkerProvider language="MQL4"
                                          implementationClass="com.limemojito.oss.mql.healing.ui.HealingLineMarkerProvider"/>

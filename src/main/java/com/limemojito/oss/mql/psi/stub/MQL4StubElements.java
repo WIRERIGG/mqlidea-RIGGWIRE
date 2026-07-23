@@ -25,9 +25,23 @@ import com.limemojito.oss.mql.psi.stub.type.MQL4FunctionElementStubType;
 
 public interface MQL4StubElements {
 
-    int STUB_SCHEMA_VERSION = 19;
+    int STUB_SCHEMA_VERSION = 20;
 
     ILightStubFileElementType FILE = new ILightStubFileElementType(MQL4Language.INSTANCE) {
+        @Override
+        public String getExternalId() {
+            // Distinctive, plugin-unique id so the platform can tell this stub file element
+            // type apart from other MQL4 languages (e.g. the upstream investflow plugin,
+            // which uses the default "MQL4.FILE"). Avoids the "Cannot distinguish
+            // StubFileElementTypes" warning.
+            return "riggwire.mql.FILE";
+        }
+
+        @Override
+        public String getDebugName() {
+            return "RIGGWIRE MQL File";
+        }
+
         public FlyweightCapableTreeStructure<LighterASTNode> parseContentsLight(ASTNode chameleon) {
             PsiElement psi = chameleon.getPsi();
             assert (psi != null) : ("Bad chameleon: " + chameleon);
