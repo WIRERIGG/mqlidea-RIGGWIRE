@@ -12,10 +12,11 @@
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
-         <p><b>RIGGWIRE MQL &mdash; MetaQuotes MQL4 &amp; MQL5 support for IntelliJ IDEA, with AI code healing.</b></p>
-         <p>Professional MQL4/MQL5 language support: syntax highlighting, code completion and
-            navigation, quick documentation (English &amp; Russian), 80 code-safety inspections, and
-            an optional AI code-healing pipeline (Grok analysis &rarr; Claude fixes).</p>
+         <p><b>RIGGWIRE MQL &mdash; MetaQuotes MQL4 &amp; MQL5 language support for IntelliJ IDEA.</b></p>
+         <p>MQL4/MQL5 language support focused on catching mistakes early: syntax highlighting,
+            keyword and built-in completion, quick documentation (English &amp; Russian), go-to-symbol,
+            and a curated set of MQL-specific code-safety inspections enabled by default (broader
+            style inspections available opt-in).</p>
          <p><i>A fork of the &quot;Lime MQL Editing&quot; plugin by Lime Mojito Pty Ltd (originally the
              <a href="https://plugins.jetbrains.com/plugin/9291-mql-idea">mqlidea plugin by investflow.ru</a>),
              independently maintained by RIGGWIRE Trading Systems. Licensed under GPL-3.0.</i></p>
@@ -32,19 +33,19 @@
            <b>Supports:</b>
            <ul>
              <li>MQL4 &amp; MQL5 syntax highlighting.</li>
-             <li>Code completion and navigation.</li>
+             <li>Keyword and built-in-symbol code completion.</li>
+             <li>Go-to-symbol navigation and structure view.</li>
              <li>Quick documentation in English and Russian (see settings).</li>
-             <li>80 code-safety inspections.</li>
-             <li>AI code healing (opt-in; bring your own Grok &amp; Claude keys).</li>
+             <li>MQL-specific code-safety inspections (trading/handle/lifecycle), on by default; style inspections opt-in.</li>
            </ul>
          </p>
          <p>
-           <b>Not Supported:</b>
+           <b>Not yet supported:</b>
            <ul>
              <li>Code formatting</li>
-             <li>Code refactoring</li>
-             <li>Debugging</li>
-             <li>Launching the MQL compiler on Windows, Linux</li>
+             <li>Refactoring (rename / find-usages / safe-delete)</li>
+             <li>Reference resolution across files (#include)</li>
+             <li>Inline compiler diagnostics and debugging</li>
            </ul>
          </p>
          ]]>
@@ -53,7 +54,7 @@
     <change-notes>
         <![CDATA[
             <ul>
-             <li>2026.1.0 &ndash; RIGGWIRE MQL: rebrand of the Lime Mojito / investflow.ru mqlidea fork; adds 80 code-safety inspections and an AI code-healing pipeline.</li>
+             <li>2026.1.0 &ndash; RIGGWIRE MQL: rebrand of the Lime Mojito / investflow.ru mqlidea fork. Revamp in progress (see docs/REVAMP_PLAN.md): trimmed the default inspection profile to the MQL-specific safety set (style checks now opt-in), fixed dialect handling for .mqh headers, and removed the unsupported AI-fix apply surface.</li>
             </ul>
          ]]>
     </change-notes>
@@ -224,7 +225,7 @@
                          displayName="Missing #property version"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingPropertyVersionInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Class Structure" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Class Structure" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Excessive global variables"
                          implementationClass="com.limemojito.oss.mql.inspection.ExcessiveGlobalVariablesInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -428,11 +429,11 @@
 
         <!-- MQL5 Safety: Code Complexity -->
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Code Complexity" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Code Complexity" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Excessive nesting depth"
                          implementationClass="com.limemojito.oss.mql.inspection.DeepNestingInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Code Complexity" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Code Complexity" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Function too long (>200 lines)"
                          implementationClass="com.limemojito.oss.mql.inspection.LongFunctionInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -450,7 +451,7 @@
 
         <!-- MQL5 Safety: Trading-Specific -->
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Trading-Specific" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <localInspection language="MQL4" groupName="Trading-Specific" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WARNING"
                          displayName="Hardcoded values in trading operation"
                          implementationClass="com.limemojito.oss.mql.inspection.MagicNumberInspection"/>
         <!--suppress PluginXmlI18n -->
