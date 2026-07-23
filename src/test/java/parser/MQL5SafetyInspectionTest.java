@@ -751,4 +751,110 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void f() { switch(a) { case 1: break; default: break; }\n" +
                 "  switch(b) { case 1: break; } }");
     }
+
+    // ===== Statement-AST migrations wave 2 (loop bodies, switch segments, empty handlers) =====
+
+    public void testNewKeywordInLoopBody() {
+        assertHasProblems(new NewKeywordInLoopInspection(),
+                "void f() { for(int i=0; i<10; i++) { CObj* o = new CObj(); } }");
+    }
+
+    public void testNewKeywordOutsideLoopBodyClean() {
+        // Anti-false-positive: brace-less loop, 'new' lives in an unrelated block after it
+        assertNoProblems(new NewKeywordInLoopInspection(),
+                "void f() { for(int i=0; i<10; i++) Print(i);\n" +
+                "  if(cond) { CObj* o = new CObj(); delete o; } }");
+    }
+
+    public void testArrayResizeInLoopDoBody() {
+        assertHasProblems(new ArrayResizeInLoopInspection(),
+                "void f() { double arr[]; int i=0; do { ArrayResize(arr, i); i++; } while(i < 10); }");
+    }
+
+    public void testArrayResizeOutsideLoopBodyClean() {
+        // Anti-false-positive: brace-less loop, ArrayResize in an unrelated block after it
+        assertNoProblems(new ArrayResizeInLoopInspection(),
+                "void f() { double arr[]; for(int i=0; i<10; i++) Sum(i);\n" +
+                "  if(cond) { ArrayResize(arr, 100); } }");
+    }
+
+    public void testStringConcatInLoopWhileBody() {
+        assertHasProblems(new StringConcatInLoopInspection(),
+                "void f() { string s; int i=0; while(i < 10) { s = s + \"x\"; i++; } }");
+    }
+
+    public void testStringConcatOutsideLoopBodyClean() {
+        // Anti-false-positive: brace-less loop, concat in an unrelated block after it
+        assertNoProblems(new StringConcatInLoopInspection(),
+                "void f() { string s; for(int i=0; i<10; i++) Work(i);\n" +
+                "  if(cond) { s = s + \"x\"; } }");
+    }
+
+    public void testUnconditionalOrderLoopBareCallInBody() {
+        assertHasProblems(new UnconditionalOrderLoopInspection(),
+                "void OnTick() { for(int i=0; i<total; i++) { OrderSelect(i, SELECT_BY_POS); } }");
+    }
+
+    public void testUnconditionalOrderLoopGuardedByIfClean() {
+        // Anti-false-positive: order call guarded by an if inside the loop is not unconditional
+        assertNoProblems(new UnconditionalOrderLoopInspection(),
+                "void OnTick() { for(int i=0; i<total; i++) { if(need) { OrderSelect(i, SELECT_BY_POS); } } }");
+    }
+
+    public void testInfiniteLoopRiskWhileTrue() {
+        assertHasProblems(new InfiniteLoopRiskInspection(),
+                "void f() { while(true) { DoStuff(); } }");
+    }
+
+    public void testInfiniteLoopRiskForEmptyHeader() {
+        assertHasProblems(new InfiniteLoopRiskInspection(),
+                "void f() { for(;;) { DoStuff(); } }");
+    }
+
+    public void testInfiniteLoopRiskBreakClean() {
+        // Anti-false-positive: a break anywhere in the body subtree is a visible exit
+        assertNoProblems(new InfiniteLoopRiskInspection(),
+                "void f() { while(true) { if(x) break; DoStuff(); } }");
+    }
+
+    public void testInfiniteLoopRiskNonConstantConditionClean() {
+        // Conservative: only clearly constant-true conditions are flagged
+        assertNoProblems(new InfiniteLoopRiskInspection(),
+                "void f() { while(running) { DoStuff(); } }");
+    }
+
+    public void testMissingBreakInSwitchFallThrough() {
+        assertHasProblems(new MissingBreakInSwitchInspection(),
+                "void f() { switch(k) { case 1: Print(1); case 2: break; } }");
+    }
+
+    public void testMissingBreakInSwitchAllBreaksClean() {
+        assertNoProblems(new MissingBreakInSwitchInspection(),
+                "void f() { switch(k) { case 1: Print(1); break; case 2: break; } }");
+    }
+
+    public void testMissingBreakInSwitchScopedPerSwitchClean() {
+        // Anti-false-positive: the last case of one switch followed by a second switch is not
+        // fall-through — the old whole-function text scan chained labels across switches
+        assertNoProblems(new MissingBreakInSwitchInspection(),
+                "void f() { switch(a) { case 1: Print(1); break; case 2: Print(2); }\n" +
+                "  switch(b) { case 3: break; } }");
+    }
+
+    public void testMissingBreakInSwitchEmptyFallThroughClean() {
+        // Intentional label stacking (case X: case Y:) has no statements to fall through
+        assertNoProblems(new MissingBreakInSwitchInspection(),
+                "void f() { switch(k) { case 1: case 2: break; } }");
+    }
+
+    public void testEmptyEventHandlerCommentOnlyBody() {
+        // Structural emptiness: comments are trivia, the body has no statement children
+        assertHasProblems(new EmptyEventHandlerInspection(),
+                "void OnTick() { /* nothing yet */ }");
+    }
+
+    public void testEmptyEventHandlerWithStatementClean() {
+        assertNoProblems(new EmptyEventHandlerInspection(),
+                "void OnTimer() { EventKillTimer(); }");
+    }
 }

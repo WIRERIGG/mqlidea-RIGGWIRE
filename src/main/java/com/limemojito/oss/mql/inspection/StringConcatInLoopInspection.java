@@ -18,9 +18,18 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * String concatenation inside a loop, scoped via the statement AST: the existing concat pattern
+ * ({@code +} adjacent to a string literal, matched on comment/string-stripped text) is only
+ * searched within the body subtree of a {@code FOR/WHILE/DO_STATEMENT}. Concatenation outside
+ * every loop body — including after a brace-less loop, which the old brace-scanning heuristic
+ * misattributed to the loop — is no longer flagged.
+ */
 public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "String concatenation inside loop — use StringConcatenate() or StringAdd() for better performance";
+
+    private static final String CONCAT_PATTERN = "\\+\\s*\"|\"+\\s*\\+";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -29,9 +38,17 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsPatternInLoop(body, "\\+\\s*\"|\"+\\s*\\+")) {
-                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
-                }
+                if (body == null) continue;
+                StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
+                    ASTNode loopBody = StatementAst.findLoopBody(loop);
+                    if (loopBody == null || !BracketBlockTokenWalker.containsPattern(loopBody, CONCAT_PATTERN)) {
+                        return;
+                    }
+                    PsiElement psi = loop.getPsi();
+                    if (psi != null && psi.isValid()) {
+                        problems.add(createWeakWarning(manager, psi, MESSAGE));
+                    }
+                });
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);

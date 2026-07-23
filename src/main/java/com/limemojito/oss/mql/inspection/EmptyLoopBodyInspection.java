@@ -21,7 +21,6 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -44,7 +43,7 @@ public class EmptyLoopBodyInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
                 StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
-                    ASTNode loopBody = findLoopBody(loop);
+                    ASTNode loopBody = StatementAst.findLoopBody(loop);
                     if (loopBody == null || !isEmptyBody(loopBody)) return;
                     PsiElement psi = loop.getPsi();
                     if (psi != null && psi.isValid()) {
@@ -57,14 +56,6 @@ public class EmptyLoopBodyInspection extends MQL5SafetyInspectionBase {
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
-    }
-
-    @Nullable
-    private static ASTNode findLoopBody(@NotNull ASTNode loop) {
-        if (loop.getElementType() == MQL4Elements.DO_STATEMENT) {
-            return StatementAst.findDoBody(loop);
-        }
-        return StatementAst.findBodyAfterCondition(loop);
     }
 
     private static boolean isEmptyBody(@NotNull ASTNode body) {
@@ -99,7 +90,7 @@ public class EmptyLoopBodyInspection extends MQL5SafetyInspectionBase {
 
             ASTNode loop = element.getNode();
             if (loop == null) return;
-            ASTNode body = findLoopBody(loop);
+            ASTNode body = StatementAst.findLoopBody(loop);
             // Only the {}-block form has a place to insert a TODO comment.
             if (body == null || !StatementAst.isCodeBlock(body)) return;
             ASTNode openBrace = body.getFirstChildNode();

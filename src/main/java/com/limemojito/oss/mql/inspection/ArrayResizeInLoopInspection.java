@@ -18,9 +18,18 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * AST-based detection of {@code ArrayResize()} inside a loop: the call must occur in the body
+ * subtree of a {@code FOR/WHILE/DO_STATEMENT} found via the statement tree (the body node after
+ * the loop header, whether a {@code {...}} block or a single statement). Calls before/after a
+ * loop — including the old false positive where a brace-less loop was followed by an unrelated
+ * {@code {...}} block containing the call — are no longer flagged.
+ */
 public class ArrayResizeInLoopInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "ArrayResize() inside loop — pre-allocate array before loop for better performance";
+
+    private static final String ARRAY_RESIZE = "ArrayResize";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -29,9 +38,17 @@ public class ArrayResizeInLoopInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCallInLoop(body, "ArrayResize")) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
-                }
+                if (body == null) continue;
+                StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
+                    ASTNode loopBody = StatementAst.findLoopBody(loop);
+                    if (loopBody == null || !BracketBlockTokenWalker.containsFunctionCall(loopBody, ARRAY_RESIZE)) {
+                        return;
+                    }
+                    PsiElement psi = loop.getPsi();
+                    if (psi != null && psi.isValid()) {
+                        problems.add(createWarning(manager, psi, MESSAGE));
+                    }
+                });
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);

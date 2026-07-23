@@ -23,6 +23,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * AST-based detection of empty event handlers: a function from the MQL5 event-handler set whose
+ * body {@code {...}} block has no statement children (only braces, whitespace and comments —
+ * {@link StatementAst#codeBlockIsEmpty}). Replaces the old trimmed-text emptiness heuristic with
+ * a structural check on the statement tree.
+ */
 public class EmptyEventHandlerInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Empty event handler '%s()' — consider removing or adding implementation";
@@ -36,7 +42,7 @@ public class EmptyEventHandlerInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && isEventHandler(func)) {
                 ASTNode body = findBracketsBlock(child);
-                if (body != null && bracketBlockIsEmpty(body)) {
+                if (body != null && StatementAst.isCodeBlock(body) && StatementAst.codeBlockIsEmpty(body)) {
                     String funcName = func.getFunctionName();
                     problems.add(manager.createProblemDescriptor(
                             child.getNavigationElement(), child.getNavigationElement(),

@@ -119,6 +119,19 @@ final class StatementAst implements MQL4Elements {
         return null;
     }
 
+    /**
+     * Body of a {@code for}/{@code while}/{@code do} loop statement: the statement after the
+     * condition {@code (...)} block, or after the {@code do} keyword. May be a {@code {...}}
+     * code block or a single statement node. Null when missing (malformed source).
+     */
+    @Nullable
+    static ASTNode findLoopBody(@NotNull ASTNode loop) {
+        if (loop.getElementType() == DO_STATEMENT) {
+            return findDoBody(loop);
+        }
+        return findBodyAfterCondition(loop);
+    }
+
     /** First direct child {@code {...}} code block (e.g. a switch statement's body), or null. */
     @Nullable
     static ASTNode findCodeBlockChild(@NotNull ASTNode statement) {
@@ -140,6 +153,21 @@ final class StatementAst implements MQL4Elements {
             return false;
         }
         return true;
+    }
+
+    /**
+     * True when the subtree under {@code root} contains a node (composite or token) whose
+     * element type is in {@code types}. Early-exiting counterpart of
+     * {@link #forEachDescendant}. Cancellable.
+     */
+    static boolean hasDescendant(@NotNull ASTNode root, @NotNull TokenSet types) {
+        for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (types.contains(child.getElementType()) || hasDescendant(child, types)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
