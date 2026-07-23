@@ -1,7 +1,0 @@
-<!-- RIGGWIRE MQL — AI Healing tool-window stripe icon (monochrome ECG pulse,
-     transparent bg so the IDE tints it cleanly in the New UI). GPL-3.0. -->
-<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-  <path d="M1.5 8.6 H5 L6.3 3.4 L8.2 12.8 L9.8 6.5 L10.9 8.6 H14.5"
-        fill="none" stroke="#5A5D63" stroke-width="1.6"
-        stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

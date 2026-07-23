@@ -70,6 +70,13 @@
         <action id="NewMQL5File" class="com.limemojito.oss.mql.action.CreateMQL5FileAction">
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFromTemplate"/>
         </action>
+        <!--suppress PluginXmlI18n -->
+        <action id="MQL.GenerateInspectionCatalog"
+                class="com.limemojito.oss.mql.catalog.GenerateInspectionCatalogAction"
+                text="Generate MQL Inspection Catalog"
+                description="Scan MQL files and write docs/MQL_INSPECTION_CATALOG.md, an AI-free triage list of current inspection findings">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -471,26 +478,12 @@
         <projectService serviceImplementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerService"/>
         <postStartupActivity implementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerStartupActivity"/>
 
-        <!-- AI Healing Database -->
-        <projectService serviceImplementation="com.limemojito.oss.mql.healing.db.HealingDatabase"/>
-        <postStartupActivity implementation="com.limemojito.oss.mql.healing.db.HealingStartupActivity"/>
-
-        <!-- AI Healing Service -->
-        <projectService serviceImplementation="com.limemojito.oss.mql.healing.HealingService"/>
-
-        <!-- AI Healing UI -->
-        <!--suppress PluginXmlI18n -->
-        <toolWindow id="MQL Healing"
-                    anchor="bottom"
-                    secondary="true"
-                    doNotActivateOnStart="true"
-                    canCloseContents="false"
-                    factoryClass="com.limemojito.oss.mql.healing.ui.HealingToolWindowFactory"
-                    icon="/icons/mql_healing_tab.svg"/>
-
-        <!-- Phase 0 (REVAMP_PLAN.md): the AI-fix apply surface — gutter markers, apply annotator,
-             and the pre-commit prompt — has been removed. Governance forbids applying .mq5/.mqh edits
-             outside ea-code-gate, and 0 of 619 generated fixes were ever applied. -->
+        <!-- Phase 2 (REVAMP_PLAN.md): the AI-healing subsystem (Grok/Claude clients, SQLite
+             database, healing service, tool window, and apply surface removed in Phase 0) has
+             been deleted entirely. The one surviving artifact is the AI-free inspection catalog,
+             generated on demand by the "Generate MQL Inspection Catalog" action (below) via
+             com.limemojito.oss.mql.catalog.InspectionCatalogWriter. -->
+        <notificationGroup id="MQL Inspection Catalog" displayType="BALLOON"/>
 
         <!-- Live Templates -->
         <defaultLiveTemplates>/liveTemplates/MQL5Templates</defaultLiveTemplates>

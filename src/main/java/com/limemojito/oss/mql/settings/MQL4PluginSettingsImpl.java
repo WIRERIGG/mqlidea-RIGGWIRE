@@ -18,13 +18,6 @@ public class MQL4PluginSettingsImpl implements MQL4PluginSettings, PersistentSta
 
     public boolean enDocs = true;
     public boolean errorAnalysis = true;
-    public int healingDelayMinutes = 5;
-    public boolean autoHealEnabled = false;
-    public String grokModel = "grok-2";
-    public String claudeModel = "claude-sonnet-4-5-20250929";
-    public boolean useClaudeCli = true;
-    public String claudeCliPath = "";
-    public int healingConcurrency = 3;
 
     @Override
     public boolean isUseEnDocs() {
@@ -44,80 +37,6 @@ public class MQL4PluginSettingsImpl implements MQL4PluginSettings, PersistentSta
     @Override
     public void setPerformErrorAnalysis(boolean v) {
         errorAnalysis = v;
-    }
-
-    @Override
-    public int getHealingDelayMinutes() {
-        return healingDelayMinutes;
-    }
-
-    @Override
-    public void setHealingDelayMinutes(int minutes) {
-        healingDelayMinutes = minutes;
-    }
-
-    @Override
-    public boolean isAutoHealEnabled() {
-        return autoHealEnabled;
-    }
-
-    @Override
-    public void setAutoHealEnabled(boolean v) {
-        autoHealEnabled = v;
-    }
-
-    @Override
-    public String getGrokModel() {
-        return grokModel;
-    }
-
-    @Override
-    public void setGrokModel(String model) {
-        grokModel = model;
-    }
-
-    @Override
-    public String getClaudeModel() {
-        return claudeModel;
-    }
-
-    @Override
-    public void setClaudeModel(String model) {
-        claudeModel = model;
-    }
-
-    @Override
-    public boolean isUseClaudeCli() {
-        return useClaudeCli;
-    }
-
-    @Override
-    public void setUseClaudeCli(boolean v) {
-        useClaudeCli = v;
-    }
-
-    @Override
-    public String getClaudeCliPath() {
-        return claudeCliPath;
-    }
-
-    @Override
-    public void setClaudeCliPath(String p) {
-        claudeCliPath = p != null ? p : "";
-    }
-
-    @Override
-    public int getHealingConcurrency() {
-        return clampConcurrency(healingConcurrency);
-    }
-
-    @Override
-    public void setHealingConcurrency(int n) {
-        healingConcurrency = clampConcurrency(n);
-    }
-
-    private static int clampConcurrency(int n) {
-        return Math.max(1, Math.min(8, n));
     }
 
     @Nullable

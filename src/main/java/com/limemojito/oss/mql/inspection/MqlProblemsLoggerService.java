@@ -37,8 +37,6 @@ import com.limemojito.oss.mql.MQL5FileType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.limemojito.oss.mql.healing.db.HealingDatabase;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -49,13 +47,14 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Executors;
@@ -201,12 +200,12 @@ public final class MqlProblemsLoggerService implements Disposable {
         return cached != null && !cached.problems().isEmpty();
     }
 
-    public void scanAllFiles() {
-        if (project.isDisposed()) return;
+    public Future<?> scanAllFiles() {
+        if (project.isDisposed()) return CompletableFuture.completedFuture(null);
         synchronized (dirtyLock) {
             dirtyFileUrls = null; // null = full scan
         }
-        executor.submit(this::doScan);
+        return executor.submit(this::doScan);
     }
 
     public void scheduleScan() {
@@ -295,7 +294,6 @@ public final class MqlProblemsLoggerService implements Disposable {
             // Build report from cache
             writeReport();
             writeTaskFile();
-            syncToHealingDatabase();
 
             // Refresh project tree icons if problem state changed
             refreshIconsIfChanged();
@@ -618,28 +616,24 @@ public final class MqlProblemsLoggerService implements Disposable {
         }
     }
 
-    private void syncToHealingDatabase() {
-        try {
-            HealingDatabase db = HealingDatabase.getInstance(project);
-            Map<String, List<HealingDatabase.ProblemSnapshot>> fileProblems = new HashMap<>();
-            for (Map.Entry<String, CachedFileResult> entry : cache.entrySet()) {
-                String fileUrl = entry.getKey();
-                CachedFileResult cached = entry.getValue();
-                List<HealingDatabase.ProblemSnapshot> snapshots = new ArrayList<>();
-                for (ProblemInfo p : cached.problems()) {
-                    snapshots.add(new HealingDatabase.ProblemSnapshot(
-                            cached.relativePath(), p.line(), p.severity(),
-                            p.message(), p.inspectionName(), p.fixHint()
-                    ));
-                }
-                if (!snapshots.isEmpty()) {
-                    fileProblems.put(fileUrl, snapshots);
-                }
+    /**
+     * Returns a snapshot of every currently-cached problem across all scanned files, for
+     * consumption by {@link com.limemojito.oss.mql.catalog.InspectionCatalogWriter}. Safe to
+     * call from any thread; returns an immutable copy so the caller never sees the cache mutate
+     * mid-iteration.
+     */
+    @NotNull
+    public List<Problem> getCurrentProblems() {
+        List<Problem> result = new ArrayList<>();
+        for (Map.Entry<String, CachedFileResult> entry : cache.entrySet()) {
+            String fileUrl = entry.getKey();
+            CachedFileResult cached = entry.getValue();
+            for (ProblemInfo p : cached.problems()) {
+                result.add(new Problem(cached.relativePath(), fileUrl, p.line(), p.severity(),
+                        p.message(), p.inspectionName(), p.fixHint()));
             }
-            db.syncProblems(fileProblems);
-        } catch (Exception e) {
-            LOG.debug("Failed to sync to healing database", e);
         }
+        return result;
     }
 
     @NotNull
@@ -687,5 +681,14 @@ public final class MqlProblemsLoggerService implements Disposable {
     }
 
     private record CachedFileResult(long modStamp, String relativePath, List<ProblemInfo> problems) {
+    }
+
+    /**
+     * A single inspection finding, exposed publicly for consumers such as
+     * {@link com.limemojito.oss.mql.catalog.InspectionCatalogWriter} that need the current
+     * problem snapshot without depending on this service's internal cache types.
+     */
+    public record Problem(String filePath, String fileUrl, int line, String severity, String message,
+                          String inspectionName, String fixHint) {
     }
 }
