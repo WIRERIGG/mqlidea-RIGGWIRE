@@ -16,8 +16,10 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.limemojito.oss.mql.healing.ai.ClaudeClient;
 import com.limemojito.oss.mql.healing.ai.ClaudeCliClient;
+import com.limemojito.oss.mql.healing.ai.ClaudeCliInsightClient;
 import com.limemojito.oss.mql.healing.ai.ClaudeFixGenerator;
 import com.limemojito.oss.mql.healing.ai.GrokClient;
+import com.limemojito.oss.mql.healing.ai.InsightGenerator;
 import com.limemojito.oss.mql.healing.db.ClaudeTask;
 import com.limemojito.oss.mql.healing.db.GrokInsight;
 import com.limemojito.oss.mql.healing.db.HealingDatabase;
@@ -43,7 +45,7 @@ public final class HealingService implements Disposable {
     private final Project project;
     private final ScheduledExecutorService executor;
     private volatile ScheduledFuture<?> scheduledTask;
-    private volatile GrokClient grokClient;
+    private volatile InsightGenerator grokClient;
     private volatile ClaudeFixGenerator claudeClient;
 
     // In-memory snapshot of claude_tasks state so EDT consumers (line markers, quick fixes,
@@ -93,11 +95,26 @@ public final class HealingService implements Disposable {
     }
 
     public void setGrokModel(@NotNull String model) {
-        this.grokClient = new GrokClient(model);
+        this.grokClient = createInsightGenerator(model);
     }
 
     public void setClaudeModel(@NotNull String model) {
         this.claudeClient = createClaudeFixGenerator(model);
+    }
+
+    /**
+     * Picks the analysis provider from settings: the local Claude Code CLI ({@code claude -p},
+     * using the user's Claude Code login) when enabled, otherwise the xAI Grok HTTP API.
+     * When the CLI is enabled the Claude model is used (analysis now runs on Claude), so the
+     * supplied Grok model is only used for the Grok fallback.
+     */
+    @NotNull
+    private static InsightGenerator createInsightGenerator(@NotNull String grokModel) {
+        MQL4PluginSettings settings = MQL4PluginSettings.getInstance();
+        if (settings.isUseClaudeCli()) {
+            return new ClaudeCliInsightClient(settings.getClaudeModel(), settings.getClaudeCliPath());
+        }
+        return new GrokClient(grokModel);
     }
 
     /**
@@ -167,9 +184,9 @@ public final class HealingService implements Disposable {
     }
 
     private void runGrokAnalysis(@NotNull HealingDatabase db) {
-        GrokClient grok = this.grokClient;
+        InsightGenerator grok = this.grokClient;
         if (grok == null) {
-            grok = new GrokClient("grok-2");
+            grok = createInsightGenerator("grok-2");
             this.grokClient = grok;
         }
 

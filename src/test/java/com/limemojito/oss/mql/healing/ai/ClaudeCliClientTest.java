@@ -27,9 +27,8 @@ class ClaudeCliClientTest {
         Files.writeString(fakeClaude, "#!/bin/sh\nexit 0\n");
         assertThat(fakeClaude.toFile().setExecutable(true)).isTrue();
 
-        ClaudeCliClient client = new ClaudeCliClient("claude-sonnet-4-5-20250929",
-                                                     fakeClaude.toString());
-        assertThat(client.resolveClaudePath()).isEqualTo(fakeClaude.toAbsolutePath().toString());
+        assertThat(ClaudeCliClient.resolveClaudePath(fakeClaude.toString()))
+                .isEqualTo(fakeClaude.toAbsolutePath().toString());
     }
 
     @Test
@@ -38,17 +37,15 @@ class ClaudeCliClientTest {
         Files.writeString(notExecutable, "not a binary");
         assertThat(notExecutable.toFile().setExecutable(false)).isTrue();
 
-        ClaudeCliClient client = new ClaudeCliClient("claude-sonnet-4-5-20250929",
-                                                     notExecutable.toString());
         // Falls through to auto-detect; whatever it finds, it must not be the configured path.
-        assertThat(client.resolveClaudePath()).isNotEqualTo(notExecutable.toAbsolutePath().toString());
+        assertThat(ClaudeCliClient.resolveClaudePath(notExecutable.toString()))
+                .isNotEqualTo(notExecutable.toAbsolutePath().toString());
     }
 
     @Test
     void missingConfiguredPathIsNotUsed(@TempDir Path tempDir) {
         String missing = tempDir.resolve("does-not-exist").toString();
-        ClaudeCliClient client = new ClaudeCliClient("claude-sonnet-4-5-20250929", missing);
-        assertThat(client.resolveClaudePath()).isNotEqualTo(missing);
+        assertThat(ClaudeCliClient.resolveClaudePath(missing)).isNotEqualTo(missing);
     }
 
     @Test
@@ -72,5 +69,14 @@ class ClaudeCliClientTest {
         String diff = "@@ -3,1 +3,1 @@\n-foo\n+bar";
         String response = "Here you go:\n```diff\n" + diff + "\n```\nDone.";
         assertThat(ClaudeClient.extractDiff(response)).isEqualTo(diff);
+    }
+
+    @Test
+    void analysisSystemPromptAsksForProseNotDiff() {
+        assertThat(ClaudeCliInsightClient.ANALYSIS_SYSTEM_PROMPT)
+                .contains("expert MQL5")
+                .contains("ROOT CAUSE")
+                .contains("RECOMMENDED FIX APPROACH")
+                .contains("Do NOT output a diff");
     }
 }

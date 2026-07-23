@@ -55,22 +55,39 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
     @Nullable
     public String generateFix(@NotNull ProblemRecord problem, @NotNull String grokInsight,
                               @NotNull String codeContext, int contextStartLine) {
-        String claudePath = resolveClaudePath();
-        if (claudePath == null) {
-            LOG.warn("Claude Code CLI not found (checked configured path, standard locations and login shell) "
-                    + "— skipping fix generation this cycle");
-            return null;
-        }
-
         String system = ClaudeClient.systemPrompt(contextStartLine);
         String user = ClaudeClient.buildPrompt(problem, grokInsight, codeContext, contextStartLine);
+        String out = runClaudePrompt(model, configuredCliPath, system, user);
+        return out == null ? null : ClaudeClient.extractDiff(out);
+    }
+
+    /**
+     * Runs {@code claude -p} one-shot: resolves the binary, builds the command, writes
+     * {@code userPrompt} to stdin, drains stdout/stderr concurrently, waits with a timeout,
+     * and returns trimmed stdout.
+     *
+     * <p>Shared by both healing stages (analysis and fix generation). Runs on a pooled
+     * background thread; never performs read actions or touches the EDT.</p>
+     *
+     * @return trimmed stdout on success, or {@code null} on any failure, timeout,
+     *         non-zero exit, or blank output.
+     */
+    @Nullable
+    static String runClaudePrompt(@NotNull String model, @Nullable String configuredCliPath,
+                                  @NotNull String systemPrompt, @NotNull String userPrompt) {
+        String claudePath = resolveClaudePath(configuredCliPath);
+        if (claudePath == null) {
+            LOG.warn("Claude Code CLI not found (checked configured path, standard locations and login shell) "
+                    + "— skipping this cycle");
+            return null;
+        }
 
         List<String> command = List.of(
                 claudePath,
                 "-p",
                 "--output-format", "text",
                 "--model", model,
-                "--append-system-prompt", system);
+                "--append-system-prompt", systemPrompt);
 
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.redirectErrorStream(false);
@@ -91,14 +108,14 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
 
             // Write the user prompt to stdin, then close it so the CLI runs one-shot.
             try (OutputStream stdin = process.getOutputStream()) {
-                stdin.write(user.getBytes(StandardCharsets.UTF_8));
+                stdin.write(userPrompt.getBytes(StandardCharsets.UTF_8));
             }
 
             if (!process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 process.destroyForcibly();
                 stdout.join(2000);
                 stderr.join(2000);
-                LOG.warn("claude -p timed out after " + TIMEOUT_SECONDS + "s — skipping fix generation");
+                LOG.warn("claude -p timed out after " + TIMEOUT_SECONDS + "s — skipping this cycle");
                 return null;
             }
 
@@ -111,13 +128,13 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
                 return null;
             }
 
-            String responseText = stdout.text();
+            String responseText = stdout.text().trim();
             if (responseText.isBlank()) {
                 LOG.warn("claude -p produced no output" + snippet(stderr.text()));
                 return null;
             }
 
-            return ClaudeClient.extractDiff(responseText);
+            return responseText;
         } catch (IOException e) {
             LOG.warn("Failed to run claude -p", e);
             return null;
@@ -134,7 +151,7 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
      * @return absolute path to the binary, or {@code null} if not found.
      */
     @Nullable
-    String resolveClaudePath() {
+    static String resolveClaudePath(@Nullable String configuredCliPath) {
         if (configuredCliPath != null && !configuredCliPath.isBlank()) {
             File configured = new File(configuredCliPath.trim());
             if (configured.isFile() && configured.canExecute()) {

@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.time.Duration;
 
-public final class GrokClient {
+public final class GrokClient implements InsightGenerator {
 
     private static final Logger LOG = Logger.getInstance(GrokClient.class);
     private static final String API_URL = "https://api.x.ai/v1/chat/completions";
@@ -42,6 +42,7 @@ public final class GrokClient {
                 .build();
     }
 
+    @Override
     @Nullable
     public String analyzeProblems(@NotNull ProblemRecord problem, @Nullable String codeContext) {
         String apiKey = ApiKeyStorage.getApiKey(ApiKeyStorage.GROK_KEY);
@@ -121,7 +122,7 @@ public final class GrokClient {
     }
 
     @NotNull
-    private static String buildPrompt(@NotNull ProblemRecord problem, @Nullable String codeContext) {
+    static String buildPrompt(@NotNull ProblemRecord problem, @Nullable String codeContext) {
         StringBuilder sb = new StringBuilder();
         sb.append("Analyze this MQL5 code problem:\n\n");
         sb.append("**File:** ").append(problem.filePath()).append("\n");
