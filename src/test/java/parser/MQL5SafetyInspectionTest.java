@@ -642,4 +642,113 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertNoProblems(new OnCalculateReturnInspection(),
                 "int OnCalculate() { return 0; }");
     }
+
+    // ===== Statement-AST migrations (real statement tree instead of text heuristics) =====
+
+    public void testSuspiciousSemicolonIf() {
+        assertHasProblems(new SuspiciousSemicolonInspection(),
+                "void f() { if(x); }");
+    }
+
+    public void testSuspiciousSemicolonWhile() {
+        assertHasProblems(new SuspiciousSemicolonInspection(),
+                "void f() { while(y); }");
+    }
+
+    public void testSuspiciousSemicolonForEmptyHeader() {
+        assertHasProblems(new SuspiciousSemicolonInspection(),
+                "void f() { for(;;); }");
+    }
+
+    public void testSuspiciousSemicolonCallInForHeaderClean() {
+        // Anti-false-positive: header semicolons + call in the for header, real body present
+        assertNoProblems(new SuspiciousSemicolonInspection(),
+                "void f() { for(i=Foo(); i<n; i++){ g(); } }");
+    }
+
+    public void testSuspiciousSemicolonNormalIfClean() {
+        assertNoProblems(new SuspiciousSemicolonInspection(),
+                "void f() { if(x) { g(); } }");
+    }
+
+    public void testEmptyLoopBodyBlock() {
+        assertHasProblems(new EmptyLoopBodyInspection(),
+                "void f() { while(cond) { } }");
+    }
+
+    public void testEmptyLoopBodySemicolon() {
+        assertHasProblems(new EmptyLoopBodyInspection(),
+                "void f() { while(cond); }");
+    }
+
+    public void testEmptyLoopBodyClean() {
+        assertNoProblems(new EmptyLoopBodyInspection(),
+                "void f() { while(cond) { g(); } for(int i=0; i<10; i++) { g(); } }");
+    }
+
+    public void testReturnValueIgnored() {
+        assertHasProblems(new ReturnValueIgnoredInspection(),
+                "void f() { ArrayResize(arr, 100); }");
+    }
+
+    public void testReturnValueIgnoredAssignedClean() {
+        // Result captured in a declaration — must not flag
+        assertNoProblems(new ReturnValueIgnoredInspection(),
+                "void f() { int q = ArrayResize(arr, 100); if(q < 0) return; }");
+    }
+
+    public void testReturnValueIgnoredUsedInConditionClean() {
+        // Anti-false-positive: call sits inside an if condition, not a bare statement
+        assertNoProblems(new ReturnValueIgnoredInspection(),
+                "void f() { if(ArrayResize(arr, 100) < 0) { return; } }");
+    }
+
+    public void testUncheckedOrderSendAssignedClean() {
+        // Anti-false-positive: result captured by a local variable declaration
+        assertNoProblems(new UncheckedOrderSendInspection(),
+                "void f() { int t = OrderSend(r, res); }");
+    }
+
+    public void testUncheckedOrderSendInConditionClean() {
+        // Anti-false-positive: call checked directly inside an if condition
+        assertNoProblems(new UncheckedOrderSendInspection(),
+                "void f() { if(OrderSend(r, res)) { } }");
+    }
+
+    public void testUncheckedOrderSendReturnedClean() {
+        assertNoProblems(new UncheckedOrderSendInspection(),
+                "int f() { return OrderSend(r, res); }");
+    }
+
+    public void testUncheckedOrderSendBare() {
+        assertHasProblems(new UncheckedOrderSendInspection(),
+                "void f() { OrderSend(r, res); }");
+    }
+
+    public void testDeepNesting() {
+        assertHasProblems(new DeepNestingInspection(),
+                "void f() { if(a) { if(b) { if(c) { if(d) { Print(1); } } } } }");
+    }
+
+    public void testDeepNestingClean() {
+        assertNoProblems(new DeepNestingInspection(),
+                "void f() { if(a) { if(b) { if(c) { Print(1); } } } }");
+    }
+
+    public void testMissingDefaultCase() {
+        assertHasProblems(new MissingDefaultCaseInspection(),
+                "void f() { switch(k) { case 1: break; } }");
+    }
+
+    public void testMissingDefaultCaseClean() {
+        assertNoProblems(new MissingDefaultCaseInspection(),
+                "void f() { switch(k) { case 1: break; default: break; } }");
+    }
+
+    public void testMissingDefaultCaseScopedToEachSwitch() {
+        // Anti-false-negative: a 'default' in another switch no longer masks the missing one
+        assertHasProblems(new MissingDefaultCaseInspection(),
+                "void f() { switch(a) { case 1: break; default: break; }\n" +
+                "  switch(b) { case 1: break; } }");
+    }
 }

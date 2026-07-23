@@ -12,13 +12,23 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Set;
 
+/**
+ * AST-based detection of ignored return values: an {@code EXPRESSION_STATEMENT} that is a bare
+ * call to an important function — the statement starts with the function's identifier followed
+ * by its {@code (...)} args block and carries no top-level assignment operator. Calls whose
+ * result is captured ({@code int h = FileOpen(...)}), returned, or used inside a condition are
+ * different statement shapes and are never flagged, eliminating the old line-based false
+ * positives.
+ */
 public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE =
@@ -34,15 +44,7 @@ public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
             "EventSetTimer", "EventSetMillisecondTimer"
     );
 
-    /**
-     * Pattern matches a line that starts (after whitespace) directly with an important function name
-     * followed by '('. This indicates the function is called as a standalone statement without
-     * capturing its return value.
-     */
-    private static final String IGNORED_RETURN_PATTERN =
-            "(?m)^\\s+(ArrayResize|ArrayCopy|ArraySort|StringFind|StringReplace|FileOpen|FileCopy|FileMove"
-                    + "|GlobalVariableSet|ChartSetInteger|ChartSetDouble|ChartSetString"
-                    + "|ObjectCreate|ObjectDelete|EventSetTimer|EventSetMillisecondTimer)\\s*\\(";
+    private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -52,11 +54,44 @@ public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                if (BracketBlockTokenWalker.containsPattern(body, IGNORED_RETURN_PATTERN)) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
-                }
+                StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
+                    String funcName = bareCallName(stmt);
+                    if (funcName == null || !IMPORTANT_FUNCTIONS.contains(funcName)) return;
+                    PsiElement psi = stmt.getPsi();
+                    if (psi != null && psi.isValid()) {
+                        problems.add(createWarning(manager, psi, MESSAGE));
+                    }
+                });
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+
+    /**
+     * If the expression statement is a bare call — first meaningful child is an identifier
+     * immediately followed by its {@code (...)} args block, with no top-level assignment
+     * operator — returns the called function's name, otherwise null.
+     */
+    static String bareCallName(@NotNull ASTNode expressionStatement) {
+        ASTNode identifier = null;
+        boolean argsFollowIdentifier = false;
+        for (ASTNode child = expressionStatement.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            if (StatementAst.isTrivia(child)) continue;
+            if (StatementAst.ASSIGNMENT_OPERATORS.contains(child.getElementType())) {
+                return null; // result is assigned somewhere at statement level
+            }
+            if (identifier == null) {
+                if (child.getElementType() != MQL4Elements.IDENTIFIER) {
+                    return null; // statement does not start with a plain identifier
+                }
+                identifier = child;
+            } else if (!argsFollowIdentifier) {
+                if (!StatementAst.isParenBlock(child)) {
+                    return null; // identifier is not directly called (e.g. member access, array)
+                }
+                argsFollowIdentifier = true;
+            }
+        }
+        return (identifier != null && argsFollowIdentifier) ? identifier.getText() : null;
     }
 }

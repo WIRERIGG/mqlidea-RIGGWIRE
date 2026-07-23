@@ -18,19 +18,22 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+/**
+ * AST-based detection of loops with an empty body: a {@code FOR/WHILE/DO_STATEMENT} whose body
+ * node is an {@code EMPTY_STATEMENT} ({@code while(x);}) or a {@code {...}} code block containing
+ * only whitespace/comments ({@code for(...){}}).
+ */
 public class EmptyLoopBodyInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE =
             "Empty loop body — possible missing implementation";
-
-    private static final String PATTERN = "\\b(for|while)\\s*\\([^)]*\\)\\s*\\{\\s*\\}";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -39,20 +42,39 @@ public class EmptyLoopBodyInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsPattern(body, PATTERN)) {
-                    problems.add(manager.createProblemDescriptor(
-                            child.getNavigationElement(), child.getNavigationElement(),
-                            MESSAGE, ProblemHighlightType.WEAK_WARNING, true,
-                            new InsertTodoInEmptyLoopFix()));
-                }
+                if (body == null) continue;
+                StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
+                    ASTNode loopBody = findLoopBody(loop);
+                    if (loopBody == null || !isEmptyBody(loopBody)) return;
+                    PsiElement psi = loop.getPsi();
+                    if (psi != null && psi.isValid()) {
+                        problems.add(manager.createProblemDescriptor(
+                                psi, psi,
+                                MESSAGE, ProblemHighlightType.WEAK_WARNING, isOnTheFly,
+                                new InsertTodoInEmptyLoopFix()));
+                    }
+                });
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
+    @Nullable
+    private static ASTNode findLoopBody(@NotNull ASTNode loop) {
+        if (loop.getElementType() == MQL4Elements.DO_STATEMENT) {
+            return StatementAst.findDoBody(loop);
+        }
+        return StatementAst.findBodyAfterCondition(loop);
+    }
+
+    private static boolean isEmptyBody(@NotNull ASTNode body) {
+        if (body.getElementType() == MQL4Elements.EMPTY_STATEMENT) {
+            return true;
+        }
+        return StatementAst.isCodeBlock(body) && StatementAst.codeBlockIsEmpty(body);
+    }
+
     private static class InsertTodoInEmptyLoopFix implements LocalQuickFix {
-        private static final Pattern EMPTY_LOOP = Pattern.compile(
-                "\\b(for|while)\\s*\\([^)]*\\)\\s*\\{(\\s*)\\}");
 
         @NotNull
         @Override
@@ -69,27 +91,21 @@ public class EmptyLoopBodyInspection extends MQL5SafetyInspectionBase {
         @Override
         public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
             PsiElement element = descriptor.getPsiElement();
-            if (element == null) return;
+            if (element == null || !element.isValid()) return;
             PsiFile file = element.getContainingFile();
+            if (file == null) return;
             Document doc = PsiDocumentManager.getInstance(project).getDocument(file);
             if (doc == null) return;
 
-            ASTNode node = element.getNode();
-            if (node == null) return;
-            ASTNode body = node.findChildByType(com.limemojito.oss.mql.psi.MQL4Elements.BRACKETS_BLOCK);
-            if (body == null) return;
+            ASTNode loop = element.getNode();
+            if (loop == null) return;
+            ASTNode body = findLoopBody(loop);
+            // Only the {}-block form has a place to insert a TODO comment.
+            if (body == null || !StatementAst.isCodeBlock(body)) return;
+            ASTNode openBrace = body.getFirstChildNode();
+            if (openBrace == null) return;
 
-            String bodyText = body.getText();
-            int bodyStart = body.getStartOffset();
-
-            Matcher m = EMPTY_LOOP.matcher(bodyText);
-            if (m.find()) {
-                // Insert after the opening '{' of the empty loop
-                int braceOffset = bodyText.indexOf('{', m.start());
-                if (braceOffset < 0) return;
-                int insertOffset = bodyStart + braceOffset + 1;
-                doc.insertString(insertOffset, " // TODO: Implement loop body ");
-            }
+            doc.insertString(openBrace.getStartOffset() + 1, " // TODO: Implement loop body ");
         }
     }
 }
