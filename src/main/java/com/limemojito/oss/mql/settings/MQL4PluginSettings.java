@@ -45,6 +45,11 @@ public interface MQL4PluginSettings {
 
     void setClaudeCliPath(String p);
 
+    /** Number of parallel {@code claude -p} sessions per healing pass (CLI mode). Clamped to [1, 8]. */
+    int getHealingConcurrency();
+
+    void setHealingConcurrency(int n);
+
     static MQL4PluginSettings getInstance() {
         return ApplicationManager.getApplication().getService(MQL4PluginSettings.class);
     }

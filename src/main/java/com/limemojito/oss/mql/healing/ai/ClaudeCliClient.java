@@ -53,7 +53,7 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
 
     @Override
     @Nullable
-    public String generateFix(@NotNull ProblemRecord problem, @NotNull String grokInsight,
+    public String generateFix(@NotNull ProblemRecord problem, @Nullable String grokInsight,
                               @NotNull String codeContext, int contextStartLine) {
         String system = ClaudeClient.systemPrompt(contextStartLine);
         String user = ClaudeClient.buildPrompt(problem, grokInsight, codeContext, contextStartLine);

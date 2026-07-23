@@ -138,7 +138,8 @@ public class HealingToolWindowFactory implements ToolWindowFactory, DumbAware {
             table.setAutoResizeMode(JBTable.AUTO_RESIZE_ALL_COLUMNS);
             add(new JScrollPane(table), BorderLayout.CENTER);
 
-            Timer timer = new Timer(30_000, e -> refreshData());
+            // 10s so concurrently generated CLI fixes appear in the table as they land.
+            Timer timer = new Timer(10_000, e -> refreshData());
             timer.setRepeats(true);
             timer.start();
 
@@ -163,8 +164,8 @@ public class HealingToolWindowFactory implements ToolWindowFactory, DumbAware {
                 HealingDatabase db = HealingDatabase.getInstance(project);
                 int problemCount = db.getUnresolvedProblemCount();
                 int pendingFixes = db.getPendingClaudeTaskCount();
-                String statusText = "Problems in DB: " + problemCount +
-                        " | Pending AI fixes: " + pendingFixes;
+                String statusText = "Healing: " + pendingFixes + " fixes ready / "
+                        + problemCount + " problems remaining";
 
                 List<TaskRow> rows = new ArrayList<>();
                 List<ClaudeTask> tasks = db.getPendingClaudeTasks();

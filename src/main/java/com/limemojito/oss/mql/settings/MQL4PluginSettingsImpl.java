@@ -24,6 +24,7 @@ public class MQL4PluginSettingsImpl implements MQL4PluginSettings, PersistentSta
     public String claudeModel = "claude-sonnet-4-5-20250929";
     public boolean useClaudeCli = true;
     public String claudeCliPath = "";
+    public int healingConcurrency = 3;
 
     @Override
     public boolean isUseEnDocs() {
@@ -103,6 +104,20 @@ public class MQL4PluginSettingsImpl implements MQL4PluginSettings, PersistentSta
     @Override
     public void setClaudeCliPath(String p) {
         claudeCliPath = p != null ? p : "";
+    }
+
+    @Override
+    public int getHealingConcurrency() {
+        return clampConcurrency(healingConcurrency);
+    }
+
+    @Override
+    public void setHealingConcurrency(int n) {
+        healingConcurrency = clampConcurrency(n);
+    }
+
+    private static int clampConcurrency(int n) {
+        return Math.max(1, Math.min(8, n));
     }
 
     @Nullable

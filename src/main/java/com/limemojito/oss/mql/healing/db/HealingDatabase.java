@@ -25,6 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * SQLite-backed store for the healing pipeline. A single shared {@link Connection} is used for
+ * the project's lifetime; ALL statement execution — reads and writes — is serialized on the
+ * instance {@link ReentrantLock}, making every public method safe to call from concurrent
+ * healing worker threads.
+ */
 public final class HealingDatabase implements Disposable {
 
     private static final Logger LOG = Logger.getInstance(HealingDatabase.class);
@@ -213,6 +219,21 @@ public final class HealingDatabase implements Disposable {
         return queryProblems(
                 "SELECT DISTINCT p.* FROM problems p " +
                         "INNER JOIN grok_insights g ON p.id = g.problem_id " +
+                        "WHERE p.resolved_at = 0 AND NOT EXISTS (" +
+                        "SELECT 1 FROM claude_tasks c WHERE c.problem_id = p.id AND c.status <> 'failed'" +
+                        ") ORDER BY p.id");
+    }
+
+    /**
+     * Problems eligible for the single combined-call Claude CLI pass: unresolved and with no
+     * non-failed claude_task. Unlike {@link #getProblemsWithInsightButNoClaudeTask()} this does
+     * NOT require a prior Grok insight — the CLI path analyzes and fixes in one call. Failed
+     * tasks do not block eligibility, so rate-limited problems are retried on a later cycle.
+     */
+    @NotNull
+    public List<ProblemRecord> getProblemsNeedingFix() {
+        return queryProblems(
+                "SELECT p.* FROM problems p " +
                         "WHERE p.resolved_at = 0 AND NOT EXISTS (" +
                         "SELECT 1 FROM claude_tasks c WHERE c.problem_id = p.id AND c.status <> 'failed'" +
                         ") ORDER BY p.id");

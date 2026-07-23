@@ -47,6 +47,7 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
     private final JComboBox<String> grokModelCombo;
     private final JComboBox<String> claudeModelCombo;
     private final JSpinner healingDelaySpinner;
+    private final JSpinner healingConcurrencySpinner;
     private final JCheckBox autoHealCheckbox;
     private final JCheckBox useClaudeCliCheckbox;
     private final JTextField claudeCliPathField;
@@ -196,9 +197,20 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
                 settings.getHealingDelayMinutes(), 1, 60, 1));
         form.add(healingDelaySpinner, gc);
 
-        // Auto-heal checkbox
+        // Healing concurrency (CLI mode worker pool size)
         gc.gridx = 0;
         gc.gridy = 11;
+        form.add(new JLabel("Parallel Claude sessions (1-8): "), gc);
+
+        gc.gridx = 1;
+        gc.gridy = 11;
+        healingConcurrencySpinner = new JSpinner(new SpinnerNumberModel(
+                settings.getHealingConcurrency(), 1, 8, 1));
+        form.add(healingConcurrencySpinner, gc);
+
+        // Auto-heal checkbox
+        gc.gridx = 0;
+        gc.gridy = 12;
         gc.gridwidth = 2;
         autoHealCheckbox = new JCheckBox("Enable automatic AI healing", settings.isAutoHealEnabled());
         form.add(autoHealCheckbox, gc);
@@ -251,6 +263,7 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
         String claudeModel = (String) claudeModelCombo.getSelectedItem();
 
         return spinnerValue != settings.getHealingDelayMinutes()
+                || (Integer) healingConcurrencySpinner.getValue() != settings.getHealingConcurrency()
                 || autoHealCheckbox.isSelected() != settings.isAutoHealEnabled()
                 || useClaudeCliCheckbox.isSelected() != settings.isUseClaudeCli()
                 || !claudeCliPathField.getText().trim().equals(storedClaudeCliPath())
@@ -285,6 +298,7 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
 
         // Save healing settings
         settings.setHealingDelayMinutes((Integer) healingDelaySpinner.getValue());
+        settings.setHealingConcurrency((Integer) healingConcurrencySpinner.getValue());
         settings.setAutoHealEnabled(autoHealCheckbox.isSelected());
         settings.setUseClaudeCli(useClaudeCliCheckbox.isSelected());
         settings.setClaudeCliPath(claudeCliPathField.getText().trim());
@@ -312,6 +326,7 @@ public class MQL4PluginSettingsPanel extends JPanel implements Configurable {
         errorAnalysisCombo.setSelectedIndex(settings.performErrorAnalysis() ? 0 : 1);
 
         healingDelaySpinner.setValue(settings.getHealingDelayMinutes());
+        healingConcurrencySpinner.setValue(settings.getHealingConcurrency());
         autoHealCheckbox.setSelected(settings.isAutoHealEnabled());
         useClaudeCliCheckbox.setSelected(settings.isUseClaudeCli());
         claudeCliPathField.setText(storedClaudeCliPath());

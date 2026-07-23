@@ -28,25 +28,41 @@ import com.limemojito.oss.mql.settings.MQL4PluginSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class HealingService implements Disposable {
 
     private static final Logger LOG = Logger.getInstance(HealingService.class);
     private static final int MAX_PROBLEMS_PER_CYCLE = 10;
     private static final int CONTEXT_LINES = 25;
+    /** Consecutive null fixes after which the CLI pass assumes rate limiting and stops early. */
+    private static final int MAX_CONSECUTIVE_NULL_FIXES = 5;
+    /** Minimum interval between pending-fix cache refreshes while fixes land mid-pass. */
+    private static final long CACHE_REFRESH_THROTTLE_MS = 2_000;
 
     private final Project project;
     private final ScheduledExecutorService executor;
     private volatile ScheduledFuture<?> scheduledTask;
     private volatile InsightGenerator grokClient;
     private volatile ClaudeFixGenerator claudeClient;
+
+    // Live state of the currently running CLI worker pass, so stop()/dispose() can
+    // stop submissions and interrupt in-flight claude -p workers.
+    private volatile ExecutorService activeWorkerPool;
+    private volatile AtomicBoolean activePassAbort;
 
     // In-memory snapshot of claude_tasks state so EDT consumers (line markers, quick fixes,
     // checkin handler) never run SQLite queries on the EDT. Refreshed after task mutations.
@@ -88,6 +104,19 @@ public final class HealingService implements Disposable {
         if (task != null) {
             task.cancel(false);
             scheduledTask = null;
+        }
+        cancelActivePass();
+    }
+
+    /** Stops a running CLI worker pass: no new submissions, in-flight workers interrupted. */
+    private void cancelActivePass() {
+        AtomicBoolean abort = activePassAbort;
+        if (abort != null) {
+            abort.set(true);
+        }
+        ExecutorService pool = activeWorkerPool;
+        if (pool != null) {
+            pool.shutdownNow();
         }
     }
 
@@ -184,16 +213,163 @@ public final class HealingService implements Disposable {
         try {
             HealingDatabase db = HealingDatabase.getInstance(project);
 
-            // Phase 1: Grok analysis for problems without insights
-            runGrokAnalysis(db);
+            if (settings.isUseClaudeCli()) {
+                // Single combined analyze+fix call per problem, whole queue, bounded concurrency.
+                runClaudeCliPass(db);
+            } else {
+                // API-key (Grok + Anthropic HTTP) path: unchanged two-phase cycle.
+                // Phase 1: Grok analysis for problems without insights
+                runGrokAnalysis(db);
 
-            // Phase 2: Claude refactoring for problems with insights but no tasks
-            runClaudeRefactoring(db);
+                // Phase 2: Claude refactoring for problems with insights but no tasks
+                runClaudeRefactoring(db);
+            }
 
             refreshPendingFixCache();
 
         } catch (Exception e) {
             LOG.warn("Healing cycle failed", e);
+        }
+    }
+
+    /**
+     * CLI-mode healing pass: processes the ENTIRE queue of unresolved problems that have no
+     * non-failed claude_task, one combined analyze+fix {@code claude -p} call per problem,
+     * on a bounded worker pool ({@code healingConcurrency} threads, 1-8). Fixes are written to
+     * the DB as they land and the pending-fix cache is refreshed (throttled to ~2s) so the tool
+     * window and gutter update progressively. After {@value #MAX_CONSECUTIVE_NULL_FIXES}
+     * consecutive null fixes the pass assumes {@code claude -p} is rate-limited/unavailable and
+     * stops early; failed tasks stay retryable, so the next scheduled cycle resumes the queue.
+     */
+    private void runClaudeCliPass(@NotNull HealingDatabase db) {
+        ClaudeFixGenerator claude = this.claudeClient;
+        if (claude == null) {
+            claude = createClaudeFixGenerator(MQL4PluginSettings.getInstance().getClaudeModel());
+            this.claudeClient = claude;
+        }
+        final ClaudeFixGenerator fixer = claude;
+
+        List<ProblemRecord> problems = db.getProblemsNeedingFix();
+        if (problems.isEmpty()) {
+            return;
+        }
+
+        int concurrency = Math.max(1, Math.min(8, MQL4PluginSettings.getInstance().getHealingConcurrency()));
+        LOG.info("Claude CLI healing pass: " + problems.size() + " problem(s) with "
+                + concurrency + " parallel session(s)");
+
+        AtomicInteger threadIndex = new AtomicInteger();
+        ExecutorService pool = Executors.newFixedThreadPool(concurrency, r -> {
+            Thread t = new Thread(r, "MQL-Healing-Worker-" + threadIndex.incrementAndGet());
+            t.setDaemon(true);
+            t.setPriority(Thread.MIN_PRIORITY);
+            return t;
+        });
+        AtomicBoolean abort = new AtomicBoolean(false);
+        AtomicInteger consecutiveNulls = new AtomicInteger();
+        AtomicLong lastCacheRefresh = new AtomicLong();
+
+        activeWorkerPool = pool;
+        activePassAbort = abort;
+        int generated = 0;
+        try {
+            List<Future<Boolean>> futures = new ArrayList<>(problems.size());
+            for (ProblemRecord problem : problems) {
+                try {
+                    futures.add(pool.submit(
+                            () -> healOneProblem(db, fixer, problem, abort, consecutiveNulls, lastCacheRefresh)));
+                } catch (RejectedExecutionException e) {
+                    break; // Pool shut down by stop()/dispose() — stop submitting.
+                }
+            }
+            for (Future<Boolean> future : futures) {
+                try {
+                    if (Boolean.TRUE.equals(future.get())) {
+                        generated++;
+                    }
+                } catch (ExecutionException e) {
+                    // healOneProblem already catches per-problem failures; this is belt-and-braces.
+                    LOG.warn("Healing worker failed", e.getCause());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    abort.set(true);
+                    break;
+                } catch (java.util.concurrent.CancellationException ignored) {
+                    // Worker cancelled by stop()/dispose()
+                }
+            }
+        } finally {
+            activeWorkerPool = null;
+            activePassAbort = null;
+            pool.shutdownNow();
+        }
+        LOG.info("Claude CLI healing pass finished: " + generated + " fix(es) generated");
+    }
+
+    /**
+     * Worker body for one problem in the CLI pass: read context, one combined
+     * {@code claude -p} call ({@code grokInsight = null}), store the diff (or a failed task).
+     * Never throws — one bad problem must not abort the batch.
+     *
+     * @return true when a fix diff was generated and stored.
+     */
+    private boolean healOneProblem(@NotNull HealingDatabase db,
+                                   @NotNull ClaudeFixGenerator claude,
+                                   @NotNull ProblemRecord problem,
+                                   @NotNull AtomicBoolean abort,
+                                   @NotNull AtomicInteger consecutiveNulls,
+                                   @NotNull AtomicLong lastCacheRefresh) {
+        if (abort.get() || project.isDisposed()) {
+            return false;
+        }
+        try {
+            FileContext context = readFileContext(problem.fileUrl(), problem.line());
+            if (context == null) {
+                // Stale line / unreadable file — skip without a failed task (matches Grok path).
+                return false;
+            }
+
+            String diff = claude.generateFix(problem, null, context.text(), context.startLine());
+
+            if (Thread.currentThread().isInterrupted()) {
+                // Pass cancelled mid-call — don't record a bogus failure.
+                return false;
+            }
+
+            if (diff != null && !diff.isBlank()) {
+                consecutiveNulls.set(0);
+                // COMPLETED means "generated, pending application" — the tool window/gutter
+                // show it as a ready fix. APPLIED is only set by DiffApplier.
+                db.insertClaudeTask(problem.id(), diff, ClaudeTask.STATUS_COMPLETED);
+                LOG.info("Claude generated fix for: " + problem.filePath() + ":" + problem.line());
+                maybeRefreshCacheThrottled(lastCacheRefresh);
+                return true;
+            }
+
+            // Null/blank diff: mark failed so this problem isn't retried forever within the
+            // pass; getProblemsNeedingFix ignores failed tasks, so a later cycle retries it.
+            db.insertClaudeTask(problem.id(), "", ClaudeTask.STATUS_FAILED);
+            if (consecutiveNulls.incrementAndGet() >= MAX_CONSECUTIVE_NULL_FIXES
+                    && abort.compareAndSet(false, true)) {
+                LOG.warn("claude -p appears rate-limited/unavailable — will resume next cycle");
+            }
+        } catch (Exception e) {
+            LOG.warn("Claude CLI healing failed for " + problem.filePath() + ":" + problem.line(), e);
+            try {
+                db.insertClaudeTask(problem.id(), "", ClaudeTask.STATUS_FAILED);
+            } catch (Exception ignored) {
+                // DB write failed too — nothing more to do for this problem.
+            }
+        }
+        return false;
+    }
+
+    /** Refreshes the pending-fix cache at most once every {@value #CACHE_REFRESH_THROTTLE_MS} ms. */
+    private void maybeRefreshCacheThrottled(@NotNull AtomicLong lastCacheRefresh) {
+        long now = System.currentTimeMillis();
+        long last = lastCacheRefresh.get();
+        if (now - last >= CACHE_REFRESH_THROTTLE_MS && lastCacheRefresh.compareAndSet(last, now)) {
+            refreshPendingFixCache();
         }
     }
 

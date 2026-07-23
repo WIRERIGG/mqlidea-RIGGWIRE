@@ -18,11 +18,13 @@ import org.jetbrains.annotations.Nullable;
 public interface ClaudeFixGenerator {
 
     /**
+     * @param grokInsight      prior analysis to inform the fix, or {@code null}/blank for
+     *                         combined mode where the model analyzes AND fixes in one call.
      * @param contextStartLine the 1-based absolute file line at which {@code codeContext} begins;
      *                         the model is instructed to emit hunk headers with absolute line numbers.
      * @return a unified diff that fixes the problem, or {@code null} if no fix could be generated.
      */
     @Nullable
-    String generateFix(@NotNull ProblemRecord problem, @NotNull String grokInsight,
+    String generateFix(@NotNull ProblemRecord problem, @Nullable String grokInsight,
                        @NotNull String codeContext, int contextStartLine);
 }

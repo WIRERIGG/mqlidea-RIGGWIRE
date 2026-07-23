@@ -49,7 +49,7 @@ public final class ClaudeClient implements ClaudeFixGenerator {
      */
     @Override
     @Nullable
-    public String generateFix(@NotNull ProblemRecord problem, @NotNull String grokInsight,
+    public String generateFix(@NotNull ProblemRecord problem, @Nullable String grokInsight,
                                @NotNull String codeContext, int contextStartLine) {
         String apiKey = ApiKeyStorage.getApiKey(ApiKeyStorage.CLAUDE_KEY);
         if (apiKey == null || apiKey.isBlank()) {
@@ -150,9 +150,16 @@ public final class ClaudeClient implements ClaudeFixGenerator {
                 "Make minimal, focused changes. Preserve existing code style and indentation.";
     }
 
+    /**
+     * Builds the user prompt. When {@code grokInsight} is null/blank (single combined-call mode,
+     * used by the Claude Code CLI path) the prompt instructs Claude to analyze the problem AND
+     * produce the fix in one shot — root-cause reasoning stays internal, output is still ONLY
+     * the unified diff. When an insight is present, today's two-phase wording is kept.
+     */
     @NotNull
-    static String buildPrompt(@NotNull ProblemRecord problem, @NotNull String grokInsight,
+    static String buildPrompt(@NotNull ProblemRecord problem, @Nullable String grokInsight,
                                        @NotNull String codeContext, int contextStartLine) {
+        boolean hasInsight = grokInsight != null && !grokInsight.isBlank();
         return "Fix this MQL5 code problem by generating a unified diff.\n\n" +
                 "**File:** " + problem.filePath() + "\n" +
                 "**Line:** " + problem.line() + "\n" +
@@ -160,7 +167,10 @@ public final class ClaudeClient implements ClaudeFixGenerator {
                 "**Inspection:** " + problem.inspectionName() + "\n" +
                 "**Message:** " + problem.message() + "\n" +
                 (problem.fixHint() != null ? "**Fix Hint:** " + problem.fixHint() + "\n" : "") +
-                "\n**AI Analysis:**\n" + grokInsight + "\n" +
+                (hasInsight
+                        ? "\n**AI Analysis:**\n" + grokInsight + "\n"
+                        : "\nNo prior analysis is available. Analyze the problem yourself AND produce the fix: " +
+                          "determine the root cause, keep that reasoning internal, and output ONLY the unified diff.\n") +
                 "\n**Code Context (snippet begins at file line " + contextStartLine + "):**\n```mql5\n" +
                 codeContext + "\n```\n\n" +
                 "Generate a unified diff to fix this problem. Output ONLY the diff, nothing else. " +

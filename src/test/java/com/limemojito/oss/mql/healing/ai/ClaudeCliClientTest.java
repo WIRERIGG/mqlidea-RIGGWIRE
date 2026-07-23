@@ -6,6 +6,7 @@
 
 package com.limemojito.oss.mql.healing.ai;
 
+import com.limemojito.oss.mql.healing.db.ProblemRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -69,6 +70,37 @@ class ClaudeCliClientTest {
         String diff = "@@ -3,1 +3,1 @@\n-foo\n+bar";
         String response = "Here you go:\n```diff\n" + diff + "\n```\nDone.";
         assertThat(ClaudeClient.extractDiff(response)).isEqualTo(diff);
+    }
+
+    @Test
+    void buildPromptWithInsightKeepsAnalysisSection() {
+        String prompt = ClaudeClient.buildPrompt(sampleProblem(), "Root cause: divide by zero.",
+                                                 "double x = 1 / y;", 10);
+        assertThat(prompt)
+                .contains("**AI Analysis:**")
+                .contains("Root cause: divide by zero.")
+                .contains("snippet begins at file line 10")
+                .doesNotContain("No prior analysis is available");
+    }
+
+    @Test
+    void buildPromptWithoutInsightAsksClaudeToAnalyzeAndFix() {
+        for (String noInsight : new String[]{null, "", "   "}) {
+            String prompt = ClaudeClient.buildPrompt(sampleProblem(), noInsight,
+                                                     "double x = 1 / y;", 10);
+            assertThat(prompt)
+                    .contains("No prior analysis is available")
+                    .contains("Analyze the problem yourself AND produce the fix")
+                    .contains("output ONLY the unified diff")
+                    .contains("Output ONLY the diff, nothing else")
+                    .doesNotContain("**AI Analysis:**");
+        }
+    }
+
+    private static ProblemRecord sampleProblem() {
+        return new ProblemRecord(1L, "file://Expert.mq5", "Expert.mq5", 12, "WARNING",
+                                 "Possible division by zero", "DivideByZeroInspection",
+                                 "Guard the divisor", 0L, 0L, 0L);
     }
 
     @Test
