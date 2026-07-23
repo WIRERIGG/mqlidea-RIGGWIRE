@@ -343,8 +343,8 @@ public final class HealingService implements Disposable {
 
             if (diff != null && !diff.isBlank()) {
                 consecutiveNulls.set(0);
-                // COMPLETED means "generated, pending application" — the tool window/gutter
-                // show it as a ready fix. APPLIED is only set by DiffApplier.
+                // COMPLETED means "generated"; it is surfaced only in the read-only healing catalog.
+                // The apply path was removed in Phase 0, so APPLIED is never set.
                 db.insertClaudeTask(problem.id(), diff, ClaudeTask.STATUS_COMPLETED);
                 LOG.info("Claude generated fix for: " + problem.filePath() + ":" + problem.line());
                 maybeRefreshCacheThrottled(lastCacheRefresh);
@@ -456,8 +456,8 @@ public final class HealingService implements Disposable {
                                                  context.text(), context.startLine());
 
                 if (diff != null) {
-                    // Single task row per generated fix: COMPLETED means "generated, pending
-                    // application". APPLIED is only set by DiffApplier after a successful apply.
+                    // Single task row per generated fix: COMPLETED means "generated" (catalog only).
+                    // The apply path was removed in Phase 0, so APPLIED is never set.
                     db.insertClaudeTask(problem.id(), diff, ClaudeTask.STATUS_COMPLETED);
                     processed++;
                     LOG.info("Claude generated fix for: " + problem.filePath() + ":" + problem.line());

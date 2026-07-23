@@ -81,6 +81,8 @@ cpp_tests/                                # C++ safety test patterns (134 Google
 
 ## AI Healing Architecture
 
+> ⚠️ **DEPRECATED — being retired per [`docs/REVAMP_PLAN.md`](docs/REVAMP_PLAN.md).** The apply path (DiffApplier, apply intentions, gutter markers, pre-commit prompt) is removed in Phase 0 (governance forbids applying `.mq5`/`.mqh` edits outside ea-code-gate, and 0 of 619 generated fixes were ever applied). The Grok phase, SQLite DB, and tool window are cut in later phases. Only `HealingCatalogWriter` survives, salvaged as an AI-free inspection catalog. The description below documents the *legacy* system for reference only.
+
 ### Database Schema (`.idea/mql-healing.db`)
 ```sql
 problems(id, file_url, file_path, line, severity, message, inspection_name, fix_hint, first_seen_at, last_seen_at, resolved_at)
@@ -112,9 +114,10 @@ claude_tasks(id, problem_id FK, diff, status, created_at, applied_at)
 
 ## Rules
 
-- Never remove existing features — only add or enhance
-- All new extensions must be registered in `plugin.xml`
-- All 9 existing tests must pass after changes
+- **Direction is governed by [`docs/REVAMP_PLAN.md`](docs/REVAMP_PLAN.md).** The plugin is being revamped toward one goal: be honest and genuinely helpful for real MQL4/MQL5 projects, and detect syntactic/semantic errors early, inline. When this file and the revamp plan disagree, the plan wins.
+- Removing features is allowed **when the revamp plan calls for it** (e.g. the AI-healing apply path, the Grok phase, style-noise inspection defaults). Do not remove anything the plan keeps. Outside the plan's scope, prefer add/enhance over remove.
+- All new extensions must be registered in `plugin.xml`; removed extensions must have their `plugin.xml` registrations removed too.
+- All existing tests must pass after changes (the suite has grown well beyond the original 9). Delete only the tests that cover deliberately-removed features.
 - Source is Java (not Kotlin) targeting Java 21
 - Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml
 - Stub schema version is 19 — increment when changing stub structure

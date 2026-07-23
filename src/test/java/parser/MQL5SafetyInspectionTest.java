@@ -627,6 +627,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "test.mq5");
     }
 
+    public void testMissingTradeContextCheckMqhHeaderTreatedAsMql5() {
+        // Phase 0: a .mqh header defaults to MQL5 (via MqlDialect), so the MQL4-only inspection must
+        // NOT fire on it — this is the bug that produced IsTradeContextBusy() suggestions in MQL5 projects.
+        assertNoProblems(new MissingTradeContextCheckInspection(),
+                "void DoTrade() { OrderSend(Symbol(), OP_BUY, 0.1, Ask, 3, 0, 0); }",
+                "test.mqh");
+    }
+
     public void testMissingRefreshRates() {
         assertHasProblems(new MissingRefreshRatesInspection(),
                 "void RetryLoop() { for(int i = 0; i < 3; i++) { double price = Bid; Print(price); } }");

@@ -487,13 +487,9 @@
                     factoryClass="com.limemojito.oss.mql.healing.ui.HealingToolWindowFactory"
                     icon="/icons/mql_healing_tab.svg"/>
 
-        <codeInsight.lineMarkerProvider language="MQL4"
-                                         implementationClass="com.limemojito.oss.mql.healing.ui.HealingLineMarkerProvider"/>
-
-        <annotator language="MQL4"
-                   implementationClass="com.limemojito.oss.mql.healing.ui.HealingAnnotator"/>
-
-        <checkinHandlerFactory implementation="com.limemojito.oss.mql.healing.vcs.HealingCheckinHandlerFactory"/>
+        <!-- Phase 0 (REVAMP_PLAN.md): the AI-fix apply surface — gutter markers, apply annotator,
+             and the pre-commit prompt — has been removed. Governance forbids applying .mq5/.mqh edits
+             outside ea-code-gate, and 0 of 619 generated fixes were ever applied. -->
 
         <!-- Live Templates -->
         <defaultLiveTemplates>/liveTemplates/MQL5Templates</defaultLiveTemplates>

@@ -18,6 +18,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.MqlDialect;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
@@ -63,16 +64,18 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
         return null;
     }
 
-    /** True for MetaTrader 4 source (.mq4 / .mql4). */
+    /**
+     * True when {@code file} should be treated as MQL4. Delegates to the central {@link MqlDialect}
+     * resolver so {@code .mqh} headers inherit their project's dialect instead of matching neither
+     * (which used to let MQL4-only advice leak onto MQL5 headers).
+     */
     protected boolean isMql4Source(@NotNull PsiFile file) {
-        String n = file.getName().toLowerCase();
-        return n.endsWith(".mq4") || n.endsWith(".mql4");
+        return MqlDialect.isMql4(file);
     }
 
-    /** True for MetaTrader 5 source (.mq5 / .mql5). */
+    /** True when {@code file} should be treated as MQL5 (includes {@code .mqh} unless the project is MQL4-only). */
     protected boolean isMql5Source(@NotNull PsiFile file) {
-        String n = file.getName().toLowerCase();
-        return n.endsWith(".mq5") || n.endsWith(".mql5");
+        return MqlDialect.isMql5(file);
     }
 
     @NotNull
