@@ -239,6 +239,33 @@ public final class HealingDatabase implements Disposable {
                         ") ORDER BY p.id");
     }
 
+    /**
+     * Maps each problem id to its most recent non-failed Claude fix diff. Used to build the
+     * auto-generated healing catalog. Problems with no usable fix are simply absent.
+     */
+    @NotNull
+    public java.util.Map<Long, String> getLatestDiffsByProblem() {
+        java.util.Map<Long, String> out = new java.util.HashMap<>();
+        Connection conn = connection;
+        if (conn == null) return out;
+
+        lock.lock();
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "SELECT problem_id, diff FROM claude_tasks " +
+                        "WHERE status <> 'failed' AND diff IS NOT NULL AND TRIM(diff) <> '' ORDER BY id");
+             ResultSet rs = stmt.executeQuery()) {
+            // Ascending id → later rows overwrite earlier ones, leaving the newest diff per problem.
+            while (rs.next()) {
+                out.put(rs.getLong("problem_id"), rs.getString("diff"));
+            }
+        } catch (SQLException e) {
+            LOG.warn("Failed to load diffs for healing catalog", e);
+        } finally {
+            lock.unlock();
+        }
+        return out;
+    }
+
     public void insertGrokInsight(long problemId, @NotNull String insight) {
         Connection conn = connection;
         if (conn == null) return;

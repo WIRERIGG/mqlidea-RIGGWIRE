@@ -199,8 +199,26 @@ public final class ClaudeClient implements ClaudeFixGenerator {
                     return response.substring(contentStart, fenceEnd).trim();
                 }
             }
-            return response.trim();
+            return stripTrailingFence(response.trim());
         }
-        return response.substring(diffStart).trim();
+        // Slice from the first diff header. Claude frequently wraps the whole reply in a
+        // ```diff … ``` fence; slicing from "--- " leaves the CLOSING ``` attached, which
+        // corrupts the patch (git apply chokes on the ``` line). Drop any trailing fence.
+        return stripTrailingFence(response.substring(diffStart).trim());
+    }
+
+    /**
+     * Removes a trailing markdown code fence (and anything after it) from an extracted diff.
+     * A valid unified diff never contains a line beginning with {@code ```}, so cutting at the
+     * first such marker is safe and strips the stray closing fence Claude emits when it wraps
+     * its answer in ```diff … ```.
+     */
+    @NotNull
+    private static String stripTrailingFence(@NotNull String diff) {
+        int fence = diff.indexOf("\n```");
+        if (fence >= 0) {
+            diff = diff.substring(0, fence);
+        }
+        return diff.trim();
     }
 }

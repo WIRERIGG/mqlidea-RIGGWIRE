@@ -373,6 +373,25 @@ public class HealingToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         private Path findClaudeProjectDir() {
+            String userHome = System.getProperty("user.home");
+
+            // Prefer the plugin's dedicated healing session directory: claude -p heals run in
+            // ~/.mql-healing, so their sessions live under a projects/ folder whose name
+            // contains "mql-healing". Match by substring to stay independent of Claude's exact
+            // path-encoding scheme.
+            Path projectsRoot = Path.of(userHome, ".claude", "projects");
+            if (Files.isDirectory(projectsRoot)) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(projectsRoot)) {
+                    for (Path dir : stream) {
+                        if (Files.isDirectory(dir) && dir.getFileName().toString().contains("mql-healing")) {
+                            return dir;
+                        }
+                    }
+                } catch (IOException ignored) {
+                    // fall through to project-based lookup
+                }
+            }
+
             String basePath = project.getBasePath();
             if (basePath == null) return null;
 
@@ -380,7 +399,6 @@ public class HealingToolWindowFactory implements ToolWindowFactory, DumbAware {
             String normalized = basePath.replace("\\", "-").replace("/", "-").replace(":", "");
             if (normalized.startsWith("-")) normalized = normalized.substring(1);
 
-            String userHome = System.getProperty("user.home");
             Path claudeProjectDir = Path.of(userHome, ".claude", "projects", normalized);
             if (Files.isDirectory(claudeProjectDir)) return claudeProjectDir;
 

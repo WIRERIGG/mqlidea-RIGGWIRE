@@ -54,6 +54,9 @@ public final class HealingService implements Disposable {
     private static final long CACHE_REFRESH_THROTTLE_MS = 2_000;
 
     private final Project project;
+
+    /** Shared across pass workers; throttles docs/ catalog rewrites during a long pass. */
+    private final AtomicLong lastCatalogWrite = new AtomicLong();
     private final ScheduledExecutorService executor;
     private volatile ScheduledFuture<?> scheduledTask;
     private volatile InsightGenerator grokClient;
@@ -304,6 +307,8 @@ public final class HealingService implements Disposable {
             pool.shutdownNow();
         }
         LOG.info("Claude CLI healing pass finished: " + generated + " fix(es) generated");
+        // Final catalog write so it reflects the completed pass.
+        HealingCatalogWriter.write(project, db);
     }
 
     /**
@@ -343,6 +348,9 @@ public final class HealingService implements Disposable {
                 db.insertClaudeTask(problem.id(), diff, ClaudeTask.STATUS_COMPLETED);
                 LOG.info("Claude generated fix for: " + problem.filePath() + ":" + problem.line());
                 maybeRefreshCacheThrottled(lastCacheRefresh);
+                // Keep the docs/ catalog fresh as fixes actually land — driven by real
+                // generation, not in-order future collection (which can stall on a slow item).
+                maybeWriteCatalogThrottled(db);
                 return true;
             }
 
@@ -370,6 +378,19 @@ public final class HealingService implements Disposable {
         long last = lastCacheRefresh.get();
         if (now - last >= CACHE_REFRESH_THROTTLE_MS && lastCacheRefresh.compareAndSet(last, now)) {
             refreshPendingFixCache();
+        }
+    }
+
+    /** Minimum interval between in-pass docs/ catalog rewrites. */
+    private static final long CATALOG_WRITE_THROTTLE_MS = 60_000;
+
+    /** Rewrites the healing catalog at most once every {@value #CATALOG_WRITE_THROTTLE_MS} ms.
+     *  Safe to call from many pass workers concurrently — the CAS lets only one win per window. */
+    private void maybeWriteCatalogThrottled(@NotNull HealingDatabase db) {
+        long now = System.currentTimeMillis();
+        long last = lastCatalogWrite.get();
+        if (now - last >= CATALOG_WRITE_THROTTLE_MS && lastCatalogWrite.compareAndSet(last, now)) {
+            HealingCatalogWriter.write(project, db);
         }
     }
 

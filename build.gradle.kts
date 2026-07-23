@@ -49,9 +49,12 @@ intellijPlatform {
 }
 
 tasks {
-    // Set the JVM compatibility versions
+    // Compile to Java 21 bytecode via `javac --release 21`. Using release (rather than
+    // source/targetCompatibility) lets the build run on a newer JDK/JBR — e.g. the JBR 25
+    // bundled with current CLion/IDEA — without the "target release 21 is too old for the
+    // specified source release" error.
     withType<JavaCompile> {
-        targetCompatibility = "21"
+        options.release.set(21)
     }
 
     test {

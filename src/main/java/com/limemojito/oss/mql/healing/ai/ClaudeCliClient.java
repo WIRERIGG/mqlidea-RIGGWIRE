@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -82,21 +83,25 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
             return null;
         }
 
+        // Fresh session id per call → each heal becomes a discoverable, resumable Claude Code
+        // session that the tool window's "Claude Code" tab can list. Unique per call so
+        // concurrent heals never collide on a session id.
+        String sessionId = UUID.randomUUID().toString();
         List<String> command = List.of(
                 claudePath,
                 "-p",
                 "--output-format", "text",
+                "--session-id", sessionId,
                 "--model", model,
                 "--append-system-prompt", systemPrompt);
 
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.redirectErrorStream(false);
         hardenEnvironment(builder);
-        // Neutral working directory — avoid picking up a stray project CLAUDE.md.
-        File home = new File(System.getProperty("user.home", System.getProperty("java.io.tmpdir", "/")));
-        if (home.isDirectory()) {
-            builder.directory(home);
-        }
+        // Dedicated, CLAUDE.md-free working directory: isolates healing sessions (so the
+        // Claude Code tab shows heals, not unrelated home-dir sessions) and keeps the
+        // project's governance CLAUDE.md out of the fix-generation context.
+        builder.directory(healingWorkDir());
 
         try {
             Process process = builder.start();
@@ -176,6 +181,23 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
         }
 
         return loginShellLookup();
+    }
+
+    /**
+     * Dedicated working directory for headless healing runs: {@code ~/.mql-healing}.
+     * It contains no {@code CLAUDE.md}, so the project's governance rules never leak into the
+     * fix-generation prompt, and every {@code --session-id} run is recorded under this
+     * directory's Claude project folder where the "Claude Code" tab can find it.
+     */
+    @NotNull
+    static File healingWorkDir() {
+        String base = System.getProperty("user.home", System.getProperty("java.io.tmpdir", "/"));
+        File dir = new File(base, ".mql-healing");
+        if (!dir.isDirectory()) {
+            //noinspection ResultOfMethodCallIgnored
+            dir.mkdirs();
+        }
+        return dir.isDirectory() ? dir : new File(base);
     }
 
     /**
