@@ -26,8 +26,10 @@ import java.util.regex.Pattern;
 public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Handle '%s' is released by IndicatorRelease() more than once — potential double-free";
-    // Captures the handle-variable argument of each IndicatorRelease(...) call.
-    private static final Pattern RELEASE_CALL = Pattern.compile("\\bIndicatorRelease\\s*\\(\\s*([A-Za-z_]\\w*)");
+    // Captures the FULL handle argument expression of each IndicatorRelease(...) call, so that distinct
+    // array elements (handles[0] vs handles[1]) or distinct factory calls are treated as different
+    // handles rather than aliasing to a single leading identifier (Fable review, concern #3).
+    private static final Pattern RELEASE_CALL = Pattern.compile("\\bIndicatorRelease\\s*\\(\\s*([^),]+?)\\s*\\)");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -45,7 +47,7 @@ public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
                 Set<String> seen = new HashSet<>();
                 List<String> duplicated = new ArrayList<>();
                 while (m.find()) {
-                    String handle = m.group(1);
+                    String handle = m.group(1).trim();
                     if (!seen.add(handle) && !duplicated.contains(handle)) {
                         duplicated.add(handle);
                     }

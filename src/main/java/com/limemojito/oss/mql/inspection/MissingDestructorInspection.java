@@ -26,9 +26,11 @@ public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
     private static final String MESSAGE = "Class '%s' acquires a resource (new/FileOpen/indicator handle) but has no destructor to release it";
     // A resource is acquired if the class body allocates with `new`, opens a file, or creates an
     // indicator handle. A plain value class (only scalar/value members) needs no destructor in MQL5,
-    // so requiring one for every constructor was a false positive.
-    private static final Pattern RESOURCE_ACQUISITION =
-            Pattern.compile("\\bnew\\b|\\bFileOpen\\s*\\(|\\bIndicatorCreate\\s*\\(|\\bi[A-Z]\\w*\\s*\\(");
+    // so requiring one for every constructor was a false positive. The handle-creator names come from
+    // MQL5_HANDLE_CREATORS (iMA/iRSI/iCustom/IndicatorCreate/...) — NOT the broad `i[A-Z]...(` pattern,
+    // which wrongly matched value functions like iClose/iTime/iBarShift (Fable review, concern #4).
+    private static final Pattern RESOURCE_ACQUISITION = Pattern.compile(
+            "\\bnew\\b|\\bFileOpen\\s*\\(|\\b(?:" + String.join("|", MQL5_HANDLE_CREATORS) + ")\\s*\\(");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {

@@ -12,7 +12,9 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.IElementType;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,11 +33,17 @@ import java.util.regex.Pattern;
 public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Function '%s' returns an integer type but returns a floating-point value — precision loss (truncation)";
-    private static final Set<String> INTEGER_TYPES = Set.of("INT_KEYWORD", "LONG_KEYWORD", "SHORT_KEYWORD",
-            "CHAR_KEYWORD", "UINT_KEYWORD", "ULONG_KEYWORD", "USHORT_KEYWORD", "UCHAR_KEYWORD");
-    // A `return` whose expression contains a floating-point literal (1.0, .5, 2.) before the statement end.
+    // Compare IElementType directly — the old String compare against getElementType().toString() never
+    // matched the real debug-name, so this inspection silently never fired.
+    private static final Set<IElementType> INTEGER_TYPES = Set.of(
+            MQL4Elements.INT_KEYWORD, MQL4Elements.LONG_KEYWORD, MQL4Elements.SHORT_KEYWORD,
+            MQL4Elements.CHAR_KEYWORD, MQL4Elements.UINT_KEYWORD, MQL4Elements.ULONG_KEYWORD,
+            MQL4Elements.USHORT_KEYWORD, MQL4Elements.UCHAR_KEYWORD);
+    // A `return` whose expression contains a floating-point literal (1.0, .5, 2.) before the statement
+    // end. The (?<![\w.]) lookbehind stops the digit-dot of member access on a digit-suffixed identifier
+    // (e.g. `return obj1.value;` — the `1.` there) from matching as a literal (Fable review, bug #2).
     private static final Pattern RETURN_FLOAT_LITERAL =
-            Pattern.compile("\\breturn\\b[^;]*(?:\\d+\\.\\d*|\\.\\d+)");
+            Pattern.compile("\\breturn\\b[^;]*?(?<![\\w.])(?:\\d+\\.\\d*|\\.\\d+)");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -45,7 +53,7 @@ public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode returnType = getReturnTypeNode(func);
                 if (returnType == null) continue;
-                if (!INTEGER_TYPES.contains(returnType.getElementType().toString())) continue;
+                if (!INTEGER_TYPES.contains(returnType.getElementType())) continue;
 
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;

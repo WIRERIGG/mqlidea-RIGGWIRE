@@ -150,6 +150,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "test.mq5");
     }
 
+    public void testDoubleIndicatorReleaseArrayHandlesOk() {
+        // Distinct array elements are different handles, not a double-free (Fable concern #3).
+        assertNoProblems(new DoubleIndicatorReleaseInspection(),
+                "void OnDeinit(const int reason) { IndicatorRelease(handles[0]); IndicatorRelease(handles[1]); }",
+                "test.mq5");
+    }
+
     public void testDeleteWithoutNullCheck() {
         assertHasProblems(new DeleteWithoutNullCheckInspection(),
                 "void foo() { delete ptr; }");
@@ -299,6 +306,18 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // Smoke test — inspection checks IElementType.toString() names that may differ from expected
         assertInspectionRuns(new NarrowingReturnTypeInspection(),
                 "int Calculate(double a, double b) { }");
+    }
+
+    public void testNarrowingReturnTypeFlagsFloatLiteral() {
+        // Returning a float literal from an int function is a real narrowing.
+        assertHasProblems(new NarrowingReturnTypeInspection(),
+                "int Round2() { return 1.5; }");
+    }
+
+    public void testNarrowingReturnTypeNoMemberAccessFP() {
+        // Member access on a digit-suffixed identifier must NOT be read as a float literal (Fable bug #2).
+        assertNoProblems(new NarrowingReturnTypeInspection(),
+                "int Total() { return obj1.value; }");
     }
 
     public void testUninitializedVariable() {

@@ -24,20 +24,24 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * {@code void OnInit()} is a fully valid MQL5 form — the docs define both {@code int OnInit()} and
  * {@code void OnInit()}, and with the void form initialization is always treated as successful
  * (equivalent to {@code INIT_SUCCEEDED}). It is therefore NOT an error. This inspection surfaces only an
  * informational (weak) hint that returning {@code int} lets the handler signal {@code INIT_FAILED} /
- * {@code INIT_PARAMETERS_INCORRECT}. The quick-fix now inserts {@code return(INIT_SUCCEEDED);} when it
- * changes the return type, so it can no longer leave a non-returning {@code int} function that fails to
- * compile (the previous fix rewrote {@code void}→{@code int} without adding a return).
+ * {@code INIT_PARAMETERS_INCORRECT}. The auto-fix is offered ONLY when the body has no {@code return}
+ * statement of its own: it then inserts {@code return(INIT_SUCCEEDED);} while switching {@code void}→
+ * {@code int}, which always compiles. If the body already contains a {@code return} (e.g. a bare
+ * {@code return;} early-exit), converting would create an invalid {@code return;} in an int function,
+ * so no fix is attached and only the informational hint is shown.
  */
 public class MissingOnInitReturnInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "OnInit() returns 'void' (initialization is always reported successful) — "
             + "return 'int' to be able to signal INIT_FAILED / INIT_PARAMETERS_INCORRECT";
+    private static final Pattern RETURN_KEYWORD = Pattern.compile("\\breturn\\b");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -49,9 +53,19 @@ public class MissingOnInitReturnInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()) {
                 ASTNode returnType = getReturnTypeNode(func);
                 if (returnType != null && returnType.getElementType() == MQL4Elements.VOID_KEYWORD) {
-                    problems.add(manager.createProblemDescriptor(returnType.getPsi(), returnType.getPsi(),
-                            MESSAGE, ProblemHighlightType.WEAK_WARNING, true,
-                            new ChangeVoidToIntFix()));
+                    // Only offer the auto-fix when the body has no return of its own — otherwise
+                    // converting to int would leave an invalid bare `return;` (Fable review, bug #1).
+                    ASTNode body = findBracketsBlock(child);
+                    boolean canAutoFix = body != null
+                            && !RETURN_KEYWORD.matcher(
+                                    BracketBlockTokenWalker.stripCommentsAndStrings(body.getText())).find();
+                    if (canAutoFix) {
+                        problems.add(manager.createProblemDescriptor(returnType.getPsi(), returnType.getPsi(),
+                                MESSAGE, ProblemHighlightType.WEAK_WARNING, true, new ChangeVoidToIntFix()));
+                    } else {
+                        problems.add(manager.createProblemDescriptor(returnType.getPsi(), returnType.getPsi(),
+                                MESSAGE, ProblemHighlightType.WEAK_WARNING, isOnTheFly));
+                    }
                 }
             }
         }
@@ -87,7 +101,11 @@ public class MissingOnInitReturnInspection extends MQL5SafetyInspectionBase {
                 if (block != null) {
                     String blockText = block.getText();
                     int closeBrace = blockText.lastIndexOf('}');
-                    if (closeBrace >= 0 && !blockText.contains("return")) {
+                    // The fix is only attached when the body has no real return (checked with
+                    // comment/string stripping in checkFile), so a bare '}' means we insert the return.
+                    boolean hasRealReturn = RETURN_KEYWORD.matcher(
+                            BracketBlockTokenWalker.stripCommentsAndStrings(blockText)).find();
+                    if (closeBrace >= 0 && !hasRealReturn) {
                         int insertAt = block.getTextRange().getStartOffset() + closeBrace;
                         doc.insertString(insertAt, "   return(INIT_SUCCEEDED);\n");
                     }
