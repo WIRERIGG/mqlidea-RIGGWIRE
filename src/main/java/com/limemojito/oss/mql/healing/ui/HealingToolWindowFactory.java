@@ -99,9 +99,19 @@ public class HealingToolWindowFactory implements ToolWindowFactory, DumbAware {
 
             JButton healNowBtn = new JButton("Heal Now");
             healNowBtn.addActionListener(e -> {
-                HealingService service = HealingService.getInstance(project);
-                service.triggerNow();
-                statusLabel.setText("Healing cycle triggered...");
+                // healNow() runs the cycle on the service's background executor and
+                // bypasses the auto-heal setting; this handler never blocks the EDT.
+                HealingService.getInstance(project).healNow();
+                statusLabel.setText("Manual healing cycle started...");
+                healNowBtn.setEnabled(false);
+                healNowBtn.setText("Healing…");
+                Timer restore = new Timer(5_000, evt -> {
+                    healNowBtn.setText("Heal Now");
+                    healNowBtn.setEnabled(true);
+                    refreshData();
+                });
+                restore.setRepeats(false);
+                restore.start();
             });
             toolbar.add(healNowBtn);
 

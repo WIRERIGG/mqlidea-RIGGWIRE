@@ -73,11 +73,12 @@ public final class HealingService implements Disposable {
         if (delayMinutes <= 0) delayMinutes = 5;
 
         stop();
+        // First cycle runs promptly after start; subsequent cycles keep the configured period.
         scheduledTask = executor.scheduleWithFixedDelay(
-                this::runHealingCycle,
-                delayMinutes,
-                delayMinutes,
-                TimeUnit.MINUTES
+                () -> runHealingCycle(false),
+                15,
+                (long) delayMinutes * 60,
+                TimeUnit.SECONDS
         );
         LOG.info("Healing service started with " + delayMinutes + " minute intervals");
     }
@@ -90,8 +91,17 @@ public final class HealingService implements Disposable {
         }
     }
 
-    public void triggerNow() {
-        executor.submit(this::runHealingCycle);
+    /**
+     * Runs a healing cycle immediately on the service executor, bypassing the auto-heal
+     * setting. Safe to call from the EDT — the cycle itself runs on the background thread.
+     */
+    public void healNow() {
+        if (project.isDisposed()) return;
+        try {
+            executor.submit(() -> runHealingCycle(true));
+        } catch (RejectedExecutionException ignored) {
+            // Service disposed — nothing to run
+        }
     }
 
     public void setGrokModel(@NotNull String model) {
@@ -161,11 +171,15 @@ public final class HealingService implements Disposable {
         }
     }
 
-    private void runHealingCycle() {
+    private void runHealingCycle(boolean force) {
         if (project.isDisposed()) return;
 
+        if (force) {
+            LOG.info("Manual heal-now triggered");
+        }
+
         MQL4PluginSettings settings = MQL4PluginSettings.getInstance();
-        if (!settings.isAutoHealEnabled()) return;
+        if (!force && !settings.isAutoHealEnabled()) return;
 
         try {
             HealingDatabase db = HealingDatabase.getInstance(project);

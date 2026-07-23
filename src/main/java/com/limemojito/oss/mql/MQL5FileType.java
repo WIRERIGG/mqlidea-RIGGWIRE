@@ -32,6 +32,17 @@ public class MQL5FileType extends LanguageFileType {
         return "MQL5 File";
     }
 
+    /**
+     * {@link LanguageFileType} defaults this to the language's display name, which is "MQL4"
+     * for both MQL4FileType and MQL5FileType (both reuse {@link MQL4Language}) and triggers a
+     * FileTypeManager duplicate-display-name warning. Override to keep the display name unique.
+     */
+    @NotNull
+    @Override
+    public String getDisplayName() {
+        return "MQL5";
+    }
+
     @NotNull
     @Override
     public String getDescription() {

@@ -91,6 +91,7 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
 
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.redirectErrorStream(false);
+        hardenEnvironment(builder);
         // Neutral working directory — avoid picking up a stray project CLAUDE.md.
         File home = new File(System.getProperty("user.home", System.getProperty("java.io.tmpdir", "/")));
         if (home.isDirectory()) {
@@ -177,11 +178,32 @@ public final class ClaudeCliClient implements ClaudeFixGenerator {
         return loginShellLookup();
     }
 
+    /**
+     * Ensures the child process environment carries the identity variables macOS needs to
+     * reach the Keychain-stored Claude Code login ({@code HOME}, {@code USER}, {@code LOGNAME}).
+     * IDE-spawned processes can inherit a stripped environment missing these, which makes
+     * {@code claude -p} fail with "Not logged in". Uses {@code putIfAbsent} so any real
+     * values already present in the IDE's environment win.
+     */
+    private static void hardenEnvironment(@NotNull ProcessBuilder builder) {
+        java.util.Map<String, String> env = builder.environment();
+        String home = System.getProperty("user.home");
+        String user = System.getProperty("user.name");
+        if (home != null && !home.isBlank()) {
+            env.putIfAbsent("HOME", home);
+        }
+        if (user != null && !user.isBlank()) {
+            env.putIfAbsent("USER", user);
+            env.putIfAbsent("LOGNAME", user);
+        }
+    }
+
     @Nullable
     private static String loginShellLookup() {
         try {
             ProcessBuilder builder = new ProcessBuilder("/bin/zsh", "-lc", "command -v claude");
             builder.redirectErrorStream(false);
+            hardenEnvironment(builder);
             Process process = builder.start();
             StreamDrainer stdout = new StreamDrainer(process.getInputStream(), "MQL-Healing-claude-which-stdout");
             StreamDrainer stderr = new StreamDrainer(process.getErrorStream(), "MQL-Healing-claude-which-stderr");
