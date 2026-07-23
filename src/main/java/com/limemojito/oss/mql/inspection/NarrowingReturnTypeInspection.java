@@ -13,19 +13,29 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.SmartList;
-import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+/**
+ * Flags an integer-returning function that returns a floating-point literal — a genuine narrowing
+ * (truncation) conversion. The previous heuristic correlated a {@code double} <em>parameter</em> with
+ * an integer return type, which is a fabricated relationship: {@code int f(double x)} (rounding/quantizing
+ * helpers, comparators) is idiomatic, lossless MQL5. Nothing is narrowed by a function choosing to return
+ * an int, so that rule produced only false positives. This detects the real case: {@code return 3.7;}
+ * from an int-returning function silently truncates.
+ */
 public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "Function '%s' returns int but accepts double parameters — potential precision loss";
+    private static final String MESSAGE = "Function '%s' returns an integer type but returns a floating-point value — precision loss (truncation)";
     private static final Set<String> INTEGER_TYPES = Set.of("INT_KEYWORD", "LONG_KEYWORD", "SHORT_KEYWORD",
             "CHAR_KEYWORD", "UINT_KEYWORD", "ULONG_KEYWORD", "USHORT_KEYWORD", "UCHAR_KEYWORD");
-    private static final Set<String> FLOAT_TYPES = Set.of("DOUBLE_KEYWORD", "FLOAT_KEYWORD");
+    // A `return` whose expression contains a floating-point literal (1.0, .5, 2.) before the statement end.
+    private static final Pattern RETURN_FLOAT_LITERAL =
+            Pattern.compile("\\breturn\\b[^;]*(?:\\d+\\.\\d*|\\.\\d+)");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -35,23 +45,12 @@ public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode returnType = getReturnTypeNode(func);
                 if (returnType == null) continue;
-                String returnTypeName = returnType.getElementType().toString();
-                if (!INTEGER_TYPES.contains(returnTypeName)) continue;
+                if (!INTEGER_TYPES.contains(returnType.getElementType().toString())) continue;
 
-                boolean hasDoubleParam = false;
-                for (ASTNode arg : getFunctionArgs(func)) {
-                    ASTNode argChild = arg.getFirstChildNode();
-                    while (argChild != null) {
-                        if (FLOAT_TYPES.contains(argChild.getElementType().toString())) {
-                            hasDoubleParam = true;
-                            break;
-                        }
-                        argChild = argChild.getTreeNext();
-                    }
-                    if (hasDoubleParam) break;
-                }
-
-                if (hasDoubleParam) {
+                ASTNode body = findBracketsBlock(child);
+                if (body == null) continue;
+                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
+                if (RETURN_FLOAT_LITERAL.matcher(text).find()) {
                     problems.add(createWarning(manager, child.getNavigationElement(),
                             String.format(MESSAGE, func.getFunctionName())));
                 }

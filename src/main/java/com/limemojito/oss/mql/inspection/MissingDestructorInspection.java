@@ -19,10 +19,16 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "Class '%s' has a constructor but no destructor — potential resource leak";
+    private static final String MESSAGE = "Class '%s' acquires a resource (new/FileOpen/indicator handle) but has no destructor to release it";
+    // A resource is acquired if the class body allocates with `new`, opens a file, or creates an
+    // indicator handle. A plain value class (only scalar/value members) needs no destructor in MQL5,
+    // so requiring one for every constructor was a false positive.
+    private static final Pattern RESOURCE_ACQUISITION =
+            Pattern.compile("\\bnew\\b|\\bFileOpen\\s*\\(|\\bIndicatorCreate\\s*\\(|\\bi[A-Z]\\w*\\s*\\(");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -34,7 +40,6 @@ public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
             if (innerBlock == null) continue;
 
             String className = cls.getTypeName();
-            boolean hasConstructor = false;
             boolean hasDestructor = false;
 
             ASTNode child = innerBlock.getFirstChildNode();
@@ -42,16 +47,17 @@ public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
                 if (child.getElementType() == MQL4Elements.FUNCTION
                         || child.getElementType() == MQL4Elements.FUNCTION_DECLARATION) {
                     PsiElement psi = child.getPsi();
-                    if (psi instanceof MQL4FunctionElement funcElem) {
-                        String name = funcElem.getFunctionName();
-                        if (className.equals(name)) hasConstructor = true;
-                        if (("~" + className).equals(name)) hasDestructor = true;
+                    if (psi instanceof MQL4FunctionElement funcElem
+                            && ("~" + className).equals(funcElem.getFunctionName())) {
+                        hasDestructor = true;
                     }
                 }
                 child = child.getTreeNext();
             }
 
-            if (hasConstructor && !hasDestructor) {
+            if (hasDestructor) continue;
+            String body = BracketBlockTokenWalker.stripCommentsAndStrings(innerBlock.getText());
+            if (RESOURCE_ACQUISITION.matcher(body).find()) {
                 problems.add(createWarning(manager, cls.getNavigationElement(),
                         String.format(MESSAGE, className)));
             }

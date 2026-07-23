@@ -22,8 +22,10 @@ import java.util.Map;
 public class ModernMQL5IdiomInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Deprecated MQL4 function '%s()' used — consider MQL5 equivalent '%s()'";
+    // NOTE: OrderSend() is NOT deprecated — bool OrderSend(MqlTradeRequest&, MqlTradeResult&) is the
+    // current MQL5 trade function. Only functions genuinely absent from MQL5 belong here. (Preferring
+    // the CTrade wrapper over raw OrderSend is a style choice, not a deprecation, so it is not flagged.)
     private static final Map<String, String> DEPRECATED_FUNCS = Map.ofEntries(
-            Map.entry("OrderSend", "CTrade.OrderSend"),
             Map.entry("OrderClose", "CTrade.PositionClose"),
             Map.entry("OrderModify", "CTrade.OrderModify"),
             Map.entry("OrderDelete", "CTrade.OrderDelete"),

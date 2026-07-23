@@ -193,8 +193,15 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     }
 
     public void testMissingDestructor() {
+        // A class that acquires a resource (new) but has no destructor to release it → problem.
         assertHasProblems(new MissingDestructorInspection(),
-                "class CTest { public: CTest() {} };");
+                "class CTest { CObj *m_obj; public: CTest() { m_obj = new CObj(); } };");
+    }
+
+    public void testMissingDestructorValueClassIsFine() {
+        // A plain value class with a constructor but no owned resource needs no destructor in MQL5.
+        assertNoProblems(new MissingDestructorInspection(),
+                "class CTest { int m_x; public: CTest() { m_x = 0; } };");
     }
 
     public void testVirtualWithoutDestructor() {
@@ -356,8 +363,9 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     }
 
     public void testLazyEvaluationMiss() {
-        // Inspection only checks CopyBuffer/CopyRates/iCustom, not iMA
-        assertHasProblems(new LazyEvaluationMissInspection(),
+        // Retired: the old "indicator call then a later if" heuristic fired on nearly every OnTick and
+        // misread MQL5's already-short-circuit && / ||. The inspection now reports nothing.
+        assertNoProblems(new LazyEvaluationMissInspection(),
                 "void OnTick() { CopyBuffer(handle, 0, 0, 10, buf);\n" +
                 "  if(condition) { use(buf); } }");
     }

@@ -163,10 +163,19 @@ public class PreprocessorPropertyInspection extends LocalInspectionTool implemen
         VALIDATORS_BY_NAME.put("indicator_levelstyle", new RequiredLiteralValidator(INTEGER_LITERAL));
         VALIDATORS_BY_NAME.put("script_show_confirm", new OptionalAnyLiteralValidator());
         VALIDATORS_BY_NAME.put("tester_file", new OptionalAnyLiteralValidator());
-        VALIDATORS_BY_NAME.put("script_show_inputs", new RequiredLiteralValidator(STRING_LITERAL));
+        // script_show_inputs is a parameterless flag (like script_show_confirm), NOT a string-valued
+        // property — requiring an argument falsely flagged valid `#property script_show_inputs`.
+        VALIDATORS_BY_NAME.put("script_show_inputs", new OptionalAnyLiteralValidator());
         VALIDATORS_BY_NAME.put("show_inputs", new OptionalAnyLiteralValidator());
         VALIDATORS_BY_NAME.put("tester_indicator", new RequiredLiteralValidator(STRING_LITERAL));
         VALIDATORS_BY_NAME.put("tester_library", new RequiredLiteralValidator(STRING_LITERAL));
+        // Valid MQL5 tester/optimization/indicator properties that were missing from the map and so
+        // were falsely reported as "Unknown property".
+        VALIDATORS_BY_NAME.put("tester_set", new RequiredLiteralValidator(STRING_LITERAL));
+        VALIDATORS_BY_NAME.put("optimization_chart_mode", new RequiredLiteralValidator(STRING_LITERAL));
+        VALIDATORS_BY_NAME.put("tester_no_cache", new OptionalAnyLiteralValidator());
+        VALIDATORS_BY_NAME.put("tester_everytick_calculate", new OptionalAnyLiteralValidator());
+        VALIDATORS_BY_NAME.put("indicator_applied_price", new RequiredLiteralValidator(INTEGER_LITERAL));
     }
 
     public static final String[] COUNTING_NAMES = {"indicator_label", "indicator_color", "indicator_width", "indicator_style", "indicator_type", "indicator_level"};

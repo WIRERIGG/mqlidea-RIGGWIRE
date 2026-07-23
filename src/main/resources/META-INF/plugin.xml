@@ -206,7 +206,7 @@
 
         <!-- MQL5 Safety: Class Structure -->
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Class Structure" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <localInspection language="MQL4" groupName="Class Structure" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WARNING"
                          displayName="Virtual methods without virtual destructor"
                          implementationClass="com.limemojito.oss.mql.inspection.VirtualWithoutDestructorInspection"/>
 
@@ -256,7 +256,7 @@
                          displayName="Narrowing return type (precision loss)"
                          implementationClass="com.limemojito.oss.mql.inspection.NarrowingReturnTypeInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Type Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <localInspection language="MQL4" groupName="Type Safety" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WARNING"
                          displayName="Uninitialized variable"
                          implementationClass="com.limemojito.oss.mql.inspection.UninitializedVariableInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -294,7 +294,7 @@
                          displayName="Missing array pre-allocation"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingArrayPreallocationInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Performance" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Performance" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Lazy evaluation missed"
                          implementationClass="com.limemojito.oss.mql.inspection.LazyEvaluationMissInspection"/>
 

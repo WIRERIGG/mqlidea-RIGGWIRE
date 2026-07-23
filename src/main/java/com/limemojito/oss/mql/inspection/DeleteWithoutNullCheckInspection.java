@@ -20,7 +20,11 @@ import java.util.List;
 
 public class DeleteWithoutNullCheckInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "'delete' used without prior NULL check — risk of use-after-free";
+    // NOTE: absence of a null check before `delete` is not "use-after-free" (that is dereferencing a
+    // pointer AFTER deletion — see DanglingObjectReferenceInspection). MQL5 does not require a null check
+    // before `delete`, but validating a pointer with CheckPointer(p) == POINTER_DYNAMIC first is a
+    // reasonable defensive habit, so this is surfaced only as a weak, optional suggestion.
+    private static final String MESSAGE = "'delete' without a prior CheckPointer()/NULL guard — consider validating the pointer (CheckPointer(p) == POINTER_DYNAMIC) before deleting";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -33,7 +37,7 @@ public class DeleteWithoutNullCheckInspection extends MQL5SafetyInspectionBase {
                     if (!BracketBlockTokenWalker.containsPattern(body, "!=\\s*NULL")
                             && !BracketBlockTokenWalker.containsPattern(body, "==\\s*NULL")
                             && !BracketBlockTokenWalker.containsIdentifier(body, "CheckPointer")) {
-                        problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                        problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                     }
                 }
             }

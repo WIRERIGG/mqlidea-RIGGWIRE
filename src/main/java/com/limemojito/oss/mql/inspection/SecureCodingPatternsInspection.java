@@ -22,7 +22,10 @@ import java.util.Set;
 public class SecureCodingPatternsInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Handle-returning function used without INVALID_HANDLE check";
-    private static final Set<String> HANDLE_FUNCS = Set.of("FileOpen", "ChartOpen", "ObjectCreate", "IndicatorCreate");
+    // Only functions that actually return a handle with the INVALID_HANDLE (-1) sentinel belong here.
+    // Excluded: ObjectCreate (returns bool), ChartOpen (returns a long chart id, 0 on failure) — neither
+    // is checked against INVALID_HANDLE, so flagging them here emitted factually wrong diagnostics.
+    private static final Set<String> HANDLE_FUNCS = Set.of("FileOpen", "IndicatorCreate");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
