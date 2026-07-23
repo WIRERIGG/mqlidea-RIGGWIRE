@@ -501,6 +501,10 @@
         <!-- Semantic Annotator -->
         <annotator language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4Annotator"/>
 
+        <!-- Flagship: inline MetaEditor compiler diagnostics (REVAMP_PLAN.md Phase 1) -->
+        <externalAnnotator language="MQL4"
+                           implementationClass="com.limemojito.oss.mql.compiler.MqlCompilerExternalAnnotator"/>
+
         <!--File icons-->
         <iconProvider implementation="com.limemojito.oss.mql.MQL4FileIconProvider"/>
 
