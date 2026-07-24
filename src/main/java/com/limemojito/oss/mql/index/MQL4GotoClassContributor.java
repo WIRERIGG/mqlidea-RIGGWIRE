@@ -7,6 +7,7 @@ package com.limemojito.oss.mql.index;
 
 import com.intellij.navigation.ChooseByNameContributor;
 import com.intellij.navigation.NavigationItem;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.ArrayUtil;
@@ -20,6 +21,10 @@ public class MQL4GotoClassContributor implements ChooseByNameContributor {
 
     @NotNull
     public String[] getNames(final Project project, final boolean includeNonProjectItems) {
+        // The stub index is unavailable while indexing — return empty instead of throwing.
+        if (DumbService.isDumb(project)) {
+            return ArrayUtil.EMPTY_STRING_ARRAY;
+        }
         MQL4ClassNameIndex index = MQL4ClassNameIndex.getInstance();
         Collection<String> classes = index.getAllKeys(project);
         return ArrayUtil.toStringArray(new HashSet<>(classes));
@@ -27,6 +32,9 @@ public class MQL4GotoClassContributor implements ChooseByNameContributor {
 
     @NotNull
     public NavigationItem[] getItemsByName(String name, String pattern, Project project, boolean includeNonProjectItems) {
+        if (DumbService.isDumb(project)) {
+            return NavigationItem.EMPTY_NAVIGATION_ITEM_ARRAY;
+        }
         MQL4ClassNameIndex index = MQL4ClassNameIndex.getInstance();
         Collection<MQL4ClassElement> classes = index.get(name, project, GlobalSearchScope.allScope(project));
         return classes.toArray(new NavigationItem[0]);
