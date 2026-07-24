@@ -17,10 +17,12 @@ import com.intellij.psi.codeStyle.CodeStyleSettings;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.psi.formatter.common.AbstractBlock;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.MQL4Language;
 import com.limemojito.oss.mql.psi.MQL4Elements;
+import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,16 +42,25 @@ import java.util.List;
  *   <li>Inside a {@code CLASS_INNER_BLOCK} (the body of a class/struct/interface -- note its
  *       surrounding {@code {}} tokens are siblings on the owning {@code CLASS} node, not children
  *       of this wrapper): every child gets one normal indent, for the same reason.</li>
- *   <li>Everywhere else (condition/argument {@code (...)} groups, declarations, the file root,
- *       single-statement loop/if bodies with no braces, ...): no extra indent. This plugin does
- *       not reflow or wrap expressions -- see REVAMP_PLAN.md Phase 7's "keep it conservative"
- *       constraint. One accepted gap: a brace-less {@code if (x) return;} body is left on the
- *       statement's own indent level rather than pushed one deeper, since recognising "the next
- *       statement is logically this control statement's body" generically would need reaching
- *       into control-flow semantics this pass deliberately avoids.</li>
+ *   <li>The brace-less single-statement body of a control-flow statement
+ *       ({@code if (x)}<br>{@code &nbsp;&nbsp;&nbsp;return;}) gets one normal indent: the parser
+ *       models the body as a direct child of the {@code IF/FOR/WHILE/DO_STATEMENT} node (see
+ *       {@link #isBraceLessBody}), so this needs no control-flow analysis. An {@code else if}
+ *       continuation stays aligned with the outer {@code if}.</li>
+ *   <li>Everywhere else (condition/argument {@code (...)} groups, declarations, the file root, ...):
+ *       no extra indent. This plugin does not reflow or wrap expressions -- see REVAMP_PLAN.md
+ *       Phase 7's "keep it conservative" constraint.</li>
  * </ul>
  */
 final class MQL4Block extends AbstractBlock implements MQL4Elements {
+
+    // Control-flow statement nodes whose brace-less single-statement body should be indented.
+    private static final TokenSet CONTROL_FLOW_STATEMENTS =
+            TokenSet.create(IF_STATEMENT, FOR_STATEMENT, WHILE_STATEMENT, DO_STATEMENT, SWITCH_STATEMENT);
+    // Keyword tokens that appear as direct children of a control-flow statement (they, the
+    // condition group and a braced body stay at the statement's own level, never indented).
+    private static final TokenSet CONTROL_KEYWORDS =
+            TokenSet.create(IF_KEYWORD, ELSE_KEYWORD, FOR_KEYWORD, WHILE_KEYWORD, DO_KEYWORD, SWITCH_KEYWORD);
 
     private final CodeStyleSettings settings;
     private final SpacingBuilder spacingBuilder;
@@ -93,7 +104,45 @@ final class MQL4Block extends AbstractBlock implements MQL4Elements {
         if (parentType == CLASS_INNER_BLOCK) {
             return Indent.getNormalIndent();
         }
+        if (CONTROL_FLOW_STATEMENTS.contains(parentType) && isBraceLessBody()) {
+            return Indent.getNormalIndent();
+        }
         return Indent.getNoneIndent();
+    }
+
+    /**
+     * True when this node is the brace-less single-statement body of its enclosing control-flow
+     * statement — {@code if (c) <this>;}, {@code else <this>}, {@code for (…) <this>;},
+     * {@code while (…) <this>;}, {@code do <this> while(…);} — and so should be indented one level.
+     * <p>
+     * Excluded (they stay at the control statement's own level): the control keyword(s); the
+     * condition/braced-body {@code BRACKETS_BLOCK} (a {@code (…)} group is inline, a {@code {…}} body
+     * is indented by its own children via the code-block rule); the do-while trailing {@code ';'};
+     * and an {@code else if} continuation — an {@code IF_STATEMENT} directly after an
+     * {@code ELSE_KEYWORD} aligns with the outer {@code if} rather than indenting like a nested body.
+     */
+    private boolean isBraceLessBody() {
+        IElementType myType = myNode.getElementType();
+        if (CONTROL_KEYWORDS.contains(myType) || myType == BRACKETS_BLOCK || myType == SEMICOLON) {
+            return false;
+        }
+        if (myType == IF_STATEMENT && prevNonTriviaType(myNode) == ELSE_KEYWORD) {
+            return false; // `else if` — keep aligned with the outer if
+        }
+        return true;
+    }
+
+    /** Element type of the nearest preceding non-whitespace/non-comment sibling, or null. */
+    @Nullable
+    private static IElementType prevNonTriviaType(@NotNull ASTNode node) {
+        for (ASTNode prev = node.getTreePrev(); prev != null; prev = prev.getTreePrev()) {
+            IElementType t = prev.getElementType();
+            if (t == TokenType.WHITE_SPACE || t == LINE_TERMINATOR || MQL4TokenSets.COMMENTS_OR_WS.contains(t)) {
+                continue;
+            }
+            return t;
+        }
+        return null;
     }
 
     @Nullable

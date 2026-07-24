@@ -77,6 +77,41 @@ public class MQL4FormatterTest extends BasePlatformTestCase {
                 after.contains("\n        int x = 1;\n"));
     }
 
+    public void testBraceLessIfBodyGetsIndented() {
+        String after = reformat("test.mq4", "void f()\n{\nif(x>0)\nreturn;\n}\n");
+        assertTrue("brace-less if body indented one level deeper than the if:\n" + after,
+                after.contains("\n    if (x > 0)\n        return;\n"));
+    }
+
+    public void testBraceLessForBodyGetsIndented() {
+        String after = reformat("test.mq4", "void f()\n{\nfor(int i=0;i<n;i++)\nProcess(i);\n}\n");
+        assertTrue("brace-less for body indented one level deeper than the for:\n" + after,
+                after.contains("\n        Process(i);\n"));
+    }
+
+    public void testBracedIfBodyUnchangedByBraceLessRule() {
+        // A braced body is still handled by the code-block rule (the '{' stays at the if's level),
+        // not double-indented by the new brace-less-body rule.
+        String after = reformat("test.mq4", "void f()\n{\nif(x>0)\n{\nreturn;\n}\n}\n");
+        assertTrue("braced if body: brace at if level, statement one deeper:\n" + after,
+                after.contains("\n    if (x > 0)\n    {\n        return;\n    }\n"));
+    }
+
+    public void testElseIfChainNotOverIndented() {
+        String after = reformat("test.mq4", "void f()\n{\nif(a)\nx();\nelse if(b)\ny();\nelse\nz();\n}\n");
+        assertTrue("else-if aligns with the if at function-body level (not deeper):\n" + after,
+                after.contains("\n    else if (b)\n"));
+        assertTrue("else-if body indented one level under it:\n" + after, after.contains("\n        y();\n"));
+        assertTrue("plain else aligns at the if level:\n" + after, after.contains("\n    else\n"));
+        assertTrue("final else body indented one level under it:\n" + after, after.contains("\n        z();\n"));
+    }
+
+    public void testBraceLessBodyIsIdempotent() {
+        String once = reformat("test.mq4", "void f()\n{\nif(x>0)\nreturn;\nelse\nx=1;\n}\n");
+        String twice = reformat("test.mq4", once);
+        assertEquals("brace-less body formatting must be idempotent", once, twice);
+    }
+
     public void testCommaSpacingAndNoSpaceBeforeSemicolon() {
         String before = "void OnTick()\n{\n    OrderSelect(1,SELECT_BY_POS) ;\n}\n";
         String after = reformat("test.mq4", before);
