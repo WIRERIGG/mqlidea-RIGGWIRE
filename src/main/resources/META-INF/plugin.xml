@@ -44,12 +44,13 @@
                  navigable links.</li>
              <li>Quick documentation in English and Russian (see settings).</li>
              <li>MQL-specific code-safety inspections (trading/handle/lifecycle), on by default; style inspections opt-in.</li>
+             <li>Code formatting (Reformat Code, indent-on-Enter) with a configurable,
+                 MetaEditor-compatible default style (Settings &gt; Code Style &gt; MQL4).</li>
            </ul>
          </p>
          <p>
            <b>Not yet supported:</b>
            <ul>
-             <li>Code formatting</li>
              <li>Safe-delete refactoring</li>
              <li>Member access resolution (<code>obj.field</code> / <code>obj.Method()</code>) --
                  needs type inference, planned for a later phase</li>
@@ -113,6 +114,10 @@
                                     implementationClass="com.limemojito.oss.mql.doc.MQL4DocumentationProvider"/>
         <lang.braceMatcher language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4BraceMatcher"/>
         <lang.foldingBuilder language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4FoldingBuilder"/>
+        <lang.formatter language="MQL4"
+                        implementationClass="com.limemojito.oss.mql.editor.formatter.MQL4FormattingModelBuilder"/>
+        <langCodeStyleSettingsProvider
+                implementation="com.limemojito.oss.mql.editor.formatter.MQL4LanguageCodeStyleSettingsProvider"/>
         <completion.contributor language="MQL4"
                                 implementationClass="com.limemojito.oss.mql.editor.codecompletion.MQL4CompletionContributor"/>
         <codeInsight.parameterInfo language="MQL4"
