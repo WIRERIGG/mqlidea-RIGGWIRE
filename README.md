@@ -2,371 +2,157 @@
 
 # RIGGWIRE MQL
 
-### Professional MQL4 & MQL5 Language Support for IntelliJ IDEA — with AI Code Healing
-
-*The most comprehensive MetaTrader development environment available inside a JetBrains IDE.*
+MQL4/MQL5 language support for IntelliJ IDEA and CLion, with inline MetaEditor compiler diagnostics.
 
 ![Version](https://img.shields.io/badge/version-2026.1.0-2381C4?style=flat-square)
-![IntelliJ IDEA](https://img.shields.io/badge/IntelliJ%20IDEA-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
+![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
-![Inspections](https://img.shields.io/badge/inspections-80-2E8B57?style=flat-square)
-![AI Healing](https://img.shields.io/badge/AI%20healing-Grok%20%2B%20Claude-8A2BE2?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--3.0-777777?style=flat-square)
 
-<img src="src/main/resources/icons/mql4.svg" width="34" alt="MQL4" /> &nbsp; <img src="src/main/resources/icons/mql5.svg" width="34" alt="MQL5" /> &nbsp; <img src="src/main/resources/icons/mqh.svg" width="34" alt="MQH" /> &nbsp; <img src="src/main/resources/icons/mql_healing.svg" width="34" alt="AI Healing" />
-
-[**Features**](#features) &#8226; [**AI Healing**](#ai-code-healing) &#8226; [**Inspections**](#80-code-inspections) &#8226; [**Live Templates**](#live-templates) &#8226; [**Install**](#installation) &#8226; [**Build**](#building-from-source) &#8226; [**License**](#license)
-
----
-
-| Code Inspections | Doc Pages (EN + RU) | Live Templates | Inspection Categories |
-| :--------------: | :-----------------: | :------------: | :-------------------: |
-|      **80**      |      **1,400+**     |     **9**      |         **13**        |
+Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL mistakes early — from the lexer, from static inspections, and from the real MetaEditor compiler — directly in the editor.
 
 ---
 
 ## Features
 
-### Language Intelligence
-- Syntax highlighting for `.mq4`, `.mq5`, `.mqh` files
-- Inline documentation (Ctrl+Q) in English & Russian
-- Code completion and navigation
-- Structure view for classes, methods, enums
-- Bracket matching and code folding
-- Semantic error highlighting via annotator
+### Language support
 
-### File-Level Awareness
-- Distinct icons per file type (MQL4, MQL5, MQH)
-- **Gray icons** for files with problems — instantly see which files need attention
-- Icons restore to full color when all issues are resolved
-- New File actions for MQL4 and MQL5
+- Dedicated file types for `.mq4`, `.mql4`, `.mq5`, `.mql5`, and `.mqh`, each with its own icon
+- JFlex lexer and hand-written parser with error recovery — a syntax error does not break highlighting or navigation for the rest of the file
+- Dialect awareness (`MqlDialect`): files are classified as MQL4 or MQL5, and dialect-specific features (completion, inspections) only apply where they belong
+- Syntax highlighting plus a semantic annotator that recognizes event handlers (`OnInit`, `OnTick`, …) and `input` parameters
+- Structure view for classes, functions, and enums
+- New File actions for MQL4 and MQL5 sources
 
-### Background Analysis Engine
-- Continuous scanning against all 80 inspections
-- Incremental — only re-scans modified files
-- Batched read actions (5 files/lock) for zero UI lag
-- Structured `mql-problems.log` report at project root
-- Actionable fix hints for every finding
+### Error detection
 
-### Optimized for Scale
-- Regex pattern caching across 40+ inspections
-- Zero `Pattern.compile()` on hot paths
-- ConcurrentHashMap caches with lazy cleanup
-- Low-priority daemon thread that never blocks the IDE
+- **80 local inspections** across 13 categories, including a **Trading Safety** group (unchecked `OrderSend()` results, unchecked indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, and more)
+- Dialect-filtered: MQL5-only checks (indicator handles, `OnCalculate()`) stay off `.mq4` files and vice versa
+- Safety-focused checks are enabled by default; style and complexity checks are opt-in
+- A background problems logger that writes a structured report of current findings, plus a **Tools → Generate MQL Inspection Catalog** action that produces an AI-free triage document (`docs/MQL_INSPECTION_CATALOG.md`)
 
----
+### Navigation and refactoring
 
-## AI Code Healing
+- Real reference resolution: go-to-declaration (Ctrl-click) and Find Usages for functions, classes/structs, enums, enum constants, parameters, and variables — local, global, and member — including across files reached via `#include`
+- Rename refactoring (Shift-F6, in-place) for the same symbol kinds, updating call sites project-wide
+- `#include "X.mqh"` and `#include <Trade/Trade.mqh>` are navigable links; the include closure is computed with cycle protection
+- Stub indexes for classes and functions powering Go to Class and Go to Symbol
 
-Beyond *finding* problems, the plugin can *fix* them. An optional two-stage AI pipeline turns inspection findings into reviewable, one-click patches — entirely under your control.
+### Editing and formatting
 
-### How it works
-1. **Scan** — the background engine records every inspection finding in a local SQLite database (`.idea/mql-healing.db`)
-2. **Analyze** — [**Grok**](https://x.ai) reviews each problem with MQL5 context and produces an insight
-3. **Refactor** — [**Claude**](https://www.anthropic.com/claude) turns each insight into a unified-diff fix
-4. **Apply** — you approve it; the diff is applied in a single undoable `WriteCommandAction`
+- Code completion: tiered, dialect-filtered, with insert handlers for parentheses and arguments
+- Parameter info (Ctrl-P) with real signatures for built-in and project functions
+- Quick documentation (hover / Ctrl-Q) in English and Russian, including your own doc comments
+- Code formatter with a configurable, MetaEditor-compatible default style (**Settings → Code Style → MQL4**)
+- Brace matching, code folding, and line/block commenting
+- 9 live templates for common trading patterns (`oninit`, `ontick`, `ordersend`, `indicator`, `pool`, …)
 
-### Where fixes surface
-- **Alt+Enter** intentions — *"Apply AI fix"* right at the problem
-- **Gutter icons** on any file that has a pending fix
-- **AI Healing tool window** — review and apply the full queue
-- **Pre-commit prompt** — get reminded of pending fixes before you commit
-- Every patch is **reviewable and undoable** — nothing changes without your say-so
+### Compiler integration
 
-### Settings
-
-| Setting              | Default             | Purpose                                                           |
-| :------------------- | :------------------ | :---------------------------------------------------------------- |
-| **Auto-heal**        | `off`               | Master switch for automatic healing cycles                        |
-| **Healing interval** | `5 min`             | Time between background analysis cycles                           |
-| **Grok model**       | `grok-2`            | Model used for problem analysis                                   |
-| **Claude model**     | `claude-sonnet-4-5` | Model used to generate diffs                                      |
-| **API keys**         | —                   | Stored in IntelliJ **PasswordSafe**, never on disk or in settings |
-
-> Healing is **opt-in and off by default**. Bring your own Grok and Claude API keys; all analysis data stays in your project's local database.
+- An **ExternalAnnotator** runs the real MetaEditor compiler and shows genuine compile errors and warnings as inline editor squiggles
+- A **Compile Check Now** action (Tools menu and editor popup) forces a fresh compile on demand
+- A status-bar widget shows the current compile state of the open file
+- Results are memoized by document modification stamp, so unchanged files are not recompiled
+- When no compiler is available, the plugin degrades honestly: the widget reports "compiler N/A" rather than pretending the file is clean
+- A run configuration and program runner for invoking the MQL compiler as a build step
 
 ---
 
-## 80 Code Inspections
+## Requirements
 
-Real-time analysis across 13 categories, catching bugs before they cost you money. In the IDE they appear under **Settings → Editor → Inspections → RIGGWIRE MQL**.
+| | Requirement |
+| :-- | :-- |
+| **IDE** | IntelliJ IDEA or CLion 2025.3.2+ (build 253.30387+) |
+| **Java** | 21 (JetBrains Runtime) |
+| **Compile checking** | MetaEditor — on macOS via the `mt5` wrapper script and Wine; other platforms need a reachable `metaeditor64.exe` |
+| **File types** | `.mq4` `.mql4` `.mq5` `.mql5` `.mqh` |
 
-Inspections are **dialect-aware**: MQL5-only checks (indicator handles, `IndicatorRelease()`, `OnCalculate()`) run only on `.mq5`/`.mqh`, and MQL4-only checks (`OrderSelect()`, order-close loop direction, `RefreshRates()`, trade-context) run only on `.mq4`/`.mqh` — so neither dialect gets false positives from the other's idioms.
-
-<details>
-<summary><b>Trading Safety</b> &mdash; 13 inspections &nbsp;&nbsp;<code>Catch order failures before they go live</code></summary>
-
-| Inspection                                          | What it catches                                                  |
-| :-------------------------------------------------- | :--------------------------------------------------------------- |
-| **Unchecked OrderSend() result**                    | `OrderSend()` without checking return value                      |
-| **Unchecked indicator handle**                      | Handle creation without `INVALID_HANDLE` check                   |
-| **Missing IndicatorRelease()**                      | Forgetting `IndicatorRelease(handle)` in `OnDeinit()`            |
-| **Array access without size check**                 | Array indexing without `ArraySize()` guard                       |
-| **Missing input parameter validation**              | `OnInit()` without parameter range checks                        |
-| **FileOpen() without FileClose()**                  | File handles left open                                           |
-| **Unchecked CopyRates/CopyBuffer**                  | Copy functions without return value check                        |
-| **Double IndicatorRelease()**                       | Releasing the same handle twice                                  |
-| **Delete without NULL check**                       | `delete ptr` without prior null guard                            |
-| **OrderSelect() result ignored** *(MQL4)*           | Reading order data without checking `OrderSelect()`              |
-| **Forward order-close loop** *(MQL4)*               | Closing orders in an ascending `OrdersTotal()` loop skips orders |
-| **Missing trade-context check** *(MQL4)*            | `OrderSend()` etc. without an `IsTradeAllowed()` guard           |
-| **Prices read in loop w/o RefreshRates()** *(MQL4)* | `Bid`/`Ask` re-read in a loop without `RefreshRates()`           |
-
-</details>
-
-<details>
-<summary><b>Memory &amp; Allocation</b> &mdash; 7 inspections &nbsp;&nbsp;<code>Stop leaks and per-tick allocations</code></summary>
-
-| Inspection                         | What it catches                             |
-| :--------------------------------- | :------------------------------------------ |
-| **Object allocation in OnTick()**  | Creating objects on every tick              |
-| **Unchecked ArrayResize() return** | Ignoring `ArrayResize()` failure            |
-| **Missing NULL after delete**      | Dangling pointer after `delete`             |
-| **Indicator handle in OnTick()**   | Creating indicator handles per tick         |
-| **Heap allocation in loop**        | `new` inside loops without object pooling   |
-| **Missing new bar check**          | `OnTick()` without bar-change guard         |
-| **Unconditional order loop**       | Sending orders without conditions in a loop |
-
-</details>
-
-<details>
-<summary><b>Performance</b> &mdash; 8 inspections &nbsp;&nbsp;<code>Keep your EA fast on every tick</code></summary>
-
-| Inspection                             | What it catches                                        |
-| :------------------------------------- | :----------------------------------------------------- |
-| **ArrayResize() in loop**              | Resizing arrays inside loops instead of pre-allocating |
-| **Print/Comment in OnTick()**          | Logging on every tick (kills performance)              |
-| **Sleep() in event handler**           | Blocking calls in event handlers                       |
-| **Redundant calculations in OnTick()** | Recomputing values that only change per bar            |
-| **String concatenation in loop**       | Using `+` for strings in loops                         |
-| **Suboptimal container usage**         | Inefficient data structure patterns                    |
-| **Missing array pre-allocation**       | Arrays that grow without reserve parameter             |
-| **Lazy evaluation missed**             | Expensive conditions checked before cheap ones         |
-
-</details>
-
-<details>
-<summary><b>Advanced Patterns</b> &mdash; 12 inspections &nbsp;&nbsp;<code>Deep analysis for production-grade code</code></summary>
-
-| Inspection                                  | What it catches                                     |
-| :------------------------------------------ | :-------------------------------------------------- |
-| **Stack overflow risk**                     | Unbounded recursion without depth limits            |
-| **Dangling object reference**               | Pointers to deleted or out-of-scope objects         |
-| **Stale handle usage**                      | Using handles after `IndicatorRelease()`            |
-| **Incomplete class (Rule of Three)**        | Missing copy constructor or assignment operator     |
-| **GlobalVariableSet() conflicts**           | Multiple functions writing the same global variable |
-| **Missing error recovery**                  | `OrderSend()` failures without retry logic          |
-| **Over-complex error handling**             | Deeply nested error-checking blocks                 |
-| **Unsafe ArrayCopy()**                      | `ArrayCopy()` without size validation               |
-| **Deprecated MQL4 in MQL5**                 | Using deprecated MQL4 functions in MQL5 context     |
-| **Price comparison sans NormalizeDouble()** | Floating-point price comparisons                    |
-| **Missing ArraySetAsSeries()**              | Timeseries data without direction set               |
-| **Secure coding patterns**                  | General secure coding pattern violations            |
-
-</details>
-
-<details>
-<summary><b>Security &amp; Data</b> &mdash; 5 inspections &nbsp;&nbsp;<code>Protect credentials and account data</code></summary>
-
-| Inspection                                | What it catches                             |
-| :---------------------------------------- | :------------------------------------------ |
-| **Account info exposure**                 | Logging sensitive account details           |
-| **Hardcoded credentials**                 | Passwords/keys embedded in source code      |
-| **OrderSend() without volume validation** | Trading without `SymbolInfoDouble()` checks |
-| **File read without error check**         | File I/O without return value validation    |
-| **Deterministic random seed**             | Using `MathSrand()` with predictable seeds  |
-
-</details>
-
-<details>
-<summary><b>Function Signature</b> &mdash; 6 inspections &nbsp;&nbsp;<code>Get function signatures right</code></summary>
-
-| Inspection                           | What it catches                                             |
-| :----------------------------------- | :---------------------------------------------------------- |
-| **OnInit() returns void**            | `void OnInit()` instead of `int OnInit()` with return code  |
-| **Empty event handler**              | Event handlers with empty bodies                            |
-| **Missing const on reference param** | Reference parameters that should be `const`                 |
-| **Large struct by value**            | Passing `MqlTradeRequest` etc. by copy instead of reference |
-| **Missing destructor**               | Classes that allocate resources but have no destructor      |
-| **OnCalculate() returns 0** *(MQL5)* | Returning 0 forces a full indicator recalculation each tick |
-
-</details>
-
-<details>
-<summary><b>Class Structure</b> &mdash; 6 inspections &nbsp;&nbsp;<code>Clean OOP for MQL5</code></summary>
-
-| Inspection                                     | What it catches                                     |
-| :--------------------------------------------- | :-------------------------------------------------- |
-| **Virtual methods without virtual destructor** | Polymorphic class missing `virtual ~Destructor()`   |
-| **Public data members**                        | Public fields that should be private with accessors |
-| **Missing #property description**              | Scripts/indicators without `#property description`  |
-| **Missing #property version**                  | Missing `#property version` directive               |
-| **Excessive global variables**                 | Too many globals — should be encapsulated           |
-| **Input parameter reassignment**               | Modifying `input` parameters directly               |
-
-</details>
-
-<details>
-<summary><b>Type Safety</b> &mdash; 3 inspections &nbsp;&nbsp;<code>Prevent silent precision loss</code></summary>
-
-| Inspection                 | What it catches                           |
-| :------------------------- | :---------------------------------------- |
-| **Narrowing return type**  | Returning `double` from an `int` function |
-| **Uninitialized variable** | Variables declared without initial values |
-| **Implicit type cast**     | Implicit narrowing conversions            |
-
-</details>
-
-<details>
-<summary><b>Naming &amp; Style</b> &mdash; 4 inspections &nbsp;&nbsp;<code>Consistent, readable code</code></summary>
-
-| Inspection                       | What it catches                                |
-| :------------------------------- | :--------------------------------------------- |
-| **Function naming convention**   | Functions not in PascalCase                    |
-| **Variable naming convention**   | Variables not following naming conventions     |
-| **Class naming convention**      | Classes without `C` prefix (`CMyClass`)        |
-| **Missing function doc comment** | Public functions without `//---` documentation |
-
-</details>
-
-<details>
-<summary><b>Control Flow</b> &mdash; 6 inspections &nbsp;&nbsp;<code>Catch structural bugs</code></summary>
-
-| Inspection                 | What it catches                          |
-| :------------------------- | :--------------------------------------- |
-| **Use of `goto`**          | `goto` statements (always flagged)       |
-| **Suspicious semicolon**   | `;` immediately after `if`/`for`/`while` |
-| **Empty loop body**        | Loops with no body                       |
-| **Switch without default** | `switch` missing `default:` case         |
-| **Switch fall-through**    | Missing `break` in `case` blocks         |
-| **Infinite loop risk**     | Loops without clear termination          |
-
-</details>
-
-<details>
-<summary><b>Code Complexity</b> &mdash; 5 inspections &nbsp;&nbsp;<code>Keep code maintainable</code></summary>
-
-| Inspection                  | What it catches                        |
-| :-------------------------- | :------------------------------------- |
-| **Excessive nesting depth** | Code nested too deeply (over 4 levels) |
-| **Function too long**       | Functions exceeding 200 lines          |
-| **Too many parameters**     | Functions with more than 7 parameters  |
-| **Unused parameter**        | Parameters declared but never used     |
-| **TODO/FIXME markers**      | Unresolved work items in code          |
-
-</details>
-
-<details>
-<summary><b>Trading-Specific</b> &mdash; 4 inspections &nbsp;&nbsp;<code>MetaTrader best practices</code></summary>
-
-| Inspection                         | What it catches                                           |
-| :--------------------------------- | :-------------------------------------------------------- |
-| **Hardcoded magic numbers**        | Literal values in trading operations                      |
-| **Return value ignored**           | Ignoring return values of important functions             |
-| **Virtual call in constructor**    | Calling virtual methods from constructors                 |
-| **Repeated API calls in OnTick()** | Calling `SymbolInfoDouble()` etc. multiple times per tick |
-
-</details>
-
-<details>
-<summary><b>Preprocessor</b> &mdash; 1 inspection</summary>
-
-| Inspection                     | What it catches                             |
-| :----------------------------- | :------------------------------------------ |
-| **#property directive issues** | Invalid or malformed `#property` directives |
-
-</details>
-
----
-
-## Live Templates
-
-Type the abbreviation, press **Tab**, and get production-ready code with proper error handling.
-
-```
-oninit     -->  OnInit() with INIT_SUCCEEDED return
-ontick     -->  OnTick() with new bar check pattern
-ondeinit   -->  OnDeinit() cleanup handler
-ordersend  -->  Full OrderSend() with MqlTradeRequest/Result + error handling
-input      -->  input parameter declaration with inline comment
-indicator  -->  Indicator creation with INVALID_HANDLE check
-fileop     -->  FileOpen()/FileClose() with error handling
-class      -->  Class with constructor and destructor
-pool       -->  Object pool pattern for reusable objects
-```
-
-> Every template follows the patterns enforced by the inspections above — so generated code passes all 80 checks out of the box.
+Everything except compile checking works with no external tools installed. Inline compiler diagnostics currently target macOS (MetaTrader under Wine, driven by the `mt5` CLI wrapper); Windows/Linux support is planned.
 
 ---
 
 ## Installation
 
-### From JetBrains Marketplace
+### From disk
 
-1. Uninstall any previous MQL plugins
-2. Restart IntelliJ IDEA
-3. **Settings > Plugins > Marketplace**
-4. Search **"RIGGWIRE MQL"**
-5. Install and restart
+1. Build the plugin (below) or download a release `.zip`
+2. **Settings → Plugins → ⚙ → Install Plugin from Disk…**
+3. Select the `.zip` and restart the IDE
+4. If another MQL plugin (investflow.ru MQL Idea, Lime MQL Editing) is installed, uninstall it first
 
-### From Disk
-
-1. Download the latest `.zip` from [Releases](https://github.com/WIRERIGG/mqlidea/releases)
-2. **Settings > Plugins > Install Plugin from Disk**
-3. Select the `.zip` file
-4. Restart IntelliJ IDEA
-
----
-
-## Building from Source
+### Building from source
 
 ```bash
-# Requirements: Java 21 (JetBrains Runtime), Gradle 9.3 (wrapper included)
-
-# Set JAVA_HOME
-export JAVA_HOME="/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.2/jbr"
-
-# Build and run all tests
-./gradlew.bat --no-daemon --console=plain build
-
-# Launch IDE sandbox with plugin installed
-./gradlew.bat --no-daemon --console=plain runIde
+# Requires JAVA_HOME pointing at a JDK/JBR 21+ (bytecode targets release 21)
+./gradlew buildPlugin            # produces build/distributions/*.zip
+./gradlew test                   # run the test suite
+./gradlew runIde                 # launch a sandbox IDE with the plugin installed
 ```
 
-<details>
-<summary><b>Project Structure</b></summary>
+Gradle 9 wrapper included; built with the IntelliJ Platform Gradle Plugin 2.11.0 against `intellijIdea("2025.3.2")`.
 
-```
-src/main/java/                       100+ Java source files
-src/main/resources/
-    META-INF/plugin.xml              Plugin manifest (80 inspections + healing registered)
-    icons/                           SVG file-type badges (4, 5, h, struct) + AI healing icon
-    inspectionDescriptions/          52 HTML inspection descriptions
-    liveTemplates/                   MQL5 live template definitions
-    mql/doc/                         1,400+ HTML docs + JSON catalogs (en + ru)
-src/test/                            Parser tests + MQL sample files
-cpp_tests/                           134 GoogleTest safety pattern cases
-```
+### Enabling compile checking (macOS)
 
-</details>
+Install the `mt5` bridge (a CLI wrapper that drives MetaEditor through Wine) and make sure `mt5` is on your `PATH`. The plugin shells out to it automatically; no further configuration is needed. Without it, all editor features still work — only inline compiler diagnostics are unavailable.
 
 ---
 
-## Compatibility
+## How the compiler integration works
 
-|                | Requirement                                |
-| :------------- | :----------------------------------------- |
-| **IDE**        | IntelliJ IDEA 2025.3.2+ (build 253.30387+) |
-| **Java**       | 21 (JetBrains Runtime)                     |
-| **Platform**   | Windows, Linux                             |
-| **File Types** | `.mq4` `.mql4` `.mq5` `.mql5` `.mqh`       |
+When you stop typing (or trigger **Compile Check Now**), the ExternalAnnotator hands the current file to `MqlCompilerService`, which picks a launcher: the `mt5` CLI wrapper (macOS/Wine) or a direct MetaEditor invocation. The compiler's log output is parsed into line-accurate diagnostics and rendered as standard editor annotations. Results are cached per document modification stamp, so the compiler only runs when the file has actually changed. If no launcher succeeds, the status-bar widget reports "compiler N/A" instead of showing a false green state.
+
+---
+
+## Roadmap
+
+Known limitations, tracked as upcoming work:
+
+- **Inspection suppression** (`// noinspection`-style comments and suppress intentions) is not wired up yet
+- **No quick-fixes yet** — inspections report problems but do not offer automated fixes
+- Some inspections currently **anchor their warning to the enclosing function** rather than the precise offending statement (being fixed incrementally)
+- **Header (`.mqh`) compile errors are not yet surfaced** — the compiler integration currently reports diagnostics for the compiled `.mq4`/`.mq5` file only
+- **Inline compiler diagnostics on Windows/Linux**, plus debugging support
+- **Member access resolution** (`obj.field` / `obj.Method()`) requires type inference and is planned for a later phase
+- Safe-delete refactoring
+
+Note: earlier versions shipped an experimental AI "code healing" pipeline. It was removed in the 2026.1.0 revamp and is not part of this plugin. The AI-free **Generate MQL Inspection Catalog** action is its only surviving artifact.
+
+---
+
+## Project structure
+
+```
+src/main/java/com/limemojito/oss/mql/
+├── parser/           Lexer (JFlex) + parser with error recovery
+├── psi/              PSI elements + stubs (stub indexes for classes/functions)
+├── editor/           Highlighting, completion, parameter info, formatter, folding, templates
+├── inspection/       80 local inspections + problems logger
+├── compiler/         ExternalAnnotator, MetaEditor/mt5/Wine launchers, status-bar widget
+├── reference/        Reference resolution + #include navigation
+├── findusages/       Find Usages provider
+├── refactoring/      Rename support
+├── index/            Goto Class / Goto Symbol contributors
+├── structure/        Structure view
+├── runconfig/        Run configuration + compiler runner
+├── settings/         Plugin settings + configurable panel
+├── doc/              Quick documentation (EN + RU)
+└── catalog/          AI-free inspection catalog generator
+
+src/main/resources/
+├── META-INF/plugin.xml          All extension registrations
+├── inspectionDescriptions/      HTML descriptions per inspection
+├── liveTemplates/               9 MQL live templates
+└── mql/doc/                     Bundled MQL documentation + JSON catalogs
+```
+
+~228 Java source files; the test suite (219 tests) covers the parser, resolution, inspections, and compiler-output parsing.
 
 ---
 
 ## License
 
-GPL-3.0 — see [LICENSE.txt](LICENSE.txt) for details.
+GPL-3.0 — see [LICENSE.txt](LICENSE.txt).
 
-**RIGGWIRE MQL** is maintained by [RIGGWIRE Trading Systems](https://github.com/WIRERIGG). It is a fork of the [Lime MQL Editing](https://github.com/LimeMojito/mqlidea) plugin by [Lime Mojito Pty Ltd](https://limemojito.com/), which was itself forked from the [InvestFlow MQL Idea](https://github.com/investflow/mqlidea) plugin. All original copyright notices are retained per GPL-3.0; the original authors do not endorse this fork.
+**RIGGWIRE MQL** is maintained by [RIGGWIRE Trading Systems](https://github.com/WIRERIGG). It is a fork of the [Lime MQL Editing](https://github.com/LimeMojito/mqlidea) plugin by [Lime Mojito Pty Ltd](https://limemojito.com/), itself forked from the [InvestFlow MQL Idea](https://github.com/investflow/mqlidea) plugin. All original copyright notices are retained per GPL-3.0; the original authors do not endorse this fork.
 
 **Found a bug or have a feature request?** [Open an issue](https://github.com/WIRERIGG/mqlidea/issues)

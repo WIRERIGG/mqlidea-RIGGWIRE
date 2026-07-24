@@ -13,10 +13,6 @@ import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.IncorrectOperationException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.MQL4Language;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
@@ -31,39 +27,40 @@ import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
 
 public class MQL4ElementsFactory implements MQL4Elements {
 
-    private final static Map<ASTNode, Function<ASTNode, PsiElement>> ELEMENT_FACTORY = Collections.synchronizedMap(new HashMap<>());
-
+    /**
+     * Dispatches an AST node to its PSI wrapper by element TYPE. Previously this used a
+     * {@code Map<ASTNode, ...>} cache keyed by the node instance — but the mapping depends only
+     * on {@code getElementType()}, so keying by the node retained every ASTNode (and thus whole
+     * PSI trees) for the application's lifetime. A direct type switch is allocation-free and
+     * leak-free.
+     */
     public static PsiElement createElement(@NotNull ASTNode node) {
-        Function<ASTNode, PsiElement> psiFunction = ELEMENT_FACTORY.computeIfAbsent(node, n -> {
-            IElementType type = n.getElementType();
-            if (type == PREPROCESSOR_PROPERTY_BLOCK) {
-                return MQL4PreprocessorPropertyBlock::new;
-            }
-            if (type == PREPROCESSOR_INCLUDE_BLOCK) {
-                return MQL4PreprocessorIncludeBlock::new;
-            }
-            if (type == FUNCTION_DECLARATION || type == FUNCTION) {
-                return MQL4FunctionElement::new;
-            }
-            if (type == ENUM_STATEMENT) {
-                return MQL4EnumElement::new;
-            }
-            if (type == ENUM_FIELD) {
-                return MQL4EnumFieldElement::new;
-            }
-            if (type == MQL4Elements.CLASS) {
-                return MQL4ClassElement::new;
-            }
-            if (type == VAR_DEFINITION) {
-                return MQL4VarDefinitionElement::new;
-            }
-            if (type == FUNCTION_ARG) {
-                return MQL4FunctionArgElement::new;
-            }
-
-            return MQL4PsiElement::new;
-        });
-        return psiFunction.apply(node);
+        IElementType type = node.getElementType();
+        if (type == PREPROCESSOR_PROPERTY_BLOCK) {
+            return new MQL4PreprocessorPropertyBlock(node);
+        }
+        if (type == PREPROCESSOR_INCLUDE_BLOCK) {
+            return new MQL4PreprocessorIncludeBlock(node);
+        }
+        if (type == FUNCTION_DECLARATION || type == FUNCTION) {
+            return new MQL4FunctionElement(node);
+        }
+        if (type == ENUM_STATEMENT) {
+            return new MQL4EnumElement(node);
+        }
+        if (type == ENUM_FIELD) {
+            return new MQL4EnumFieldElement(node);
+        }
+        if (type == MQL4Elements.CLASS) {
+            return new MQL4ClassElement(node);
+        }
+        if (type == VAR_DEFINITION) {
+            return new MQL4VarDefinitionElement(node);
+        }
+        if (type == FUNCTION_ARG) {
+            return new MQL4FunctionArgElement(node);
+        }
+        return new MQL4PsiElement(node);
     }
 
     /**

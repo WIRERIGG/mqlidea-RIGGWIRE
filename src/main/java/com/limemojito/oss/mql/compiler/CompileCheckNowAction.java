@@ -10,6 +10,7 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -37,6 +38,13 @@ import org.jetbrains.annotations.NotNull;
 public final class CompileCheckNowAction extends AnAction {
 
     private static final String NOTIFICATION_GROUP = "MQL Compiler";
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        // update() only reads the event's VIRTUAL_FILE / project — safe on the background thread,
+        // which is the required choice on the 2025.3 platform (the old EDT path is deprecated).
+        return ActionUpdateThread.BGT;
+    }
 
     @Override
     public void update(@NotNull AnActionEvent e) {

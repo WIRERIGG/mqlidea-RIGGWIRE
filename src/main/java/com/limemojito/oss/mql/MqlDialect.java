@@ -6,9 +6,13 @@
 
 package com.limemojito.oss.mql;
 
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootModificationTracker;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
+import com.intellij.psi.util.CachedValueProvider;
+import com.intellij.psi.util.CachedValuesManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -57,17 +61,23 @@ public final class MqlDialect {
 
     @NotNull
     private static Kind inferFromProject(@NotNull PsiFile file) {
-        try {
-            Project project = file.getProject();
+        Project project = file.getProject();
+        // During indexing the filename index is unavailable — return the safe default WITHOUT
+        // caching, so the real dialect is computed once the IDE is smart again.
+        if (DumbService.isDumb(project)) {
+            return Kind.MQL5;
+        }
+        // Cache the project dialect (it only changes when source files are added/removed) so
+        // every inspection's isMql4/isMql5 guard doesn't re-hit the filename index. Note: a
+        // ProcessCanceledException from the index access propagates out of the provider (it is
+        // NOT caught here) so daemon cancellation is honoured — the previous
+        // `catch (RuntimeException)` swallowed PCE and could stall cancellation.
+        return CachedValuesManager.getManager(project).getCachedValue(project, () -> {
             boolean hasMql5 = hasExt(project, "mq5") || hasExt(project, "mql5");
             boolean hasMql4 = hasExt(project, "mq4") || hasExt(project, "mql4");
-            if (hasMql4 && !hasMql5) {
-                return Kind.MQL4;
-            }
-        } catch (RuntimeException ignored) {
-            // index not ready / no project scope — fall through to the safe default
-        }
-        return Kind.MQL5;
+            Kind kind = (hasMql4 && !hasMql5) ? Kind.MQL4 : Kind.MQL5;
+            return CachedValueProvider.Result.create(kind, ProjectRootModificationTracker.getInstance(project));
+        });
     }
 
     private static boolean hasExt(@NotNull Project project, @NotNull String ext) {

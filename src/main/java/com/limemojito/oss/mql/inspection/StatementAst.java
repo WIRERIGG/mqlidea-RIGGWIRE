@@ -263,20 +263,33 @@ final class StatementAst implements MQL4Elements {
 
     /** True when {@code root} contains a call to {@code name}. */
     static boolean hasCall(@Nullable ASTNode root, @NotNull String name) {
-        return hasAnyCall(root, Set.of(name));
+        return findAnyCall(root, Set.of(name)) != null;
     }
 
     /** True when {@code root} contains a call to any function in {@code names}. */
     static boolean hasAnyCall(@Nullable ASTNode root, @NotNull Set<String> names) {
-        if (root == null) return false;
+        return findAnyCall(root, names) != null;
+    }
+
+    /** The {@code IDENTIFIER} node of the first call to {@code name}, or null — for anchoring a warning at the call site. */
+    @Nullable
+    static ASTNode findCall(@Nullable ASTNode root, @NotNull String name) {
+        return findAnyCall(root, Set.of(name));
+    }
+
+    /** The {@code IDENTIFIER} node of the first call to any function in {@code names}, or null. */
+    @Nullable
+    static ASTNode findAnyCall(@Nullable ASTNode root, @NotNull Set<String> names) {
+        if (root == null) return null;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (child.getElementType() == IDENTIFIER && names.contains(child.getText()) && isCallIdentifier(child)) {
-                return true;
+                return child;
             }
-            if (hasAnyCall(child, names)) return true;
+            ASTNode found = findAnyCall(child, names);
+            if (found != null) return found;
         }
-        return false;
+        return null;
     }
 
     /** Number of calls to {@code name} anywhere in {@code root}. */
@@ -466,21 +479,34 @@ final class StatementAst implements MQL4Elements {
 
     /** True when an {@code IDENTIFIER} token is directly followed by {@code [} — an array index access. */
     static boolean hasArrayAccess(@Nullable ASTNode root) {
-        if (root == null) return false;
+        return findArrayAccess(root) != null;
+    }
+
+    /** The {@code IDENTIFIER} node of the first array index access ({@code id[...]}), or null — for anchoring. */
+    @Nullable
+    static ASTNode findArrayAccess(@Nullable ASTNode root) {
+        if (root == null) return null;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (child.getElementType() == IDENTIFIER) {
                 ASTNode next = nextNonTrivia(child);
-                if (next != null && next.getElementType() == L_SQUARE_BRACKET) return true;
+                if (next != null && next.getElementType() == L_SQUARE_BRACKET) return child;
             }
-            if (hasArrayAccess(child)) return true;
+            ASTNode found = findArrayAccess(child);
+            if (found != null) return found;
         }
-        return false;
+        return null;
     }
 
     /** True when a {@code PLUS} token is adjacent (either side) to a {@code STRING_LITERAL} — string concatenation. */
     static boolean hasStringConcat(@Nullable ASTNode root) {
-        if (root == null) return false;
+        return findStringConcat(root) != null;
+    }
+
+    /** The {@code PLUS} node of the first string concatenation, or null — for anchoring. */
+    @Nullable
+    static ASTNode findStringConcat(@Nullable ASTNode root) {
+        if (root == null) return null;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (child.getElementType() == PLUS) {
@@ -488,11 +514,26 @@ final class StatementAst implements MQL4Elements {
                 ASTNode next = nextNonTrivia(child);
                 if ((prev != null && prev.getElementType() == STRING_LITERAL)
                         || (next != null && next.getElementType() == STRING_LITERAL)) {
-                    return true;
+                    return child;
                 }
             }
-            if (hasStringConcat(child)) return true;
+            ASTNode found = findStringConcat(child);
+            if (found != null) return found;
         }
-        return false;
+        return null;
+    }
+
+    /**
+     * Resolves the best PSI element to anchor a warning at: the given AST node's PSI if present,
+     * else the fallback element. Leaf tokens in the flat statement AST are PSI-backed, but this
+     * guards the rare null case so a warning still shows rather than throwing.
+     */
+    @NotNull
+    static com.intellij.psi.PsiElement anchor(@Nullable ASTNode node, @NotNull com.intellij.psi.PsiElement fallback) {
+        if (node != null) {
+            com.intellij.psi.PsiElement psi = node.getPsi();
+            if (psi != null) return psi;
+        }
+        return fallback;
     }
 }

@@ -9,6 +9,7 @@ package com.limemojito.oss.mql.catalog;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -37,6 +38,11 @@ public final class GenerateInspectionCatalogAction extends AnAction {
 
     private static final Logger LOG = Logger.getInstance(GenerateInspectionCatalogAction.class);
     private static final String NOTIFICATION_GROUP = "MQL Inspection Catalog";
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
