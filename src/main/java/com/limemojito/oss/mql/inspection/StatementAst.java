@@ -15,7 +15,9 @@ import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -702,7 +704,16 @@ final class StatementAst implements MQL4Elements {
         return findArrayAccess(root) != null;
     }
 
-    /** The {@code IDENTIFIER} node of the first array index access ({@code id[...]}), or null — for anchoring. */
+    /**
+     * The {@code IDENTIFIER} node of the first array index READ ({@code id[...]}), or null — for
+     * anchoring. Deliberately excludes a {@code VAR_DEFINITION} name — a variable DECLARATION's
+     * array-size brackets ({@code double col[1];}) are not an index read. In practice the parser
+     * already keeps that name's siblings from including the size brackets at all (they end up
+     * flattened as siblings of the enclosing {@code VAR_DECLARATION_STATEMENT} instead, a parser
+     * recovery quirk of {@code VarDeclarationStatement}), so this guard is belt-and-braces: it makes
+     * the exclusion an explicit, obviously-correct structural check rather than an accidental
+     * byproduct of that recovery path.
+     */
     @Nullable
     static ASTNode findArrayAccess(@Nullable ASTNode root) {
         if (root == null) return null;
@@ -710,7 +721,11 @@ final class StatementAst implements MQL4Elements {
             ProgressManager.checkCanceled();
             if (child.getElementType() == IDENTIFIER) {
                 ASTNode next = nextNonTrivia(child);
-                if (next != null && next.getElementType() == L_SQUARE_BRACKET) return child;
+                ASTNode parent = child.getTreeParent();
+                if (next != null && next.getElementType() == L_SQUARE_BRACKET
+                        && (parent == null || parent.getElementType() != VAR_DEFINITION)) {
+                    return child;
+                }
             }
             ASTNode found = findArrayAccess(child);
             if (found != null) return found;
@@ -755,6 +770,42 @@ final class StatementAst implements MQL4Elements {
             if (psi != null) return psi;
         }
         return fallback;
+    }
+
+    /**
+     * True when a call's {@code (...)} args are exactly {@code expectedCount} top-level,
+     * comma-separated arguments, each a single bare {@code IDENTIFIER} token — no member access,
+     * literal, or nested call/expression. This is the MQL5 request/result struct-call idiom
+     * ({@code OrderSend(request, result)}, or {@code OrderSend(buy_request, buy_result)|
+     * DualOrderManager.mqh:698}), as opposed to the MQL4 positional form
+     * ({@code OrderSend(symbol, cmd, volume, price, ...)}), which always has more than two
+     * arguments and/or non-identifier operands (literals, expressions).
+     */
+    static boolean callArgsAreBareIdentifiers(@NotNull ASTNode callIdentifier, int expectedCount) {
+        ASTNode argsBlock = callArgsBlock(callIdentifier);
+        if (argsBlock == null) return false;
+        List<List<ASTNode>> segments = new ArrayList<>();
+        List<ASTNode> current = new ArrayList<>();
+        boolean sawAny = false;
+        for (ASTNode child = argsBlock.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            IElementType t = child.getElementType();
+            if (t == L_ROUND_BRACKET || t == R_ROUND_BRACKET || isTrivia(child)) continue;
+            if (t == COMMA) {
+                segments.add(current);
+                current = new ArrayList<>();
+            } else {
+                current.add(child);
+                sawAny = true;
+            }
+        }
+        if (sawAny || !segments.isEmpty()) {
+            segments.add(current);
+        }
+        if (segments.size() != expectedCount) return false;
+        for (List<ASTNode> segment : segments) {
+            if (segment.size() != 1 || segment.get(0).getElementType() != IDENTIFIER) return false;
+        }
+        return true;
     }
 
     /**

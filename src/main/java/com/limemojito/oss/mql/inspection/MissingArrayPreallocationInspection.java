@@ -17,10 +17,20 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Set;
 
+/**
+ * Flags a function that calls the plain 2-arg {@code ArrayResize(array, new_size)} more than twice
+ * — the repeated-reallocation antipattern the message describes. An {@code ArrayResize} call that
+ * already supplies the 3rd (reserve) argument (TrendConfirmation.mqh:660/675 — the doc-endorsed
+ * {@code ArrayResize(array, new_size, reserve_size)} pre-allocation form, see arrayresize.html) is
+ * already pre-allocated and must not count toward the threshold, whichever array it targets.
+ */
 public class MissingArrayPreallocationInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Multiple incremental ArrayResize() calls — use reserve parameter for pre-allocation";
+
+    private static final Set<String> ARRAY_RESIZE_NAMES = Set.of("ArrayResize");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -29,7 +39,13 @@ public class MissingArrayPreallocationInspection extends MQL5SafetyInspectionBas
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.countCalls(body, "ArrayResize") > 2) {
+                int[] unreservedCount = {0};
+                StatementAst.forEachCall(body, ARRAY_RESIZE_NAMES, callId -> {
+                    if (StatementAst.callArgCount(callId) < 3) {
+                        unreservedCount[0]++;
+                    }
+                });
+                if (unreservedCount[0] > 2) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

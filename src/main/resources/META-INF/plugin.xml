@@ -403,7 +403,14 @@
                          displayName="Missing error recovery for OrderSend()"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingErrorRecoveryInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <!-- Retired to default-OFF (Fable FP, 3/3 real findings): the ">3 GetLastError() calls in one
+             function" threshold flagged ordinary per-operation error logging in every real candidate
+             — RIGGWIRE_FINAL.mq5's OnTick (4 calls), SessionRules.mqh:812 ManageRolloverTransition
+             (4 calls), DualOrderManager.mqh:293 PlaceDualPendingOrders (6 calls, the codebase-wide
+             maximum). No function anywhere in the codebase exceeds 6, so there is no threshold that
+             both stays below the max legitimate case and still catches a genuinely over-complex one —
+             raising it would just make the inspection permanently silent while still opt-in-visible. -->
+        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Over-complex error handling"
                          implementationClass="com.limemojito.oss.mql.inspection.OverComplexErrorHandlingInspection"/>
         <!--suppress PluginXmlI18n -->

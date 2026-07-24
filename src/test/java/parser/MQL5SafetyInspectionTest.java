@@ -172,6 +172,39 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { double arr[]; if(ArraySize(arr) > 0) int x = arr[0]; }");
     }
 
+    public void testArrayAccessBoundParameterCompanionClean() {
+        // LEIlight.mq5:3935/3940 RWTop (Fable FP): the array parameter `data[]` is bounds-checked
+        // against a companion `arraySize` PARAMETER, not an in-body ArraySize() call — same shape as
+        // RWBottom/IsPotentialTop/IsPotentialBottom (3957/4020/4052).
+        assertNoProblems(new ArrayAccessWithoutSizeCheckInspection(),
+                "bool RWTop(const double &data[], int currIndex, int order, int arraySize) {\n" +
+                "  if(currIndex < order || currIndex >= arraySize - order) return false;\n" +
+                "  const double v = data[currIndex];\n" +
+                "  return true; }");
+    }
+
+    public void testArrayAccessGuardComparisonClean() {
+        // PositionManagement.mqh:270/279 (Fable FP): the index is guarded by an `if(s < 0) continue;`
+        // sentinel check against a variable rather than a literal ArraySize() call at the access site.
+        assertNoProblems(new ArrayAccessWithoutSizeCheckInspection(),
+                "void foo() { int s = FindOrCreate();\n" +
+                "  if(s < 0) return;\n" +
+                "  double r = g_state[s].R; }");
+    }
+
+    public void testArrayAccessNoSizeInfoAtAllStillFlags() {
+        // Genuine positive: no ArraySize/bound-parameter/guard-comparison anywhere — must still flag.
+        assertHasProblems(new ArrayAccessWithoutSizeCheckInspection(),
+                "void foo(int i) { double arr[]; double x = arr[i]; }");
+    }
+
+    public void testArrayAccessDeclarationBracketsNotMisreadAsAccessClean() {
+        // A variable DECLARATION's array-size brackets (`double col[1];`) are not an index read —
+        // a function containing only a declaration, with no real array access, must not be flagged.
+        assertNoProblems(new ArrayAccessWithoutSizeCheckInspection(),
+                "void foo() { double col[1]; }");
+    }
+
     public void testMissingInputValidation() {
         // Smoke test — depends on parser producing INPUT_KEYWORD in VAR_DECLARATION_STATEMENT
         assertInspectionRuns(new MissingInputValidationInspection(),
@@ -558,6 +591,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { ArrayResize(arr, 1); ArrayResize(arr, 2); ArrayResize(arr, 3); }");
     }
 
+    public void testMissingArrayPreallocationReserveArgClean() {
+        // TrendConfirmation.mqh:660/675 (Fable FP): every call already supplies the 3rd (reserve)
+        // argument — the doc-endorsed pre-allocation form (arrayresize.html) — so none of them should
+        // count toward the "multiple incremental resizes" threshold.
+        assertNoProblems(new MissingArrayPreallocationInspection(),
+                "void foo() { ArrayResize(arr, 1, 50); ArrayResize(arr, 2, 50); ArrayResize(arr, 3, 50); }");
+    }
+
     public void testLazyEvaluationMiss() {
         // Retired: the old "indicator call then a later if" heuristic fired on nearly every OnTick and
         // misread MQL5's already-short-circuit && / ||. The inspection now reports nothing.
@@ -605,6 +646,32 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testSafeApiUsage() {
         assertInspectionRuns(new SafeApiUsageInspection(),
                 "void foo() { OrderSend(request, result); }");
+    }
+
+    public void testSafeApiUsageStructFormCleanNoVolumeAtCallSite() {
+        // DualOrderManager.mqh:1048 (Fable FP): a TRADE_ACTION_SLTP request via the MQL5
+        // request/result struct form carries no volume argument at the call site at all — "validate
+        // lot size before sending" is meaningless here, so it must not be flagged.
+        assertNoProblems(new SafeApiUsageInspection(),
+                "void foo() { MqlTradeRequest request; MqlTradeResult result;\n" +
+                "  request.action = TRADE_ACTION_SLTP;\n" +
+                "  if(!OrderSend(request, result) || result.retcode != TRADE_RETCODE_DONE) { Print(\"err\"); } }");
+    }
+
+    public void testSafeApiUsageStructFormDifferentIdentifierNamesClean() {
+        // DualOrderManager.mqh:698/785: buy_request/buy_result, sell_request/sell_result — the struct
+        // form is recognised by SHAPE (2 bare-identifier args), not by the literal names
+        // "request"/"result".
+        assertNoProblems(new SafeApiUsageInspection(),
+                "void foo() { MqlTradeRequest buy_request; MqlTradeResult buy_result;\n" +
+                "  if(!OrderSend(buy_request, buy_result) || buy_result.retcode != TRADE_RETCODE_DONE) { Print(\"err\"); } }");
+    }
+
+    public void testSafeApiUsageMql4PositionalFormStillFlags() {
+        // The MQL4 positional form genuinely carries a volume argument (0.1) with no validation
+        // nearby — this is the real antipattern the inspection targets and must still be flagged.
+        assertHasProblems(new SafeApiUsageInspection(),
+                "void foo() { OrderSend(Symbol(), OP_BUY, 0.1, Ask, 3, 0, 0); }");
     }
 
     public void testFileOperationValidation() {
@@ -1126,6 +1193,21 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertNoProblems(new StringConcatInLoopInspection(),
                 "void f() { string s; for(int i=0; i<10; i++) Work(i);\n" +
                 "  if(cond) { s = s + \"x\"; } }");
+    }
+
+    public void testStringConcatInLoopCompoundAddFlags() {
+        // The self-accumulation antipattern via '+=' (compound add) must also be flagged — the old
+        // check only matched a bare '+' adjacent to a string literal and silently missed 's += x;'.
+        assertHasProblems(new StringConcatInLoopInspection(),
+                "void foo() { string s; for(int i=0; i<10; i++) { s += \"x\"; } }");
+    }
+
+    public void testStringConcatInLoopFreshVariableCleanNoFalsePositive() {
+        // MarketProfile.mq5:2050 and ~11 similar object-name-building loops: a FRESH per-iteration
+        // concat into a brand-new variable is not self-accumulation — it allocates one string per
+        // iteration either way, so it is not the "grows a buffer across iterations" antipattern.
+        assertNoProblems(new StringConcatInLoopInspection(),
+                "void foo() { for(int i=0; i<10; i++) { string t = a + b; } }");
     }
 
     public void testUnconditionalOrderLoopBareCallInBody() {

@@ -18,6 +18,18 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * Flags an {@code OrderSend()} call with no visible lot-size validation nearby — but only the MQL4
+ * positional form ({@code OrderSend(symbol, cmd, volume, price, ...)}), where a volume argument is
+ * actually present to validate. The MQL5 request/result struct form
+ * ({@code OrderSend(request, result)} — two bare-identifier arguments, e.g.
+ * DualOrderManager.mqh:1048's {@code TRADE_ACTION_SLTP} call, or TradingUtilities.mqh:615/983's
+ * {@code TRADE_ACTION_SLTP}/{@code TRADE_ACTION_MODIFY}/{@code TRADE_ACTION_DEAL} calls) carries no
+ * volume parameter at the call site at all — the volume (if any) lives inside the
+ * {@code MqlTradeRequest} struct, built up over many statements before the call in ways this
+ * single-call text/identifier scan cannot follow — so "validate lot size before sending" is
+ * meaningless there and must not be demanded.
+ */
 public class SafeApiUsageInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "OrderSend() without volume validation — validate lot size before sending orders";
@@ -30,7 +42,7 @@ public class SafeApiUsageInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 ASTNode call = StatementAst.findCall(body, "OrderSend");
-                if (call != null) {
+                if (call != null && !StatementAst.callArgsAreBareIdentifiers(call, 2)) {
                     boolean hasVolumeCheck = StatementAst.hasIdentifier(body, "SYMBOL_VOLUME_MIN")
                             || StatementAst.hasIdentifier(body, "SYMBOL_VOLUME_MAX")
                             || StatementAst.hasIdentifier(body, "SYMBOL_VOLUME_STEP")
