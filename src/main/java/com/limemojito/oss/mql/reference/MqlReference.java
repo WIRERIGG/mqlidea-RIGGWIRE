@@ -10,6 +10,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementResolveResult;
 import com.intellij.psi.PsiPolyVariantReferenceBase;
 import com.intellij.psi.ResolveResult;
+import com.intellij.psi.impl.source.resolve.ResolveCache;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.NotNull;
@@ -30,8 +31,21 @@ public class MqlReference extends PsiPolyVariantReferenceBase<PsiElement> {
         super(element, new TextRange(0, element.getTextLength()));
     }
 
+    /** Shared cached resolver — the actual resolution runs once and is reused until a PSI change. */
+    private static final ResolveCache.PolyVariantResolver<MqlReference> RESOLVER =
+            (ref, incompleteCode) -> ref.resolveUncached();
+
     @Override
     public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
+        if (!myElement.isValid()) {
+            return ResolveResult.EMPTY_ARRAY;
+        }
+        // ResolveCache makes repeat resolves (highlight, Ctrl-click, isSoft's own resolve()) free
+        // until a PSI modification, instead of re-running the 3-tier #include-closure resolution.
+        return ResolveCache.getInstance(myElement.getProject()).resolveWithCaching(this, RESOLVER, false, incompleteCode);
+    }
+
+    private ResolveResult @NotNull [] resolveUncached() {
         String name = myElement.getText();
         if (name.isEmpty()) {
             return ResolveResult.EMPTY_ARRAY;

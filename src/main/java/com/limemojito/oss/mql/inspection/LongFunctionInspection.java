@@ -9,12 +9,15 @@ package com.limemojito.oss.mql.inspection;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.lang.ASTNode;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -26,13 +29,15 @@ public class LongFunctionInspection extends MQL5SafetyInspectionBase {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
+        // Get the document once and count lines from offsets (O(log n)) instead of copying each
+        // function body to a String (the largest strings in the file) on every daemon pass.
+        Document document = file.getViewProvider().getDocument();
         for (PsiElement child : file.getChildren()) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(func);
                 if (body == null) continue;
-                String text = body.getText();
-                int lineCount = countLines(text);
+                int lineCount = lineCount(document, body.getTextRange());
                 if (lineCount > MAX_LINES) {
                     problems.add(createWeakWarning(manager, func.getNavigationElement(),
                             String.format(MESSAGE, func.getFunctionName(), lineCount)));
@@ -42,13 +47,10 @@ public class LongFunctionInspection extends MQL5SafetyInspectionBase {
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
-    private static int countLines(@NotNull String text) {
-        int count = 1;
-        for (int i = 0; i < text.length(); i++) {
-            if (text.charAt(i) == '\n') {
-                count++;
-            }
+    private static int lineCount(@Nullable Document document, @NotNull TextRange range) {
+        if (document == null || range.getEndOffset() > document.getTextLength()) {
+            return 0; // no reliable document (essentially never for an inspected file) — don't flag
         }
-        return count;
+        return document.getLineNumber(range.getEndOffset()) - document.getLineNumber(range.getStartOffset()) + 1;
     }
 }

@@ -27,15 +27,17 @@ import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rules to highlight MQL4 Language source code.
  */
 public class MQL4SyntaxHighlighter extends SyntaxHighlighterBase {
 
-    private static final Map<IElementType, TextAttributesKey[]> KEYS_BY_TYPE = new HashMap<>();
+    // ConcurrentHashMap: getTokenHighlights runs concurrently across editor threads and lazily
+    // populates this map via computeIfAbsent — a plain HashMap would race/corrupt on resize.
+    private static final Map<IElementType, TextAttributesKey[]> KEYS_BY_TYPE = new ConcurrentHashMap<>();
 
     static {
         put(MQL4Elements.BAD_CHARACTER, HighlighterColors.BAD_CHARACTER);

@@ -155,12 +155,15 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
         return isSuppressedAtFileLevel(element.getContainingFile(), id);
     }
 
+    private static final java.util.Map<String, java.util.regex.Pattern> SUPPRESS_PATTERNS = new java.util.concurrent.ConcurrentHashMap<>();
+
     private static boolean isSuppressedAtFileLevel(@Nullable PsiFile file, @NotNull String id) {
         if (file == null) {
             return false;
         }
-        java.util.regex.Pattern marker = java.util.regex.Pattern.compile(
-                "\\bnoinspection\\b.*(\\b" + java.util.regex.Pattern.quote(id) + "\\b|\\bALL\\b)");
+        // Cache the compiled marker per inspection id — this runs per reported problem per inspection.
+        java.util.regex.Pattern marker = SUPPRESS_PATTERNS.computeIfAbsent(id, k ->
+                java.util.regex.Pattern.compile("\\bnoinspection\\b.*(\\b" + java.util.regex.Pattern.quote(k) + "\\b|\\bALL\\b)"));
         for (PsiElement child : file.getChildren()) {
             if (child instanceof com.intellij.psi.PsiComment comment) {
                 if (marker.matcher(comment.getText()).find()) {
