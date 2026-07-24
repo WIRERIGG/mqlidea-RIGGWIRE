@@ -12,6 +12,12 @@ import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.SuppressIntentionAction;
+import com.intellij.codeInspection.SuppressionUtil;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiComment;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.util.IncorrectOperationException;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
@@ -58,10 +64,116 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
             "CopyBuffer", "CopyTicks", "CopyTicksRange"
     );
 
+    /**
+     * Comment-based suppression. Adds "Suppress for function/statement/file" quick-fixes and
+     * recognises {@code //noinspection <InspectionId>} comments — previously advertised (via
+     * {@link CustomSuppressableInspectionTool}) but returned {@code null}, so nothing could be
+     * suppressed. A trading-safety linter with heuristic checks needs a per-site escape hatch or
+     * users disable the whole inspection on the first false positive.
+     */
     @Nullable
     @Override
     public SuppressIntentionAction[] getSuppressActions(@Nullable PsiElement psiElement) {
-        return null;
+        String id = getID();
+        return new SuppressIntentionAction[]{
+                new MqlSuppressFix(id, false),
+                new MqlSuppressFix(id, true),
+        };
+    }
+
+    /**
+     * Inserts a {@code //noinspection <id>} comment above the enclosing function (or at the top of
+     * the file) — a self-contained suppression fix (the platform's {@code SuppressByCommentFix} is
+     * not exported in the lang-only module).
+     */
+    private static final class MqlSuppressFix extends SuppressIntentionAction {
+        private final String id;
+        private final boolean fileLevel;
+
+        MqlSuppressFix(@NotNull String id, boolean fileLevel) {
+            this.id = id;
+            this.fileLevel = fileLevel;
+        }
+
+        @NotNull
+        @Override
+        public String getText() {
+            return fileLevel ? "Suppress '" + id + "' for file" : "Suppress '" + id + "' for function";
+        }
+
+        @NotNull
+        @Override
+        public String getFamilyName() {
+            return "Suppress MQL inspection";
+        }
+
+        @Override
+        public boolean isAvailable(@NotNull Project project, Editor editor, @NotNull PsiElement element) {
+            return holderFor(element) != null;
+        }
+
+        @Override
+        public void invoke(@NotNull Project project, Editor editor, @NotNull PsiElement element) throws IncorrectOperationException {
+            PsiElement holder = holderFor(element);
+            if (holder == null) {
+                return;
+            }
+            PsiComment comment = SuppressionUtil.createComment(project, SuppressionUtil.SUPPRESS_INSPECTIONS_TAG_NAME + " " + id, holder.getLanguage());
+            if (fileLevel) {
+                PsiElement first = holder.getFirstChild();
+                if (first != null) {
+                    holder.addBefore(comment, first);
+                } else {
+                    holder.add(comment);
+                }
+            } else {
+                PsiElement parent = holder.getParent();
+                if (parent != null) {
+                    parent.addBefore(comment, holder);
+                }
+            }
+        }
+
+        @Nullable
+        private PsiElement holderFor(@NotNull PsiElement element) {
+            return fileLevel
+                    ? element.getContainingFile()
+                    : PsiTreeUtil.getParentOfType(element, MQL4FunctionElement.class, false);
+        }
+    }
+
+    @Override
+    public boolean isSuppressedFor(@NotNull PsiElement element) {
+        String id = getID();
+        // Function-scoped: //noinspection <id> on the line above the enclosing function.
+        MQL4FunctionElement function = PsiTreeUtil.getParentOfType(element, MQL4FunctionElement.class, false);
+        if (function != null && SuppressionUtil.isSuppressedInStatement(element, id, MQL4FunctionElement.class)) {
+            return true;
+        }
+        // File-scoped: a //noinspection <id> comment among the file's leading comments.
+        return isSuppressedAtFileLevel(element.getContainingFile(), id);
+    }
+
+    private static boolean isSuppressedAtFileLevel(@Nullable PsiFile file, @NotNull String id) {
+        if (file == null) {
+            return false;
+        }
+        java.util.regex.Pattern marker = java.util.regex.Pattern.compile(
+                "\\bnoinspection\\b.*(\\b" + java.util.regex.Pattern.quote(id) + "\\b|\\bALL\\b)");
+        for (PsiElement child : file.getChildren()) {
+            if (child instanceof com.intellij.psi.PsiComment comment) {
+                if (marker.matcher(comment.getText()).find()) {
+                    return true;
+                }
+                continue;
+            }
+            // Keep scanning across leading whitespace; stop once we reach real code.
+            if (child instanceof com.intellij.psi.PsiWhiteSpace) {
+                continue;
+            }
+            break;
+        }
+        return false;
     }
 
     /**
