@@ -16,6 +16,9 @@ import com.intellij.icons.AllIcons;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.ProcessingContext;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 import com.limemojito.oss.mql.MqlBuiltinDialect;
 import com.limemojito.oss.mql.MqlDialect;
 import com.limemojito.oss.mql.doc.BuiltinSignature;
@@ -54,15 +57,38 @@ public class MQL4BuiltinCompletionProvider extends CompletionProvider<Completion
     static final double PRIORITY_BUILTIN_OTHER = 5.0;
     static final double PRIORITY_STDLIB_CLASS = 8.0;
 
+    // The built-in / std-lib catalogs are immutable, so the lookup elements are identical every
+    // invocation — build them once per dialect and reuse, instead of reconstructing ~2,000 builders
+    // (icons, tail text, insert handlers) on every keystroke that opens completion.
+    private static volatile List<LookupElement> mql5Elements;
+    private static volatile List<LookupElement> mql4Elements;
+
     @Override
     protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
-        PsiFile file = parameters.getOriginalFile();
-        boolean isMql5 = MqlDialect.isMql5(file);
+        boolean isMql5 = MqlDialect.isMql5(parameters.getOriginalFile());
+        result.addAllElements(cachedElements(isMql5));
+    }
 
+    private static List<LookupElement> cachedElements(boolean isMql5) {
+        List<LookupElement> cached = isMql5 ? mql5Elements : mql4Elements;
+        if (cached != null) {
+            return cached;
+        }
+        List<LookupElement> built = buildAll(isMql5);
+        if (isMql5) {
+            mql5Elements = built;
+        } else {
+            mql4Elements = built;
+        }
+        return built;
+    }
+
+    private static List<LookupElement> buildAll(boolean isMql5) {
+        List<LookupElement> elements = new ArrayList<>();
         for (DocEntry entry : MQL4DocumentationProvider.getEntries()) {
             LookupElement element = buildElement(entry, isMql5);
             if (element != null) {
-                result.addElement(element);
+                elements.add(element);
             }
         }
         for (String className : StdLibCatalog.all().keySet()) {
@@ -73,11 +99,12 @@ public class MQL4BuiltinCompletionProvider extends CompletionProvider<Completion
             if (cls != null && cls.parent != null) {
                 builder = builder.withTailText(" : " + cls.parent, true);
             }
-            result.addElement(PrioritizedLookupElement.withPriority(builder, PRIORITY_STDLIB_CLASS));
+            elements.add(PrioritizedLookupElement.withPriority(builder, PRIORITY_STDLIB_CLASS));
         }
+        return List.copyOf(elements);
     }
 
-    private LookupElement buildElement(@NotNull DocEntry entry, boolean isMql5) {
+    private static LookupElement buildElement(@NotNull DocEntry entry, boolean isMql5) {
         if (entry.type == DocEntryType.BuiltInFunction) {
             if (MqlBuiltinDialect.isExcludedFromDialect(entry.text, isMql5)) {
                 return null;
