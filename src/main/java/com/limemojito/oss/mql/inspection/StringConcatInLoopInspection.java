@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * String concatenation inside a loop, scoped via the statement AST — but only the genuine
@@ -39,6 +40,16 @@ import java.util.List;
 public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase implements MQL4Elements {
 
     private static final String MESSAGE = "String concatenation inside loop — use StringConcatenate() or StringAdd() for better performance";
+
+    // Value-returning MQL string builtins. A self-accumulation RHS calling one of these
+    // (json += FileReadString(h); s += IntegerToString(i);) is genuine string accumulation even
+    // with no string literal present — distinguishing it from numeric accumulation (total += MathAbs(x))
+    // without type resolution.
+    private static final Set<String> STRING_RETURNING_BUILTINS = Set.of(
+            "FileReadString", "StringSubstr", "StringFormat", "TimeToString", "TimeToStr",
+            "IntegerToString", "DoubleToString", "DoubleToStr", "CharToString", "ShortToString",
+            "CharArrayToString", "ShortArrayToString", "EnumToString", "ColorToString",
+            "AccountInfoString", "SymbolInfoString", "TerminalInfoString", "StringToLower", "StringToUpper");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -82,7 +93,7 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase imple
                 ASTNode lhs = StatementAst.prevNonTrivia(child);
                 if (lhs != null && lhs.getElementType() == IDENTIFIER) {
                     boolean selfAccumulates = (t == PLUS_EQ) || rhsHasIdentifier(child, lhs.getText());
-                    if (selfAccumulates && rhsHasStringLiteral(child)) {
+                    if (selfAccumulates && (rhsHasStringLiteral(child) || rhsHasStringReturningCall(child))) {
                         return child;
                     }
                 }
@@ -130,6 +141,31 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase imple
         if (node.getElementType() == STRING_LITERAL) return true;
         for (ASTNode child = node.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             if (containsStringLiteral(child)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * True when the RHS (siblings between {@code operator} and the terminating {@code SEMICOLON})
+     * calls a value-returning string builtin — so {@code json += FileReadString(h);} accumulation is
+     * recognised as string accumulation even without a string literal.
+     */
+    private static boolean rhsHasStringReturningCall(@NotNull ASTNode operator) {
+        for (ASTNode sib = operator.getTreeNext(); sib != null && sib.getElementType() != SEMICOLON; sib = sib.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (containsStringReturningCall(sib)) return true;
+        }
+        return false;
+    }
+
+    private static boolean containsStringReturningCall(@NotNull ASTNode node) {
+        if (node.getElementType() == IDENTIFIER
+                && STRING_RETURNING_BUILTINS.contains(node.getText())
+                && StatementAst.isCallIdentifierAnyScope(node)) {
+            return true;
+        }
+        for (ASTNode child = node.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            if (containsStringReturningCall(child)) return true;
         }
         return false;
     }

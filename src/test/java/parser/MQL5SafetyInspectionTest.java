@@ -1210,6 +1210,20 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { for(int i=0; i<10; i++) { string t = a + b; } }");
     }
 
+    public void testStringConcatInLoopBuiltinAccumulationFlags() {
+        // Real O(n^2) accumulation with no string literal (RiskManager.mqh:2722-shaped):
+        // json += FileReadString(handle); — a string-returning builtin RHS is string accumulation.
+        assertHasProblems(new StringConcatInLoopInspection(),
+                "void foo() { string json; while(!done) { json += FileReadString(handle); } }");
+    }
+
+    public void testStringConcatInLoopNumericAccumulationClean() {
+        // Numeric accumulation is not this inspection's antipattern — no string literal, no string
+        // builtin on the RHS, so it must not flag (the message recommends StringConcatenate()).
+        assertNoProblems(new StringConcatInLoopInspection(),
+                "void foo() { double total = 0; for(int i=0; i<10; i++) { total += MathAbs(i); } }");
+    }
+
     public void testUnconditionalOrderLoopBareCallInBody() {
         assertHasProblems(new UnconditionalOrderLoopInspection(),
                 "void OnTick() { for(int i=0; i<total; i++) { OrderSelect(i, SELECT_BY_POS); } }");

@@ -190,7 +190,14 @@
                          displayName="Missing IndicatorRelease() in OnDeinit"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingIndicatorReleaseInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <!-- Retired to default-OFF (Fable): reliably telling a guarded index access from an
+             out-of-bounds one needs real index-aware dataflow/bounds analysis, which this
+             token-heuristic cannot do. The relaxed size-aware guard silences ~83% of sites
+             regardless of whether the ACTUAL index is bounds-checked (so it cannot catch a real
+             OOB where a bug lives), while its survivors are still false positives (a genuine
+             `if(CopyBuffer(...) < 1) return;` size guard is not recognised). Opt-in only until an
+             index-aware version exists. -->
+        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WARNING"
                          displayName="Array access without size check"
                          implementationClass="com.limemojito.oss.mql.inspection.ArrayAccessWithoutSizeCheckInspection"/>
         <!--suppress PluginXmlI18n -->
