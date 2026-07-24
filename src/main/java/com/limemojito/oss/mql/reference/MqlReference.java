@@ -10,9 +10,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementResolveResult;
 import com.intellij.psi.PsiPolyVariantReferenceBase;
 import com.intellij.psi.ResolveResult;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.doc.MQL4DocumentationProvider;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 
 import java.util.List;
 
@@ -32,6 +34,12 @@ public class MqlReference extends PsiPolyVariantReferenceBase<PsiElement> {
     public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
         String name = myElement.getText();
         if (name.isEmpty()) {
+            return ResolveResult.EMPTY_ARRAY;
+        }
+        // Member access (`obj.field` / `obj.method()`): the receiver's type is unknown (no type
+        // inference yet), so resolving `field` as a free identifier would wrongly jump to any
+        // same-named global/function in the include closure. Don't resolve it here.
+        if (isMemberAccess()) {
             return ResolveResult.EMPTY_ARRAY;
         }
         List<PsiElement> targets = MqlResolveUtil.resolve(myElement, name);
@@ -54,11 +62,22 @@ public class MqlReference extends PsiPolyVariantReferenceBase<PsiElement> {
 
     @Override
     public boolean isSoft() {
+        // Member accesses are intentionally unresolved (see multiResolve) until type inference
+        // exists — they must never be flagged as an unresolved-reference error.
+        if (isMemberAccess()) {
+            return true;
+        }
         // Honesty rule (REVAMP_PLAN.md #3b): MQL has ~2,000 built-in functions/constants we don't
         // yet resolve to real PSI (that needs the synthetic-PSI std-lib catalog planned for Phase
         // 6). Until then, a name that IS a documented built-in must never be treated as an error
         // by any future "unresolved reference" check -- mark it soft instead of hard-failing.
         return resolve() == null && MQL4DocumentationProvider.getEntryByText(myElement.getText()) != null;
+    }
+
+    /** True when this identifier is the member side of a {@code receiver.member} access (preceded by {@code .}). */
+    private boolean isMemberAccess() {
+        PsiElement prev = PsiTreeUtil.prevVisibleLeaf(myElement);
+        return prev != null && prev.getNode().getElementType() == MQL4Elements.DOT;
     }
 
     @NotNull

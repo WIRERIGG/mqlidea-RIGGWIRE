@@ -29,10 +29,11 @@ public class UnsafeArrayCopyInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasCall(body, "ArrayCopy")) {
+                ASTNode call = StatementAst.findCall(body, "ArrayCopy");
+                if (call != null) {
                     if (!StatementAst.hasCall(body, "ArraySize")
                             && !StatementAst.hasCall(body, "ArrayRange")) {
-                        problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
+                        problems.add(createWeakWarning(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                     }
                 }
             }

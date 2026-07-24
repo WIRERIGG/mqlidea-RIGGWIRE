@@ -29,13 +29,14 @@ public class MissingErrorRecoveryInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasCall(body, "OrderSend")) {
+                ASTNode orderSend = StatementAst.findCall(body, "OrderSend");
+                if (orderSend != null) {
                     String text = StatementAst.heuristicText(body);
                     boolean hasRetry = text.contains("retry") || text.contains("attempt")
                             || StatementAst.hasDescendant(body, StatementAst.LOOP_STATEMENTS);
                     boolean hasErrorHandling = StatementAst.hasCall(body, "GetLastError") || text.contains("retcode");
                     if (hasErrorHandling && !hasRetry) {
-                        problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                        problems.add(createWeakWarning(manager, StatementAst.anchor(orderSend, child.getNavigationElement()), MESSAGE, isOnTheFly));
                     }
                 }
             }

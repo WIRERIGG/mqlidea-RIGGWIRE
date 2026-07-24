@@ -39,20 +39,23 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
                 // One problem per function (preserves the original cardinality): the message names
-                // the first delete found whose variable is never subsequently nulled.
-                String[] offender = {null};
+                // the first delete found whose variable is never subsequently nulled. Anchor at that
+                // delete's identifier, not the function header.
+                ASTNode[] offenderNode = {null};
+                String[] offenderName = {null};
                 StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
-                    if (offender[0] != null) return;
+                    if (offenderNode[0] != null) return;
                     ASTNode idNode = StatementAst.deletedIdentifier(stmt);
                     if (idNode == null) return;
                     String name = idNode.getText();
                     if (!StatementAst.hasNullAssignmentAfter(body, name, stmt.getTextRange().getEndOffset())) {
-                        offender[0] = name;
+                        offenderNode[0] = idNode;
+                        offenderName[0] = name;
                     }
                 });
-                if (offender[0] != null) {
-                    problems.add(createWarning(manager, child.getNavigationElement(),
-                            String.format(MESSAGE, offender[0], offender[0])));
+                if (offenderNode[0] != null) {
+                    problems.add(createWarning(manager, StatementAst.anchor(offenderNode[0], child.getNavigationElement()),
+                            String.format(MESSAGE, offenderName[0], offenderName[0])));
                 }
             }
         }

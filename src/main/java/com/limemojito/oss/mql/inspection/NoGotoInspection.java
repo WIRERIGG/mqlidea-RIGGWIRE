@@ -30,8 +30,9 @@ public class NoGotoInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasIdentifier(body, "goto")) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                ASTNode gotoNode = StatementAst.findIdentifier(body, "goto");
+                if (gotoNode != null) {
+                    problems.add(createWarning(manager, StatementAst.anchor(gotoNode, child.getNavigationElement()), MESSAGE));
                 }
             }
         }

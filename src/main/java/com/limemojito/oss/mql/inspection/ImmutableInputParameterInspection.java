@@ -56,8 +56,9 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
                 for (String inputName : inputNames) {
-                    if (isReassigned(body, inputName)) {
-                        problems.add(createWarning(manager, child.getNavigationElement(),
+                    ASTNode target = findReassignment(body, inputName);
+                    if (target != null) {
+                        problems.add(createWarning(manager, StatementAst.anchor(target, child.getNavigationElement()),
                                 String.format(MESSAGE, inputName), isOnTheFly));
                     }
                 }
@@ -66,21 +67,25 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
-    private static boolean isReassigned(@NotNull ASTNode root, @NotNull String name) {
+    /** The {@code IDENTIFIER} node of the first reassignment of {@code name}, or null — for anchoring. */
+    @Nullable
+    private static ASTNode findReassignment(@NotNull ASTNode root, @NotNull String name) {
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             IElementType t = child.getElementType();
             if (StatementAst.ASSIGNMENT_OPERATORS.contains(t)) {
                 ASTNode prev = StatementAst.prevNonTrivia(child);
-                if (isName(prev, name)) return true;
+                if (isName(prev, name)) return prev;
             } else if (t == MQL4Elements.PLUS_PLUS || t == MQL4Elements.MINUS_MINUS) {
-                if (isName(StatementAst.prevNonTrivia(child), name) || isName(StatementAst.nextNonTrivia(child), name)) {
-                    return true;
-                }
+                ASTNode prev = StatementAst.prevNonTrivia(child);
+                if (isName(prev, name)) return prev;
+                ASTNode next = StatementAst.nextNonTrivia(child);
+                if (isName(next, name)) return next;
             }
-            if (isReassigned(child, name)) return true;
+            ASTNode found = findReassignment(child, name);
+            if (found != null) return found;
         }
-        return false;
+        return null;
     }
 
     private static boolean isName(@Nullable ASTNode node, @NotNull String name) {

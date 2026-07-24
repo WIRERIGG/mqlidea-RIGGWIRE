@@ -47,16 +47,18 @@ public class MagicNumberInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean[] flagged = {false};
+                // Anchor at the hardcoded literal itself, not the whole function header.
+                ASTNode[] literal = {null};
                 StatementAst.forEachCall(body, TRADING_FUNCS, callId -> {
-                    if (flagged[0]) return;
+                    if (literal[0] != null) return;
                     ASTNode args = StatementAst.callArgsBlock(callId);
-                    if (args != null && StatementAst.hasDescendant(args, DOUBLE_LITERAL)) {
-                        flagged[0] = true;
+                    if (args != null) {
+                        ASTNode found = StatementAst.findDescendant(args, DOUBLE_LITERAL);
+                        if (found != null) literal[0] = found;
                     }
                 });
-                if (flagged[0]) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                if (literal[0] != null) {
+                    problems.add(createWarning(manager, StatementAst.anchor(literal[0], child.getNavigationElement()), MESSAGE));
                 }
             }
         }

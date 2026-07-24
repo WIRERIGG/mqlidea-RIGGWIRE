@@ -29,11 +29,12 @@ public class DeterministicSeedInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasCall(body, "MathSrand")) {
+                ASTNode call = StatementAst.findCall(body, "MathSrand");
+                if (call != null) {
                     if (!StatementAst.hasCall(body, "GetTickCount")
                             && !StatementAst.hasCall(body, "TimeLocal")
                             && !StatementAst.hasCall(body, "TimeCurrent")) {
-                        problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
+                        problems.add(createWeakWarning(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                     }
                 }
             }

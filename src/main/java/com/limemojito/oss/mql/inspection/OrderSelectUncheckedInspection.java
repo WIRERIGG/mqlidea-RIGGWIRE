@@ -46,14 +46,14 @@ public class OrderSelectUncheckedInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean[] flagged = {false};
+                ASTNode[] offending = {null};
                 StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
-                    if (!flagged[0] && "OrderSelect".equals(ReturnValueIgnoredInspection.bareCallName(stmt))) {
-                        flagged[0] = true;
+                    if (offending[0] == null && "OrderSelect".equals(ReturnValueIgnoredInspection.bareCallName(stmt))) {
+                        offending[0] = stmt;
                     }
                 });
-                if (flagged[0]) {
-                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                if (offending[0] != null) {
+                    problems.add(createWeakWarning(manager, StatementAst.anchor(offending[0], child.getNavigationElement()), MESSAGE, isOnTheFly));
                 }
             }
         }

@@ -56,8 +56,9 @@ public class ModernMQL5IdiomInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 for (Map.Entry<String, String> entry : DEPRECATED_FUNCS.entrySet()) {
-                    if (StatementAst.hasCall(body, entry.getKey())) {
-                        problems.add(createWeakWarning(manager, child.getNavigationElement(),
+                    ASTNode call = StatementAst.findCall(body, entry.getKey());
+                    if (call != null) {
+                        problems.add(createWeakWarning(manager, StatementAst.anchor(call, child.getNavigationElement()),
                                 String.format(MESSAGE, entry.getKey(), entry.getValue())));
                     }
                 }

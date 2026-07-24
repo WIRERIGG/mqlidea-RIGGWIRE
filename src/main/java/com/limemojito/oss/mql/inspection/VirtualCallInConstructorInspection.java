@@ -81,18 +81,15 @@ public class VirtualCallInConstructorInspection extends MQL5SafetyInspectionBase
                     String name = funcElem.getFunctionName();
                     if (className.equals(name) || ("~" + className).equals(name)) {
                         ASTNode body = child.findChildByType(MQL4Elements.BRACKETS_BLOCK);
-                        if (body != null && callsAnyVirtualMethod(body, virtualMethodNames)) {
-                            problems.add(createWarning(manager, funcElem.getNavigationElement(), MESSAGE));
+                        ASTNode virtualCall = body == null ? null : StatementAst.findAnyCall(body, virtualMethodNames);
+                        if (virtualCall != null) {
+                            problems.add(createWarning(manager, StatementAst.anchor(virtualCall, funcElem.getNavigationElement()), MESSAGE));
                         }
                     }
                 }
             }
             child = child.getTreeNext();
         }
-    }
-
-    private boolean callsAnyVirtualMethod(@NotNull ASTNode body, @NotNull Set<String> virtualMethodNames) {
-        return StatementAst.hasAnyCall(body, virtualMethodNames);
     }
 
     private boolean hasVirtualKeyword(@NotNull ASTNode funcNode) {

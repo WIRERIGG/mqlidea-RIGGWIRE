@@ -67,7 +67,7 @@ public class OSUtils {
                     return localFS.refreshAndFindFileByIoFile(f);
                 }
             } catch (IOException e) {
-                log.error("Error reading file: " + originTxtFile);
+                log.warn("Error reading file: " + originTxtFile, e);
             }
         }
         return null;

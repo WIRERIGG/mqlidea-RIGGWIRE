@@ -40,20 +40,22 @@ public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase 
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean[] flagged = {false};
+                // Anchor at the dangling use site (the identifier used after delete), not the function header.
+                ASTNode[] danglingUse = {null};
                 StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
-                    if (flagged[0]) return;
+                    if (danglingUse[0] != null) return;
                     ASTNode idNode = StatementAst.deletedIdentifier(stmt);
                     if (idNode == null) return;
                     String name = idNode.getText();
                     ASTNode nextStatement = StatementAst.nextNonTrivia(stmt);
                     if (StatementAst.isNullAssignmentStatement(nextStatement, name)) return;
-                    if (StatementAst.hasIdentifierAfter(body, name, stmt.getTextRange().getEndOffset())) {
-                        flagged[0] = true;
+                    ASTNode use = StatementAst.findIdentifierAfter(body, name, stmt.getTextRange().getEndOffset());
+                    if (use != null) {
+                        danglingUse[0] = use;
                     }
                 });
-                if (flagged[0]) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                if (danglingUse[0] != null) {
+                    problems.add(createWarning(manager, StatementAst.anchor(danglingUse[0], child.getNavigationElement()), MESSAGE, isOnTheFly));
                 }
             }
         }

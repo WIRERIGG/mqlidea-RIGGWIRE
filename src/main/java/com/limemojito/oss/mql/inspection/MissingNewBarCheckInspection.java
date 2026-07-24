@@ -37,7 +37,9 @@ public class MissingNewBarCheckInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && "OnTick".equals(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (body == null || !StatementAst.hasAnyCall(body, HEAVY_FUNCS)) continue;
+                if (body == null) continue;
+                ASTNode heavyCall = StatementAst.findAnyCall(body, HEAVY_FUNCS);
+                if (heavyCall == null) continue;
                 String text = StatementAst.heuristicText(body);
                 boolean hasNewBarGuard = text.contains("IsNewBar")
                         || text.contains("isNewBar")
@@ -46,7 +48,7 @@ public class MissingNewBarCheckInspection extends MQL5SafetyInspectionBase {
                         || StatementAst.hasCall(body, "iTime")
                         || StatementAst.hasCall(body, "Bars");
                 if (!hasNewBarGuard) {
-                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
+                    problems.add(createWeakWarning(manager, StatementAst.anchor(heavyCall, child.getNavigationElement()), MESSAGE));
                 }
             }
         }

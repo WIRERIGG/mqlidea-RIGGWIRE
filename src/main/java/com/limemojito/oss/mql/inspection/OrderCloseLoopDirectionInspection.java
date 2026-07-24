@@ -58,16 +58,17 @@ public class OrderCloseLoopDirectionInspection extends MQL5SafetyInspectionBase 
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean[] flagged = {false};
+                // Anchor at the offending forward loop, not the function header.
+                ASTNode[] offendingLoop = {null};
                 StatementAst.forEachDescendant(body, FOR_STATEMENT, forLoop -> {
-                    if (flagged[0] || !isForwardOrdersLoop(forLoop)) return;
+                    if (offendingLoop[0] != null || !isForwardOrdersLoop(forLoop)) return;
                     ASTNode loopBody = StatementAst.findLoopBody(forLoop);
                     if (loopBody != null && StatementAst.hasAnyCall(loopBody, CLOSE_OR_DELETE)) {
-                        flagged[0] = true;
+                        offendingLoop[0] = forLoop;
                     }
                 });
-                if (flagged[0]) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                if (offendingLoop[0] != null) {
+                    problems.add(createWarning(manager, StatementAst.anchor(offendingLoop[0], child.getNavigationElement()), MESSAGE, isOnTheFly));
                 }
             }
         }

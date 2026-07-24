@@ -31,12 +31,13 @@ public class StackOverflowRiskInspection extends MQL5SafetyInspectionBase {
                 String name = func.getFunctionName();
                 if (name.equals(MQL4FunctionElement.UNKNOWN_NAME) || name.startsWith("~")) continue;
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasCall(body, name)) {
+                ASTNode recursiveCall = StatementAst.findCall(body, name);
+                if (recursiveCall != null) {
                     String text = StatementAst.heuristicText(body);
                     boolean hasDepthCheck = text.contains("depth") || text.contains("level")
                             || text.contains("maxRecurs") || text.contains("MAX_DEPTH");
                     if (!hasDepthCheck) {
-                        problems.add(createWarning(manager, child.getNavigationElement(),
+                        problems.add(createWarning(manager, StatementAst.anchor(recursiveCall, child.getNavigationElement()),
                                 String.format(MESSAGE, name)));
                     }
                 }
