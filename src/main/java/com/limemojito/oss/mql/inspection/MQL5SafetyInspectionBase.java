@@ -415,9 +415,8 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
     }
 
     protected boolean bracketBlockIsEmpty(@NotNull ASTNode bracketsBlock) {
-        String text = bracketsBlock.getText().trim();
-        if (text.length() <= 2) return true;
-        String inner = text.substring(1, text.length() - 1).trim();
-        return inner.isEmpty();
+        // Token-based check (no full-block getText() copy). A block with only comments counts as
+        // empty — appropriate for "the handler does no real work".
+        return StatementAst.codeBlockIsEmpty(bracketsBlock);
     }
 }

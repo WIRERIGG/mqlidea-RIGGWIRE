@@ -78,17 +78,23 @@ public class MQL4StdLibMemberCompletionProvider extends CompletionProvider<Compl
      * ({@code CTrade &tr}), or a pointer ({@code CTrade *tr}) -- and returns {@code ClassName} only
      * if it's a known Standard Library class.
      */
+    // Static (compile-once) "TypeName [&*] name" declaration pattern; group(2) is the declared name.
+    // Was Pattern.compile(qualifier-specific) on every keystroke.
+    private static final Pattern DECL_PATTERN = Pattern.compile("\\b([A-Za-z_]\\w*)\\s*[&*]?\\s*([A-Za-z_]\\w*)\\b");
+
     @Nullable
     static String guessDeclaredStdLibType(@NotNull String fileText, int qualifierOffset, @NotNull String qualifierName) {
         if (qualifierOffset > fileText.length()) {
             qualifierOffset = fileText.length();
         }
-        String before = fileText.substring(0, qualifierOffset);
-        Pattern declPattern = Pattern.compile("\\b([A-Za-z_]\\w*)\\s*[&*]?\\s*" + Pattern.quote(qualifierName) + "\\b");
-        Matcher m = declPattern.matcher(before);
+        // Scan only the text before the qualifier via region() — no substring() copy per keystroke.
+        Matcher m = DECL_PATTERN.matcher(fileText);
+        m.region(0, qualifierOffset);
         String lastCandidate = null;
         while (m.find()) {
-            lastCandidate = m.group(1);
+            if (qualifierName.equals(m.group(2))) {
+                lastCandidate = m.group(1);
+            }
         }
         if (lastCandidate == null || StdLibCatalog.get(lastCandidate) == null) {
             return null;

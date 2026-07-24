@@ -168,6 +168,13 @@ public final class MqlResolveUtil {
             return hits;
         }
 
+        // Skip the project-wide allScope stub query for documented built-ins (Print, ArraySize, …) —
+        // the common case in real EA code. They're never project symbols, so the query always misses;
+        // leaving them unresolved (soft) avoids an index lookup per built-in identifier per resolve.
+        if (com.limemojito.oss.mql.doc.MQL4DocumentationProvider.getEntryByText(name) != null) {
+            return hits;
+        }
+
         // Tier 3: project-wide stub indexes (functions/classes only survive as stubs today; a
         // project-wide global-variable index, sketched in REVAMP_PLAN.md #3b, is a TODO).
         collectIndexed(name, project, GlobalSearchScope.allScope(project), hits);
