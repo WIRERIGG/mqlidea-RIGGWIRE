@@ -47,6 +47,7 @@ public class ArrayAccessWithoutSizeCheckInspection extends MQL5SafetyInspectionB
     private static boolean isSizeAware(@NotNull ASTNode body) {
         java.util.Set<String> ids = StatementAst.collectIdentifiers(body);
         return ids.contains("ArraySize") || ids.contains("ArrayRange")
+                || ids.contains("ArrayResize") || ids.contains("ArrayInitialize") // establish the size
                 || ids.contains("rates_total") || ids.contains("prev_calculated")
                 || ids.contains("Bars") || ids.contains("BarsCalculated") || ids.contains("iBars");
     }

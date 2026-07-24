@@ -785,20 +785,21 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     }
 
     public void testReturnValueIgnored() {
+        // FileOpen (not ArrayResize — that's owned by ArrayResizeReturnCheckInspection now).
         assertHasProblems(new ReturnValueIgnoredInspection(),
-                "void f() { ArrayResize(arr, 100); }");
+                "void f() { FileOpen(\"x.txt\", FILE_READ); }");
     }
 
     public void testReturnValueIgnoredAssignedClean() {
         // Result captured in a declaration — must not flag
         assertNoProblems(new ReturnValueIgnoredInspection(),
-                "void f() { int q = ArrayResize(arr, 100); if(q < 0) return; }");
+                "void f() { int h = FileOpen(\"x.txt\", FILE_READ); if(h < 0) return; }");
     }
 
     public void testReturnValueIgnoredUsedInConditionClean() {
         // Anti-false-positive: call sits inside an if condition, not a bare statement
         assertNoProblems(new ReturnValueIgnoredInspection(),
-                "void f() { if(ArrayResize(arr, 100) < 0) { return; } }");
+                "void f() { if(FileOpen(\"x.txt\", FILE_READ) < 0) { return; } }");
     }
 
     public void testUncheckedOrderSendAssignedClean() {

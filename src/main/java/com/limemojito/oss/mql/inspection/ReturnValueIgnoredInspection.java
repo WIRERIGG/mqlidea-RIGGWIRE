@@ -38,12 +38,12 @@ public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
     // cosmetic/idiomatic calls whose return is routinely and correctly ignored: ObjectDelete
     // (delete-if-exists), ChartSetInteger/Double/String (cosmetic chart props), ArrayCopy/ArraySort
     // (in-place), StringFind/StringReplace (not failure-critical) — those were the false positives.
+    // ArrayResize is intentionally NOT here — ArrayResizeReturnCheckInspection owns it (avoids a
+    // double warning). EventSetTimer/GlobalVariableSet are excluded: the canonical MQL idiom is a
+    // bare EventSetTimer(60); in OnInit, and GlobalVariableSet's datetime return is routinely ignored.
     private static final Set<String> IMPORTANT_FUNCTIONS = Set.of(
-            "ArrayResize",
             "FileOpen", "FileCopy", "FileMove",
-            "GlobalVariableSet",
-            "ObjectCreate",
-            "EventSetTimer", "EventSetMillisecondTimer"
+            "ObjectCreate"
     );
 
     private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);

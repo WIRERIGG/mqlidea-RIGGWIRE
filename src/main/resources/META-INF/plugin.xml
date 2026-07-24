@@ -240,7 +240,7 @@
                          displayName="Empty event handler"
                          implementationClass="com.limemojito.oss.mql.inspection.EmptyEventHandlerInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Missing const on reference parameter"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingConstParameterInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -312,7 +312,7 @@
                          displayName="Uninitialized variable"
                          implementationClass="com.limemojito.oss.mql.inspection.UninitializedVariableInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Type Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Type Safety" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Explicit type cast"
                          implementationClass="com.limemojito.oss.mql.inspection.ImplicitCastInspection"/>
 
@@ -338,7 +338,7 @@
                          displayName="String concatenation in loop"
                          implementationClass="com.limemojito.oss.mql.inspection.StringConcatInLoopInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Performance" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Performance" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Suboptimal container usage"
                          implementationClass="com.limemojito.oss.mql.inspection.SuboptimalContainerInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -386,15 +386,15 @@
                          displayName="Stale handle usage after release"
                          implementationClass="com.limemojito.oss.mql.inspection.StaleHandleUsageInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WARNING"
                          displayName="Incomplete class (Rule of Three)"
                          implementationClass="com.limemojito.oss.mql.inspection.IncompleteClassInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WARNING"
                          displayName="GlobalVariableSet() from multiple functions"
                          implementationClass="com.limemojito.oss.mql.inspection.GlobalVariableConflictInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Missing error recovery for OrderSend()"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingErrorRecoveryInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -402,7 +402,7 @@
                          displayName="Over-complex error handling"
                          implementationClass="com.limemojito.oss.mql.inspection.OverComplexErrorHandlingInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Unsafe ArrayCopy()"
                          implementationClass="com.limemojito.oss.mql.inspection.UnsafeArrayCopyInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -410,7 +410,7 @@
                          displayName="Deprecated MQL4 function in MQL5"
                          implementationClass="com.limemojito.oss.mql.inspection.ModernMQL5IdiomInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Price comparison without NormalizeDouble()"
                          implementationClass="com.limemojito.oss.mql.inspection.DataConsistencyInspection"/>
         <!--suppress PluginXmlI18n -->
