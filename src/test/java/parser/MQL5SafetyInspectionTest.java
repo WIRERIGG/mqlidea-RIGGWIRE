@@ -199,6 +199,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "  if(CopyRates(_Symbol, PERIOD_H1, 0, count, rates) < count) return; }");
     }
 
+    public void testUncheckedCopyRatesUnrelatedLoopStillFlagged() {
+        // Regression: an unrelated `i < rates_total` loop must NOT be mistaken for a failure check
+        // of the copy call — the unchecked CopyBuffer must still be flagged.
+        assertHasProblems(new UncheckedCopyRatesInspection(),
+                "void foo() { double buf[]; CopyBuffer(handle, 0, 0, 10, buf);\n" +
+                "  for(int i = 0; i < 10; i++) { buf[i] = 0.0; } }");
+    }
+
     public void testDoubleIndicatorRelease() {
         assertHasProblems(new DoubleIndicatorReleaseInspection(),
                 "void OnDeinit(const int reason) { IndicatorRelease(h); IndicatorRelease(h); }",
@@ -547,6 +555,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { Print(\"Authorization failed\"); }");
     }
 
+    public void testHardcodedCredentialsUrlParamClean() {
+        // The safe idiom: the secret is in a variable and "token=" is only a URL query fragment.
+        // The char after the keyword's '=' is the string's own closing quote → must NOT flag.
+        assertNoProblems(new HardcodedCredentialsInspection(),
+                "void foo() { string key; string url = \"https://x.co/q?token=\" + key; }");
+    }
+
     public void testSafeApiUsage() {
         assertInspectionRuns(new SafeApiUsageInspection(),
                 "void foo() { OrderSend(request, result); }");
@@ -671,6 +686,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { double arr[]; if(ArrayResize(arr, 100) < 0) return; }");
     }
 
+    public void testArrayResizeReturnCheckUnrelatedLoopStillFlagged() {
+        // Regression: an unrelated loop comparison must not silence the unchecked ArrayResize.
+        assertHasProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double arr[]; ArrayResize(arr, 100);\n" +
+                "  for(int i = 0; i < 100; i++) { arr[i] = 0.0; } }");
+    }
+
     public void testArrayResizeReturnCheckCountComparisonClean() {
         // The count-comparison idiom: checking the resized array's size against the requested count.
         assertNoProblems(new ArrayResizeReturnCheckInspection(),
@@ -708,17 +730,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 result.contains("delete ptr;\nptr = NULL;"));
     }
 
-    public void testNullAfterDeleteArrayElementHasNoQuickFix() {
-        // delete arr[i]; has no single pointer variable to null out — the fix must not be offered
-        // rather than inserting a nonsensical 'arr = NULL;' wiping out the whole array reference.
-        PsiFile file = myFixture.configureByText("test.mq4", "void foo() { delete arr[i]; }");
-        InspectionManager manager = InspectionManager.getInstance(getProject());
-        ProblemDescriptor[] problems = new NullAfterDeleteInspection().checkFile(file, manager, false);
-        assertNotNull(problems);
-        assertTrue(problems.length > 0);
-        QuickFix<?>[] fixes = problems[0].getFixes();
-        assertTrue("Array-element delete must not offer the nullify-pointer fix",
-                fixes == null || fixes.length == 0);
+    public void testNullAfterDeleteArrayElementNotFlagged() {
+        // delete arr[i]; must NOT be flagged: the inspection can only verify a bare `arr = NULL;`
+        // follow-up, which can never satisfy an array-element delete (the correct follow-up is
+        // `arr[i] = NULL;`), so flagging it is a guaranteed false positive on legitimate array
+        // management (e.g. delete-then-compact loops). The `[i]` parses as a wrapped BRACKETS_BLOCK.
+        assertNoProblems(new NullAfterDeleteInspection(),
+                "void foo() { delete arr[i]; }");
     }
 
     public void testIndicatorCreationInOnTick() {
@@ -1199,6 +1217,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // reassignment's own left-hand identifier is never itself counted as a dangling use.
         assertNoProblems(new DanglingObjectReferenceInspection(),
                 "void foo() { delete obj; obj = new CFoo(); }");
+    }
+
+    public void testDanglingObjectReferenceArrayElementClean() {
+        // delete arr[i]; is array management, not a dangling scalar pointer — must not be flagged
+        // (the following arr[j] = arr[j+1] compaction is a legitimate pattern, not a dangling use).
+        assertNoProblems(new DanglingObjectReferenceInspection(),
+                "void foo() { delete arr[i]; arr[i] = arr[i+1]; }");
     }
 
     public void testStaleHandleUsageClean() {

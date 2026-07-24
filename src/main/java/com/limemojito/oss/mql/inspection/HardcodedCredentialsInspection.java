@@ -36,8 +36,14 @@ import java.util.regex.Pattern;
 public class HardcodedCredentialsInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Potential hardcoded credentials detected — use input parameters instead";
+    // Requires an actual secret value after the keyword's = / : — an optional opening quote then a
+    // real value character (not whitespace, another quote, '+', ';' or ')'). This flags both the
+    // inline form "password=hunter2" and the variable form  password = "hunter2"  (opening quote
+    // then value), while EXCLUDING the safe URL/query idiom  "&token=" + m_key  where the char
+    // after the keyword's '=' is the string's own CLOSING quote followed by whitespace/'+': there
+    // the secret lives in a variable, not the literal.
     private static final Pattern CREDENTIAL_PATTERN =
-            Pattern.compile("(?i)\\b(password|api_?key|secret|token|passwd)\\b\\s*[=:]\\s*\\S");
+            Pattern.compile("(?i)\\b(password|api_?key|secret|token|passwd)\\b\\s*[=:]\\s*\"?\\s*[^\\s\"'+;)]");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {

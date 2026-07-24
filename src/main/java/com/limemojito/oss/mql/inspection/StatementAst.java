@@ -77,6 +77,15 @@ final class StatementAst implements MQL4Elements {
         return first != null && first.getElementType() == L_ROUND_BRACKET;
     }
 
+    /** True for an array-index group — a raw {@code [} token or a {@code [...]} {@code BRACKETS_BLOCK}. */
+    static boolean isIndexBlock(@Nullable ASTNode node) {
+        if (node == null) return false;
+        if (node.getElementType() == L_SQUARE_BRACKET) return true;
+        if (node.getElementType() != BRACKETS_BLOCK) return false;
+        ASTNode first = node.getFirstChildNode();
+        return first != null && first.getElementType() == L_SQUARE_BRACKET;
+    }
+
     /** True for whitespace / line terminator / comment nodes. */
     static boolean isTrivia(@NotNull ASTNode node) {
         return MQL4TokenSets.COMMENTS_OR_WS.contains(node.getElementType());
@@ -497,7 +506,7 @@ final class StatementAst implements MQL4Elements {
         ASTNode id = nextNonTrivia(first);
         if (id == null || id.getElementType() != IDENTIFIER) return null;
         ASTNode after = nextNonTrivia(id);
-        if (after != null && after.getElementType() == L_SQUARE_BRACKET) return null; // delete arr[i];
+        if (isIndexBlock(after)) return null; // delete arr[i]; — [i] is a raw token OR a wrapped BRACKETS_BLOCK
         return id;
     }
 
@@ -547,19 +556,21 @@ final class StatementAst implements MQL4Elements {
         }
     }
 
-    /** Comparison operator tokens accepted by {@link #hasFailureReturnCheck}'s identifier/call-operand rule. */
+    /** Comparison operator tokens that indicate a value is being range/failure-tested. */
     private static final TokenSet FAILURE_COMPARISON_OPERATORS = TokenSet.create(LT, LESS_EQ, GT, GT_EQ, EQ_EQ, NOT_EQ);
 
     /**
      * True when {@code root} contains a comparison shaped like a failure-return check:
      * {@code < 0}, {@code <= 0}, {@code < 1}, {@code == -1} or {@code != -1} (as adjacent tokens,
-     * ignoring whitespace), a direct call to {@code GetLastError}, or a {@code <}/{@code <=}/
-     * {@code >}/{@code >=}/{@code ==}/{@code !=} comparison whose other operand is a bare
-     * identifier — covers the count-comparison idiom {@code if(CopyBuffer(...) < count)} /
-     * {@code if(ArrayResize(a, n) != n)} (a call's own leading token is also an
-     * {@code IDENTIFIER}, so this also matches a call used as the other operand). Covers the
-     * common "was this negative-on-failure return value checked" idiom (ArrayResize/CopyRates/...
-     * all return -1 on failure) without matching these substrings inside unrelated text.
+     * ignoring whitespace), or a direct call to {@code GetLastError}. Covers the common
+     * "was this negative-on-failure return value checked" idiom (ArrayResize/CopyRates/... all
+     * return -1 on failure) without matching these substrings inside unrelated text.
+     * <p>
+     * NOTE: this deliberately does NOT accept an arbitrary {@code <}/{@code ==} against a variable
+     * (e.g. a {@code for(i=0; i<n; i++)} loop counter) — doing so at whole-function scope silences
+     * a genuinely-unchecked call whenever any unrelated loop is present. The count-comparison idiom
+     * {@code if(CopyBuffer(...) < count)}, where the CALL itself is the operand, is handled per-call
+     * by {@link #callResultCompared} instead of here.
      */
     static boolean hasFailureReturnCheck(@Nullable ASTNode root) {
         if (root == null) return false;
@@ -587,25 +598,53 @@ final class StatementAst implements MQL4Elements {
                     }
                 }
             }
-            if (FAILURE_COMPARISON_OPERATORS.contains(t) && hasIdentifierOperand(child)) {
-                return true;
-            }
             if (hasFailureReturnCheckToken(child)) return true;
         }
         return false;
     }
 
     /**
-     * True when either side of a comparison token is a bare {@code IDENTIFIER}. A call's own
-     * leading token is an {@code IDENTIFIER} too, so this covers both a plain variable operand
-     * ({@code < count}) and a call used as the other operand ({@code == ArraySize(a)}) without
-     * needing to parse a full expression tree.
+     * True when the value of the call whose callee-identifier is {@code callIdentifier} is directly
+     * an operand of a comparison — i.e. a comparison operator ({@code < <= > >= == !=}) immediately
+     * precedes the call or immediately follows the call's closing {@code )}. This is the
+     * count-comparison failure-check idiom {@code if(CopyBuffer(...) < count)} /
+     * {@code if(ArrayResize(a, n) != n)}, scoped to THIS call so an unrelated loop comparison
+     * elsewhere in the function can never mask it. Handles the raw-flat-tokens parser gap (args
+     * not wrapped in a {@code BRACKETS_BLOCK}) by walking to the matching {@code )} at paren depth 0.
      */
-    private static boolean hasIdentifierOperand(@NotNull ASTNode comparisonOperator) {
-        ASTNode prev = prevNonTrivia(comparisonOperator);
-        ASTNode next = nextNonTrivia(comparisonOperator);
-        return (prev != null && prev.getElementType() == IDENTIFIER)
-                || (next != null && next.getElementType() == IDENTIFIER);
+    static boolean callResultCompared(@Nullable ASTNode callIdentifier) {
+        if (callIdentifier == null) return false;
+        ASTNode before = prevNonTrivia(callIdentifier);
+        if (before != null && FAILURE_COMPARISON_OPERATORS.contains(before.getElementType())) {
+            return true;
+        }
+        ASTNode next = nextNonTrivia(callIdentifier);
+        if (next == null) return false;
+        ASTNode afterCall;
+        if (isParenBlock(next)) {
+            afterCall = nextNonTrivia(next);
+        } else if (next.getElementType() == L_ROUND_BRACKET) {
+            afterCall = tokenAfterMatchingParen(next);
+        } else {
+            return false;
+        }
+        return afterCall != null && FAILURE_COMPARISON_OPERATORS.contains(afterCall.getElementType());
+    }
+
+    /** The first non-trivia sibling after the {@code )} matching {@code lParen}, tracking depth; or null. */
+    @Nullable
+    private static ASTNode tokenAfterMatchingParen(@NotNull ASTNode lParen) {
+        int depth = 0;
+        for (ASTNode sib = lParen; sib != null; sib = sib.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            IElementType t = sib.getElementType();
+            if (t == L_ROUND_BRACKET) {
+                depth++;
+            } else if (t == R_ROUND_BRACKET && --depth == 0) {
+                return nextNonTrivia(sib);
+            }
+        }
+        return null;
     }
 
     /** True when an {@code IDENTIFIER} token is directly followed by {@code [} — an array index access. */
