@@ -107,9 +107,9 @@ When you stop typing (or trigger **Compile Check Now**), the ExternalAnnotator h
 
 Known limitations, tracked as upcoming work:
 
-- **Inspection suppression** (`// noinspection`-style comments and suppress intentions) is not wired up yet
-- **No quick-fixes yet** — inspections report problems but do not offer automated fixes
-- Some inspections currently **anchor their warning to the enclosing function** rather than the precise offending statement (being fixed incrementally)
+- **Quick-fixes cover ~10 of 80 inspections** — property/doc-comment/empty-body/delete-nullify fixes ship today; the **Trading Safety** group reports problems without automated remediation yet (planned: wrap-in-check and insert-release fixes)
+- **Inspection suppression is editor-only** — `// noinspection`-style comments plus Suppress-for-function / Suppress-for-file intentions work in the editor, but batch **Inspect Code** results and statement/line-level scope are not yet supported
+- **Member-access rename/completion gap** — because `obj.field` / `obj.Method()` are not type-resolved, renaming a member does not rewrite its call sites and dot-completion only knows bundled StdLib types (project-defined types need type inference, planned)
 - **Header (`.mqh`) compile errors are not yet surfaced** — the compiler integration currently reports diagnostics for the compiled `.mq4`/`.mq5` file only
 - **Inline compiler diagnostics on Windows/Linux**, plus debugging support
 - **Member access resolution** (`obj.field` / `obj.Method()`) requires type inference and is planned for a later phase
@@ -145,7 +145,7 @@ src/main/resources/
 └── mql/doc/                     Bundled MQL documentation + JSON catalogs
 ```
 
-~228 Java source files; the test suite (219 tests) covers the parser, resolution, inspections, and compiler-output parsing.
+~231 Java source files; the test suite (246 tests) covers the parser, resolution, inspections, and compiler-output parsing.
 
 ---
 
