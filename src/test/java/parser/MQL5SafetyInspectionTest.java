@@ -844,6 +844,25 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "  for(int i = 0; i < 100; i++) { arr[i] = 0.0; } }");
     }
 
+    public void testArrayResizeReturnCheckResizeToZeroClean() {
+        // ArrayResize(x, 0) clears the array — it never reallocates, so it can't return -1;
+        // flagging it would only invite a dead `if(... < 0)` check.
+        assertNoProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double arr[]; ArrayResize(arr, 0); }");
+    }
+
+    public void testArrayResizeReturnCheckShrinkClean() {
+        // Shrinking (new size derived from ArraySize(...) - 1) never reallocates → can't fail.
+        assertNoProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double arr[]; ArrayResize(arr, ArraySize(arr) - 1); }");
+    }
+
+    public void testArrayResizeReturnCheckGrowStillFlags() {
+        // Growing to a fixed size CAN fail on OOM → still flagged even next to a cannot-fail resize.
+        assertHasProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double a[]; ArrayResize(a, 0); double b[]; ArrayResize(b, 100); }");
+    }
+
     public void testArrayResizeReturnCheckCountComparisonClean() {
         // The count-comparison idiom: checking the resized array's size against the requested count.
         assertNoProblems(new ArrayResizeReturnCheckInspection(),

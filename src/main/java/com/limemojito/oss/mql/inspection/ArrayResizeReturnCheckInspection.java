@@ -17,10 +17,12 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Set;
 
 public class ArrayResizeReturnCheckInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "ArrayResize() return value should be checked (returns -1 on failure)";
+    private static final Set<String> ARRAY_RESIZE = Set.of("ArrayResize");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -29,15 +31,20 @@ public class ArrayResizeReturnCheckInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                ASTNode call = StatementAst.findCall(body, "ArrayResize");
-                if (call != null && !StatementAst.callReturnChecked(body, call)) {
+                if (body == null) continue;
+                StatementAst.forEachCall(body, ARRAY_RESIZE, call -> {
+                    // Skip a resize whose return is already checked, and one that provably cannot
+                    // fail (resize-to-0 / shrink) — flagging those would only invite dead checks.
+                    if (StatementAst.callReturnChecked(body, call) || StatementAst.arrayResizeCannotFail(call)) {
+                        return;
+                    }
                     PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
                     if (StatementAst.isBareCallStatement(call)) {
                         problems.add(createWarning(manager, anchor, MESSAGE, new WrapCallInFailureCheckFix(call.getText())));
                     } else {
                         problems.add(createWarning(manager, anchor, MESSAGE));
                     }
-                }
+                });
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);

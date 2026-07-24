@@ -683,6 +683,44 @@ final class StatementAst implements MQL4Elements {
         return afterCall != null && FAILURE_COMPARISON_OPERATORS.contains(afterCall.getElementType());
     }
 
+    /**
+     * The {@code index}-th (0-based) top-level argument text of a call, or null. Splits the call's
+     * {@code (...)} args on depth-0 commas, so nested calls/index-groups don't confuse the split
+     * ({@code ArrayResize(a, MathMax(x, y))} → arg 1 is {@code MathMax(x, y)}).
+     */
+    @Nullable
+    static String nthCallArg(@NotNull ASTNode callIdentifier, int index) {
+        String args = callArgsText(callIdentifier);
+        if (args == null || args.length() < 2) return null;
+        String inner = args.substring(1, args.length() - 1); // strip the surrounding ( )
+        int depth = 0, start = 0, cur = 0;
+        for (int i = 0; i < inner.length(); i++) {
+            char c = inner.charAt(i);
+            if (c == '(' || c == '[') depth++;
+            else if (c == ')' || c == ']') depth--;
+            else if (c == ',' && depth == 0) {
+                if (cur == index) return inner.substring(start, i);
+                cur++;
+                start = i + 1;
+            }
+        }
+        return cur == index ? inner.substring(start) : null;
+    }
+
+    /**
+     * True when an {@code ArrayResize} call provably cannot return {@code -1}, so its return needs no
+     * check: the new size is the literal {@code 0} (clearing) or a shrink derived from an array's own
+     * length ({@code ArraySize(...) - ...}) — neither triggers a physical reallocation. Growing to a
+     * fixed/computed size is NOT covered (it can fail on OOM) and remains flaggable.
+     */
+    static boolean arrayResizeCannotFail(@NotNull ASTNode callIdentifier) {
+        String sizeArg = nthCallArg(callIdentifier, 1);
+        if (sizeArg == null) return false;
+        sizeArg = sizeArg.trim();
+        if ("0".equals(sizeArg)) return true;                              // resize to 0 — clear
+        return sizeArg.contains("ArraySize") && sizeArg.contains("-");     // shrink of an array
+    }
+
     /** The first non-trivia sibling after the {@code )} matching {@code lParen}, tracking depth; or null. */
     @Nullable
     private static ASTNode tokenAfterMatchingParen(@NotNull ASTNode lParen) {
