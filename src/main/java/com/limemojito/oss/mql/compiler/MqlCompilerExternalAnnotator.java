@@ -15,6 +15,8 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.wm.StatusBar;
+import com.intellij.openapi.wm.WindowManager;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +70,11 @@ public class MqlCompilerExternalAnnotator
     public void apply(@NotNull PsiFile file,
                       @Nullable MqlCompilerService.CompileResult result,
                       @NotNull AnnotationHolder holder) {
-        if (result == null || !result.compilerAvailable()) {
+        if (result == null) {
+            return; // no compile attempt happened this pass (see collectInformation's skip rules)
+        }
+        refreshStatusBarWidget(file.getProject());
+        if (!result.compilerAvailable()) {
             return;
         }
         Document doc = file.getViewProvider().getDocument();
@@ -95,9 +101,18 @@ public class MqlCompilerExternalAnnotator
         }
     }
 
-    private static boolean isCompilableProgram(@NotNull String name) {
+    /** Package-visible so {@link CompileCheckNowAction} shares the same "is this compilable" rule. */
+    static boolean isCompilableProgram(@NotNull String name) {
         String n = name.toLowerCase();
         return n.endsWith(".mq5") || n.endsWith(".mq4") || n.endsWith(".mql5") || n.endsWith(".mql4");
+    }
+
+    /** Nudges the status-bar widget (if present) to re-read the latest {@link MqlCompilerService} result. */
+    private static void refreshStatusBarWidget(@NotNull Project project) {
+        StatusBar bar = WindowManager.getInstance().getStatusBar(project);
+        if (bar != null) {
+            bar.updateWidget(MqlCompileStatusBarWidgetFactory.WIDGET_ID);
+        }
     }
 
     /** Maps a 1-based (line, column) to a highlight range: the token at that column, else the line. */

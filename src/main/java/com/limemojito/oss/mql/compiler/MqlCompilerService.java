@@ -25,11 +25,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Compiles a single MQL program with the real MetaEditor compiler and returns structured diagnostics.
- * Phase 1 ships the macOS launcher — the {@code mt5} Wine wrapper (see docs/REVAMP_PLAN.md); the
- * Windows {@code metaeditor64.exe} and explicit-{@code wine} strategies are added in a later slice.
+ * The command actually run is picked by trying a small ordered list of {@link MqlCompilerLauncher}
+ * strategies and using the first one that reports itself available: {@link Mt5CliLauncher} (macOS,
+ * via the {@code mt5} Wine wrapper — the one exercised on this development machine),
+ * {@link MetaEditorLauncher} (Windows, native {@code metaeditor64.exe}), then {@link WineLauncher}
+ * (Linux/other, explicit Wine binary + exe). If none is available, {@link #compile} returns
+ * {@link CompileResult#unavailable()} rather than guessing (see docs/REVAMP_PLAN.md Phase 1).
  *
  * <p>Results are memoised per file by modification stamp, so re-analysing unchanged content never
- * re-spawns the compiler (the flagship must not hammer Wine on every daemon pass).</p>
+ * re-spawns the compiler (the flagship must not hammer Wine on every daemon pass). The last result
+ * per file is also kept (even when the compiler was unavailable) so UI such as the status-bar
+ * widget can show "not compiled" vs. "compiler N/A" vs. an actual error/warning count.</p>
  */
 @Service(Service.Level.PROJECT)
 public final class MqlCompilerService {
@@ -37,8 +43,23 @@ public final class MqlCompilerService {
     private static final Logger LOG = Logger.getInstance(MqlCompilerService.class);
     private static final long COMPILE_TIMEOUT_MS = 60_000;
 
-    /** path -> (modificationStamp, result) so unchanged content is never recompiled. */
+    @NotNull
+    private final List<MqlCompilerLauncher> launchers;
+
+    /** path -> (modificationStamp, result); only ever holds results where the compiler was available. */
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
+
+    /** path -> most recent result (available or not) for UI display; not used to skip recompiling. */
+    private final Map<String, CompileResult> lastResults = new ConcurrentHashMap<>();
+
+    public MqlCompilerService() {
+        this(List.of(new Mt5CliLauncher(), new MetaEditorLauncher(), new WineLauncher()));
+    }
+
+    /** Visible for testing: inject explicit launchers instead of the OS-probed defaults. */
+    public MqlCompilerService(@NotNull List<MqlCompilerLauncher> launchers) {
+        this.launchers = List.copyOf(launchers);
+    }
 
     public record CompileResult(@NotNull List<CompilerDiagnostic> diagnostics,
                                 boolean compilerAvailable,
@@ -55,28 +76,53 @@ public final class MqlCompilerService {
     /** Compiles {@code file} (or returns the memoised result if its content is unchanged). Never throws. */
     @NotNull
     public CompileResult compile(@NotNull VirtualFile file) {
-        String mt5 = findMt5();
-        if (mt5 == null) {
-            return CompileResult.unavailable();
-        }
         String path = file.getPath();
         long stamp = file.getModificationStamp();
         Cached hit = cache.get(path);
         if (hit != null && hit.stamp == stamp) {
             return hit.result;
         }
-        CompileResult result = runCompile(mt5, new File(path));
+        File source = new File(path);
+        GeneralCommandLine cmd = firstAvailableCommand(source);
+        CompileResult result = cmd != null ? runCompile(cmd, source) : CompileResult.unavailable();
+        lastResults.put(path, result);
         if (result.compilerAvailable()) {
             cache.put(path, new Cached(stamp, result));
         }
         return result;
     }
 
+    /** Forces a fresh compile of {@code file}, discarding any memoised result for it first. Never throws. */
     @NotNull
-    private CompileResult runCompile(@NotNull String mt5, @NotNull File source) {
+    public CompileResult recompile(@NotNull VirtualFile file) {
+        cache.remove(file.getPath());
+        return compile(file);
+    }
+
+    /**
+     * The most recent compile result for {@code file} without triggering a new compile, or null if
+     * {@code file} has never been passed to {@link #compile}/{@link #recompile}. Used by the
+     * status-bar widget so it never has to spawn a compile itself just to render.
+     */
+    @Nullable
+    public CompileResult getLastResult(@NotNull VirtualFile file) {
+        return lastResults.get(file.getPath());
+    }
+
+    @Nullable
+    private GeneralCommandLine firstAvailableCommand(@NotNull File source) {
+        for (MqlCompilerLauncher launcher : launchers) {
+            GeneralCommandLine cmd = launcher.commandFor(source);
+            if (cmd != null) {
+                return cmd;
+            }
+        }
+        return null;
+    }
+
+    @NotNull
+    private CompileResult runCompile(@NotNull GeneralCommandLine cmd, @NotNull File source) {
         try {
-            GeneralCommandLine cmd = new GeneralCommandLine(mt5, "compile", source.getAbsolutePath())
-                    .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE);
             ProcessOutput out = new CapturingProcessHandler(cmd).runProcess((int) COMPILE_TIMEOUT_MS);
             String log = readLog(source);
             if (log == null) {
@@ -91,7 +137,7 @@ public final class MqlCompilerService {
                     .filter(d -> d.severity() == CompilerDiagnostic.Severity.WARNING).count();
             return new CompileResult(diags, true, errors, warnings);
         } catch (Exception e) {
-            LOG.warn("mt5 compile failed for " + source, e);
+            LOG.warn("compile failed for " + source, e);
             return CompileResult.unavailable();
         }
     }
@@ -114,15 +160,5 @@ public final class MqlCompilerService {
             LOG.warn("Failed to read compile log " + log, e);
             return null;
         }
-    }
-
-    /** Locates the {@code mt5} wrapper: {@code ~/.local/bin/mt5} first, else assume it's on PATH. */
-    @Nullable
-    private static String findMt5() {
-        File local = new File(System.getProperty("user.home", ""), ".local/bin/mt5");
-        if (local.isFile() && local.canExecute()) {
-            return local.getAbsolutePath();
-        }
-        return null;
     }
 }

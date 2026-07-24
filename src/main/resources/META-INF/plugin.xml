@@ -105,6 +105,14 @@
                 description="Scan MQL files and write docs/MQL_INSPECTION_CATALOG.md, an AI-free triage list of current inspection findings">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <!--suppress PluginXmlI18n -->
+        <action id="MQL.CompileCheckNow"
+                class="com.limemojito.oss.mql.compiler.CompileCheckNowAction"
+                text="Compile Check Now"
+                description="Force a fresh MetaEditor compile of the current MQL file and refresh inline diagnostics immediately">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -531,6 +539,8 @@
         <!-- Flagship: inline MetaEditor compiler diagnostics (REVAMP_PLAN.md Phase 1) -->
         <externalAnnotator language="MQL4"
                            implementationClass="com.limemojito.oss.mql.compiler.MqlCompilerExternalAnnotator"/>
+        <notificationGroup id="MQL Compiler" displayType="BALLOON"/>
+        <statusBarWidgetFactory implementation="com.limemojito.oss.mql.compiler.MqlCompileStatusBarWidgetFactory"/>
 
         <!--File icons-->
         <iconProvider implementation="com.limemojito.oss.mql.MQL4FileIconProvider"/>
