@@ -28,8 +28,10 @@ import com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -114,6 +116,7 @@ public final class MqlResolveUtil {
         return null;
     }
 
+    /** The VAR_DEFINITION named {@code name} inside a VAR_DECLARATION_STATEMENT, or null. */
     private static PsiElement findVarDefinitionInDeclaration(@NotNull ASTNode varDeclarationStatement, @NotNull String name) {
         ASTNode list = varDeclarationStatement.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
         if (list == null) {
@@ -122,8 +125,8 @@ public final class MqlResolveUtil {
         for (ASTNode def = list.getFirstChildNode(); def != null; def = def.getTreeNext()) {
             if (def.getElementType() == MQL4Elements.VAR_DEFINITION) {
                 PsiElement psi = def.getPsi();
-                if (psi instanceof com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement
-                        && name.equals(((com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement) psi).getName())) {
+                if (psi instanceof com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement varDef
+                        && name.equals(varDef.getName())) {
                     return psi;
                 }
             }
@@ -148,15 +151,14 @@ public final class MqlResolveUtil {
             collectIndexed(name, project, closureScope, hits);
         }
         for (PsiFile f : closure) {
-            for (MQL4EnumElement e : PsiTreeUtil.findChildrenOfType(f, MQL4EnumElement.class)) {
-                if (name.equals(e.getName())) {
-                    hits.add(e);
-                }
+            List<PsiElement> enums = enumsByName(f).get(name);
+            if (enums != null) {
+                hits.addAll(enums);
             }
         }
         if (hits.isEmpty()) {
             for (PsiFile f : closure) {
-                PsiElement v = findTopLevelVarDefinition(f, name);
+                PsiElement v = topLevelVarsByName(f).get(name);
                 if (v != null) {
                     hits.add(v);
                 }
@@ -185,20 +187,58 @@ public final class MqlResolveUtil {
         }
     }
 
-    private static PsiElement findTopLevelVarDefinition(@NotNull PsiFile file, @NotNull String name) {
-        ASTNode fileNode = file.getNode();
-        if (fileNode == null) {
-            return null;
-        }
-        for (ASTNode child = fileNode.getFirstChildNode(); child != null; child = child.getTreeNext()) {
-            if (child.getElementType() == MQL4Elements.VAR_DECLARATION_STATEMENT) {
-                PsiElement match = findVarDefinitionInDeclaration(child, name);
-                if (match != null) {
-                    return match;
+    /**
+     * Per-file map of enum type name → enum element(s), cached until the file itself changes.
+     * Replaces a full {@code findChildrenOfType} tree walk of every closure file on every resolve.
+     */
+    @NotNull
+    private static Map<String, List<PsiElement>> enumsByName(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> {
+            Map<String, List<PsiElement>> map = new HashMap<>();
+            for (MQL4EnumElement e : PsiTreeUtil.findChildrenOfType(file, MQL4EnumElement.class)) {
+                String n = e.getName();
+                if (n != null) {
+                    map.computeIfAbsent(n, k -> new ArrayList<>()).add(e);
                 }
             }
-        }
-        return null;
+            return CachedValueProvider.Result.create(map, file);
+        });
+    }
+
+    /**
+     * Per-file map of top-level variable name → its (first) definition, cached until the file changes.
+     * Replaces a per-name top-level scan of every closure file on every resolve.
+     */
+    @NotNull
+    private static Map<String, PsiElement> topLevelVarsByName(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> {
+            Map<String, PsiElement> map = new HashMap<>();
+            ASTNode fileNode = file.getNode();
+            if (fileNode != null) {
+                for (ASTNode child = fileNode.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+                    if (child.getElementType() != MQL4Elements.VAR_DECLARATION_STATEMENT) {
+                        continue;
+                    }
+                    ASTNode list = child.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
+                    if (list == null) {
+                        continue;
+                    }
+                    for (ASTNode def = list.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+                        if (def.getElementType() != MQL4Elements.VAR_DEFINITION) {
+                            continue;
+                        }
+                        PsiElement psi = def.getPsi();
+                        if (psi instanceof com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement varDef) {
+                            String n = varDef.getName();
+                            if (n != null) {
+                                map.putIfAbsent(n, psi);
+                            }
+                        }
+                    }
+                }
+            }
+            return CachedValueProvider.Result.create(map, file);
+        });
     }
 
     @org.jetbrains.annotations.Nullable
