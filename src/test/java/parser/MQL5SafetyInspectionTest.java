@@ -1216,6 +1216,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { double lot = InpLotSize; OrderSend(Symbol(), OP_BUY, lot, Ask, 3, 0, 0); }");
     }
 
+    public void testMagicNumberFlagsCTradeMemberCall() {
+        // Regression: the CTrade member-call form must still flag a hardcoded lot — the RC-1
+        // member-call guard (correct for global-function inspections) must not blind this one,
+        // whose target names (Buy/Sell/...) are CTrade METHODS invoked as trade.Buy(0.1, ...).
+        assertHasProblems(new MagicNumberInspection(),
+                "void foo() { trade.Buy(0.1, _Symbol, 0.0, sl, 0.0, \"x\"); }");
+    }
+
     public void testNoGoto() {
         assertHasProblems(new NoGotoInspection(),
                 "void foo() { goto done; }");

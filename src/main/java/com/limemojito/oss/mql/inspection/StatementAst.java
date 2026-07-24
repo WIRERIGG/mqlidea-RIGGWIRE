@@ -249,11 +249,21 @@ final class StatementAst implements MQL4Elements {
      * recognised in that position.
      */
     static boolean isCallIdentifier(@NotNull ASTNode identifier) {
+        return isCallIdentifierAnyScope(identifier) && !isMemberOrScopedCall(identifier);
+    }
+
+    /**
+     * Like {@link #isCallIdentifier} but WITHOUT the global-only guard — matches an identifier
+     * directly followed by call parens whether it is a global call, a member call
+     * ({@code obj.Method(...)}) or a scoped/static call ({@code Class::Method(...)}). Only
+     * {@link MagicNumberInspection} uses the member-inclusive matchers built on this, because its
+     * target names (Buy/Sell/PositionOpen/...) are CTrade METHOD names that legitimately appear as
+     * member calls — the global-only guard would make them permanently unmatchable.
+     */
+    static boolean isCallIdentifierAnyScope(@NotNull ASTNode identifier) {
         if (identifier.getElementType() != IDENTIFIER) return false;
         ASTNode next = nextNonTrivia(identifier);
-        if (next == null) return false;
-        if (!(isParenBlock(next) || next.getElementType() == L_ROUND_BRACKET)) return false;
-        return !isMemberOrScopedCall(identifier);
+        return next != null && (isParenBlock(next) || next.getElementType() == L_ROUND_BRACKET);
     }
 
     /**
@@ -333,6 +343,23 @@ final class StatementAst implements MQL4Elements {
                 onCallIdentifier.accept(child);
             }
             forEachCall(child, names, onCallIdentifier);
+        }
+    }
+
+    /**
+     * Like {@link #forEachCall} but ALSO visits member/scoped calls ({@code obj.Method(...)},
+     * {@code Class::Method(...)}) — see {@link #isCallIdentifierAnyScope}. Only for matcher names
+     * that denote CTrade methods (MagicNumber's Buy/Sell/PositionOpen/...), which the global-only
+     * {@link #forEachCall} cannot reach.
+     */
+    static void forEachCallIncludingMembers(@Nullable ASTNode root, @NotNull Set<String> names, @NotNull Consumer<ASTNode> onCallIdentifier) {
+        if (root == null) return;
+        for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (child.getElementType() == IDENTIFIER && names.contains(child.getText()) && isCallIdentifierAnyScope(child)) {
+                onCallIdentifier.accept(child);
+            }
+            forEachCallIncludingMembers(child, names, onCallIdentifier);
         }
     }
 

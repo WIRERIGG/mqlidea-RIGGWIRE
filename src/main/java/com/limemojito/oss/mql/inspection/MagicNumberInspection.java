@@ -33,6 +33,10 @@ public class MagicNumberInspection extends MQL5SafetyInspectionBase {
     private static final String MESSAGE =
             "Hardcoded numeric value in trading operation — use named constants or input parameters for maintainability";
 
+    // Global trading functions AND CTrade method names. The CTrade names (Buy/Sell/PositionOpen/
+    // BuyLimit/...) appear in real code as MEMBER calls — trade.Buy(0.1, ...) — so this inspection
+    // uses the member-inclusive matcher; the global-only matcher (which the rest of the plugin uses
+    // to avoid mistaking obj.OrderDelete() for the global) would make these names unreachable.
     private static final Set<String> TRADING_FUNCS = Set.of(
             "OrderSend", "OrderModify", "PositionOpen", "PositionClose",
             "CTrade", "Buy", "Sell", "BuyLimit", "SellLimit", "BuyStop", "SellStop");
@@ -49,7 +53,7 @@ public class MagicNumberInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 // Anchor at the hardcoded literal itself, not the whole function header.
                 ASTNode[] literal = {null};
-                StatementAst.forEachCall(body, TRADING_FUNCS, callId -> {
+                StatementAst.forEachCallIncludingMembers(body, TRADING_FUNCS, callId -> {
                     if (literal[0] != null) return;
                     ASTNode args = StatementAst.callArgsBlock(callId);
                     if (args != null) {
