@@ -36,10 +36,10 @@ public class FileOperationValidationInspection extends MQL5SafetyInspectionBase 
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, FILE_READ_FUNCS)) {
-                    if (!BracketBlockTokenWalker.containsFunctionCall(body, "GetLastError")
-                            && !BracketBlockTokenWalker.containsFunctionCall(body, "FileIsEnding")
-                            && !BracketBlockTokenWalker.containsFunctionCall(body, "FileIsLineEnding")) {
+                if (StatementAst.hasAnyCall(body, FILE_READ_FUNCS)) {
+                    if (!StatementAst.hasCall(body, "GetLastError")
+                            && !StatementAst.hasCall(body, "FileIsEnding")
+                            && !StatementAst.hasCall(body, "FileIsLineEnding")) {
                         problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                     }
                 }

@@ -12,7 +12,9 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,6 +25,7 @@ public class ObjectCreationInOnTickInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Object allocation ('new') in OnTick()/OnCalculate() — pre-allocate in OnInit() or use global/static";
     private static final Set<String> TICK_HANDLERS = Set.of("OnTick", "OnCalculate");
+    private static final TokenSet NEW_KEYWORD = TokenSet.create(MQL4Elements.NEW_KEYWORD);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -33,7 +36,7 @@ public class ObjectCreationInOnTickInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && TICK_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsPattern(body, "\\bnew\\s+\\w+")) {
+                if (body != null && StatementAst.hasDescendant(body, NEW_KEYWORD)) {
                     problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

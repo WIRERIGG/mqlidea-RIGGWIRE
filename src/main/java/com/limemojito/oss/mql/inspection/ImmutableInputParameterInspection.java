@@ -12,19 +12,28 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.IElementType;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 
+/**
+ * AST-based detection of input-parameter reassignment: an assignment-operator token
+ * ({@link StatementAst#ASSIGNMENT_OPERATORS}) or {@code ++}/{@code --} token directly adjacent to
+ * an {@code IDENTIFIER} matching the input variable's name. Because assignment operators
+ * ({@code EQ}, {@code PLUS_EQ}, ...) are already distinct lexer tokens from comparison operators
+ * ({@code EQ_EQ}, {@code NOT_EQ}, {@code LESS_EQ}, {@code GT_EQ}), a comparison like
+ * {@code if (Period == 20)} can never be mistaken for a reassignment — no negative-lookbehind
+ * regex hack is needed to tell them apart.
+ */
 public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Input parameter '%s' appears to be reassigned — input variables should be treated as immutable";
-    private static final ConcurrentHashMap<String, Pattern> REASSIGN_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -46,9 +55,8 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
                 for (String inputName : inputNames) {
-                    if (buildReassignmentPattern(inputName).matcher(text).find()) {
+                    if (isReassigned(body, inputName)) {
                         problems.add(createWarning(manager, child.getNavigationElement(),
                                 String.format(MESSAGE, inputName), isOnTheFly));
                     }
@@ -58,16 +66,24 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
-    /**
-     * Matches a genuine reassignment of the input variable (assignment, compound assignment
-     * or increment/decrement) as a whole word, without matching comparisons such as
-     * {@code ==}, {@code <=}, {@code >=} or {@code !=}, and without matching the name
-     * inside a longer identifier (e.g. {@code Period} inside {@code myPeriod}).
-     */
-    private static Pattern buildReassignmentPattern(@NotNull String inputName) {
-        String name = Pattern.quote(inputName);
-        return REASSIGN_CACHE.computeIfAbsent(inputName, key -> Pattern.compile(
-                "\\b" + name + "\\s*(?:(?<![!<>+\\-*/%&|^=])=(?!=)|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|>>=|<<=|\\+\\+|--)"
-                        + "|(?:\\+\\+|--)\\s*\\b" + name + "\\b"));
+    private static boolean isReassigned(@NotNull ASTNode root, @NotNull String name) {
+        for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            IElementType t = child.getElementType();
+            if (StatementAst.ASSIGNMENT_OPERATORS.contains(t)) {
+                ASTNode prev = StatementAst.prevNonTrivia(child);
+                if (isName(prev, name)) return true;
+            } else if (t == MQL4Elements.PLUS_PLUS || t == MQL4Elements.MINUS_MINUS) {
+                if (isName(StatementAst.prevNonTrivia(child), name) || isName(StatementAst.nextNonTrivia(child), name)) {
+                    return true;
+                }
+            }
+            if (isReassigned(child, name)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isName(@Nullable ASTNode node, @NotNull String name) {
+        return node != null && node.getElementType() == MQL4Elements.IDENTIFIER && name.equals(node.getText());
     }
 }

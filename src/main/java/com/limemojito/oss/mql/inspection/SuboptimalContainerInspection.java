@@ -29,8 +29,8 @@ public class SuboptimalContainerInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCall(body, "ArraySort")
-                        && BracketBlockTokenWalker.containsFunctionCall(body, "ArrayResize")) {
+                if (StatementAst.hasCall(body, "ArraySort")
+                        && StatementAst.hasCall(body, "ArrayResize")) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

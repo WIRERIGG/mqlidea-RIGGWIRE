@@ -12,18 +12,23 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+/**
+ * AST-based detection: a bare {@code delete <identifier>;} ({@link StatementAst#deletedIdentifier})
+ * with no {@code <identifier> = NULL} assignment anywhere afterwards
+ * ({@link StatementAst#hasNullAssignmentAfter}).
+ */
 public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "'delete %s' without subsequent '%s = NULL' — leaves dangling pointer";
-    private static final Pattern DELETE_PATTERN = Pattern.compile("\\bdelete\\s+(\\w+)");
+    private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -33,18 +38,21 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                Matcher m = DELETE_PATTERN.matcher(text);
-                while (m.find()) {
-                    String deletedVar = m.group(1);
-                    String remaining = text.substring(m.end());
-                    Pattern nullAssign = Pattern.compile(
-                            "\\b" + Pattern.quote(deletedVar) + "\\s*=\\s*NULL\\b");
-                    if (!nullAssign.matcher(remaining).find()) {
-                        problems.add(createWarning(manager, child.getNavigationElement(),
-                                String.format(MESSAGE, deletedVar, deletedVar)));
-                        break;
+                // One problem per function (preserves the original cardinality): the message names
+                // the first delete found whose variable is never subsequently nulled.
+                String[] offender = {null};
+                StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
+                    if (offender[0] != null) return;
+                    ASTNode idNode = StatementAst.deletedIdentifier(stmt);
+                    if (idNode == null) return;
+                    String name = idNode.getText();
+                    if (!StatementAst.hasNullAssignmentAfter(body, name, stmt.getTextRange().getEndOffset())) {
+                        offender[0] = name;
                     }
+                });
+                if (offender[0] != null) {
+                    problems.add(createWarning(manager, child.getNavigationElement(),
+                            String.format(MESSAGE, offender[0], offender[0])));
                 }
             }
         }

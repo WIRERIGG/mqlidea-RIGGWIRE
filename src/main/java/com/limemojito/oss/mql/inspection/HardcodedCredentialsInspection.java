@@ -17,11 +17,13 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class HardcodedCredentialsInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Potential hardcoded credentials detected — use input parameters instead";
-    private static final String CREDENTIAL_PATTERN = "(?i)(password|api_key|apikey|secret|token|auth|credential|passphrase)";
+    private static final Pattern CREDENTIAL_PATTERN =
+            Pattern.compile("(?i)(password|api_key|apikey|secret|token|auth|credential|passphrase)");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -30,7 +32,7 @@ public class HardcodedCredentialsInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsStringLiteralMatching(body, CREDENTIAL_PATTERN)) {
+                if (body != null && StatementAst.anyStringLiteralMatches(body, CREDENTIAL_PATTERN)) {
                     problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }

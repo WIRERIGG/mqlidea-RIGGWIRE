@@ -20,16 +20,18 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+/**
+ * AST-based detection: every {@code IndicatorRelease(...)} call's args-block text, scoped exactly
+ * to that call (see {@link StatementAst#callArgsBlock}) rather than a whole-function regex — so
+ * distinct array elements ({@code handles[0]} vs {@code handles[1]}) or distinct factory calls are
+ * still correctly treated as different handles (Fable review, concern #3), and nested/adjacent
+ * unrelated parens can no longer confuse which call an argument belongs to.
+ */
 public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Handle '%s' is released by IndicatorRelease() more than once — potential double-free";
-    // Captures the FULL handle argument expression of each IndicatorRelease(...) call, so that distinct
-    // array elements (handles[0] vs handles[1]) or distinct factory calls are treated as different
-    // handles rather than aliasing to a single leading identifier (Fable review, concern #3).
-    private static final Pattern RELEASE_CALL = Pattern.compile("\\bIndicatorRelease\\s*\\(\\s*([^),]+?)\\s*\\)");
+    private static final Set<String> INDICATOR_RELEASE = Set.of("IndicatorRelease");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -42,16 +44,17 @@ public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 // Releasing two DIFFERENT handles (the normal multi-indicator OnDeinit pattern) is
                 // correct; only the SAME handle variable released more than once is a real double-free.
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                Matcher m = RELEASE_CALL.matcher(text);
                 Set<String> seen = new HashSet<>();
                 List<String> duplicated = new ArrayList<>();
-                while (m.find()) {
-                    String handle = m.group(1).trim();
+                StatementAst.forEachCall(body, INDICATOR_RELEASE, callId -> {
+                    ASTNode args = StatementAst.callArgsBlock(callId);
+                    if (args == null) return;
+                    String text = args.getText();
+                    String handle = text.length() >= 2 ? text.substring(1, text.length() - 1).trim() : text.trim();
                     if (!seen.add(handle) && !duplicated.contains(handle)) {
                         duplicated.add(handle);
                     }
-                }
+                });
                 for (String handle : duplicated) {
                     problems.add(createProblem(manager, child.getNavigationElement(),
                             String.format(MESSAGE, handle)));

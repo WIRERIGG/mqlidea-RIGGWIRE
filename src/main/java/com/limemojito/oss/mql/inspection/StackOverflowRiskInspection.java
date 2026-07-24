@@ -31,8 +31,8 @@ public class StackOverflowRiskInspection extends MQL5SafetyInspectionBase {
                 String name = func.getFunctionName();
                 if (name.equals(MQL4FunctionElement.UNKNOWN_NAME) || name.startsWith("~")) continue;
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCall(body, name)) {
-                    String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
+                if (StatementAst.hasCall(body, name)) {
+                    String text = StatementAst.heuristicText(body);
                     boolean hasDepthCheck = text.contains("depth") || text.contains("level")
                             || text.contains("maxRecurs") || text.contains("MAX_DEPTH");
                     if (!hasDepthCheck) {

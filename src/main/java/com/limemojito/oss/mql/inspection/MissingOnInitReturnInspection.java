@@ -18,13 +18,13 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * {@code void OnInit()} is a fully valid MQL5 form — the docs define both {@code int OnInit()} and
@@ -41,7 +41,7 @@ public class MissingOnInitReturnInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "OnInit() returns 'void' (initialization is always reported successful) — "
             + "return 'int' to be able to signal INIT_FAILED / INIT_PARAMETERS_INCORRECT";
-    private static final Pattern RETURN_KEYWORD = Pattern.compile("\\breturn\\b");
+    private static final TokenSet RETURN_STATEMENT = TokenSet.create(MQL4Elements.RETURN_STATEMENT);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -56,9 +56,7 @@ public class MissingOnInitReturnInspection extends MQL5SafetyInspectionBase {
                     // Only offer the auto-fix when the body has no return of its own — otherwise
                     // converting to int would leave an invalid bare `return;` (Fable review, bug #1).
                     ASTNode body = findBracketsBlock(child);
-                    boolean canAutoFix = body != null
-                            && !RETURN_KEYWORD.matcher(
-                                    BracketBlockTokenWalker.stripCommentsAndStrings(body.getText())).find();
+                    boolean canAutoFix = body != null && !StatementAst.hasDescendant(body, RETURN_STATEMENT);
                     if (canAutoFix) {
                         problems.add(manager.createProblemDescriptor(returnType.getPsi(), returnType.getPsi(),
                                 MESSAGE, ProblemHighlightType.WEAK_WARNING, true, new ChangeVoidToIntFix()));
@@ -101,10 +99,9 @@ public class MissingOnInitReturnInspection extends MQL5SafetyInspectionBase {
                 if (block != null) {
                     String blockText = block.getText();
                     int closeBrace = blockText.lastIndexOf('}');
-                    // The fix is only attached when the body has no real return (checked with
-                    // comment/string stripping in checkFile), so a bare '}' means we insert the return.
-                    boolean hasRealReturn = RETURN_KEYWORD.matcher(
-                            BracketBlockTokenWalker.stripCommentsAndStrings(blockText)).find();
+                    // The fix is only attached when the body has no real return (checked
+                    // structurally in checkFile), so a bare '}' means we insert the return.
+                    boolean hasRealReturn = StatementAst.hasDescendant(block, RETURN_STATEMENT);
                     if (closeBrace >= 0 && !hasRealReturn) {
                         int insertAt = block.getTextRange().getStartOffset() + closeBrace;
                         doc.insertString(insertAt, "   return(INIT_SUCCEEDED);\n");

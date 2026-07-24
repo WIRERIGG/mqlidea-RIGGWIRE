@@ -12,6 +12,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
@@ -19,7 +20,6 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
 
@@ -29,8 +29,7 @@ public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
     // so requiring one for every constructor was a false positive. The handle-creator names come from
     // MQL5_HANDLE_CREATORS (iMA/iRSI/iCustom/IndicatorCreate/...) — NOT the broad `i[A-Z]...(` pattern,
     // which wrongly matched value functions like iClose/iTime/iBarShift (Fable review, concern #4).
-    private static final Pattern RESOURCE_ACQUISITION = Pattern.compile(
-            "\\bnew\\b|\\bFileOpen\\s*\\(|\\b(?:" + String.join("|", MQL5_HANDLE_CREATORS) + ")\\s*\\(");
+    private static final TokenSet NEW_KEYWORD = TokenSet.create(MQL4Elements.NEW_KEYWORD);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -58,8 +57,10 @@ public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
             }
 
             if (hasDestructor) continue;
-            String body = BracketBlockTokenWalker.stripCommentsAndStrings(innerBlock.getText());
-            if (RESOURCE_ACQUISITION.matcher(body).find()) {
+            boolean acquiresResource = StatementAst.hasDescendant(innerBlock, NEW_KEYWORD)
+                    || StatementAst.hasCall(innerBlock, "FileOpen")
+                    || StatementAst.hasAnyCall(innerBlock, MQL5_HANDLE_CREATORS);
+            if (acquiresResource) {
                 problems.add(createWarning(manager, cls.getNavigationElement(),
                         String.format(MESSAGE, className)));
             }

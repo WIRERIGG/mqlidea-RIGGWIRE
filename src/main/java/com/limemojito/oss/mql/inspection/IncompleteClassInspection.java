@@ -12,6 +12,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
@@ -23,6 +24,7 @@ import java.util.List;
 public class IncompleteClassInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Class '%s' uses new/delete but lacks copy constructor or assignment operator (Rule of Three)";
+    private static final TokenSet NEW_KEYWORD = TokenSet.create(MQL4Elements.NEW_KEYWORD);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -59,7 +61,7 @@ public class IncompleteClassInspection extends MQL5SafetyInspectionBase {
                         if ("operator=".equals(name)) hasAssignmentOp = true;
                     }
                     ASTNode bodyBlock = child.findChildByType(MQL4Elements.BRACKETS_BLOCK);
-                    if (bodyBlock != null && BracketBlockTokenWalker.containsPattern(bodyBlock, "\\bnew\\b")) {
+                    if (bodyBlock != null && StatementAst.hasDescendant(bodyBlock, NEW_KEYWORD)) {
                         usesNew = true;
                     }
                 }

@@ -29,12 +29,8 @@ public class UncheckedCopyRatesInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, MQL5_COPY_FUNCS)) {
-                    String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                    boolean hasCheck = text.contains("< 0") || text.contains("<= 0")
-                            || text.contains("== -1") || text.contains("< 1")
-                            || text.contains("GetLastError");
-                    if (!hasCheck) {
+                if (StatementAst.hasAnyCall(body, MQL5_COPY_FUNCS)) {
+                    if (!StatementAst.hasFailureReturnCheck(body)) {
                         problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
                     }
                 }

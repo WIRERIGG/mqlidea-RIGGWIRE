@@ -31,10 +31,10 @@ public class DataConsistencyInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                boolean usesPrices = BracketBlockTokenWalker.containsAnyFunctionCall(body, PRICE_FUNCS)
-                        || BracketBlockTokenWalker.containsIdentifier(body, "Ask")
-                        || BracketBlockTokenWalker.containsIdentifier(body, "Bid");
-                if (usesPrices && !BracketBlockTokenWalker.containsFunctionCall(body, "NormalizeDouble")) {
+                boolean usesPrices = StatementAst.hasAnyCall(body, PRICE_FUNCS)
+                        || StatementAst.hasIdentifier(body, "Ask")
+                        || StatementAst.hasIdentifier(body, "Bid");
+                if (usesPrices && !StatementAst.hasCall(body, "NormalizeDouble")) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

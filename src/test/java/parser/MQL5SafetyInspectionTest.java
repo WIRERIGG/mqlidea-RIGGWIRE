@@ -892,4 +892,91 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertNoProblems(new EmptyEventHandlerInspection(),
                 "void OnTimer() { EventKillTimer(); }");
     }
+
+    // ===== Phase 5: AST migration off BracketBlockTokenWalker (new/added test coverage) =====
+
+    public void testMagicNumber() {
+        assertHasProblems(new MagicNumberInspection(),
+                "void foo() { OrderSend(Symbol(), OP_BUY, 0.1, Ask, 3, 0, 0); }");
+    }
+
+    public void testMagicNumberClean() {
+        assertNoProblems(new MagicNumberInspection(),
+                "void foo() { double lot = InpLotSize; OrderSend(Symbol(), OP_BUY, lot, Ask, 3, 0, 0); }");
+    }
+
+    public void testNoGoto() {
+        assertHasProblems(new NoGotoInspection(),
+                "void foo() { goto done; }");
+    }
+
+    public void testNoGotoClean() {
+        assertNoProblems(new NoGotoInspection(),
+                "void foo() { if(x) return; }");
+    }
+
+    public void testRepeatedApiCall() {
+        assertHasProblems(new RepeatedApiCallInspection(),
+                "void OnTick() { double a = SymbolInfoDouble(_Symbol, SYMBOL_BID);\n" +
+                "  double b = SymbolInfoDouble(_Symbol, SYMBOL_ASK);\n" +
+                "  double c = SymbolInfoDouble(_Symbol, SYMBOL_BID); }");
+    }
+
+    public void testRepeatedApiCallClean() {
+        assertNoProblems(new RepeatedApiCallInspection(),
+                "void OnTick() { double a = SymbolInfoDouble(_Symbol, SYMBOL_BID); }");
+    }
+
+    public void testUnusedParameter() {
+        assertHasProblems(new UnusedParameterInspection(),
+                "void Foo(int unused) { Print(\"hi\"); }");
+    }
+
+    public void testUnusedParameterClean() {
+        assertNoProblems(new UnusedParameterInspection(),
+                "void Foo(int used) { Print(used); }");
+    }
+
+    public void testVirtualCallInConstructor() {
+        // Smoke test — like testVirtualWithoutDestructor/testPublicDataMember, correctness here
+        // depends on parser details (virtual-modifier attachment to the FUNCTION node) that may
+        // vary; this only asserts the inspection runs without throwing.
+        assertInspectionRuns(new VirtualCallInConstructorInspection(),
+                "class CBase { public: virtual void Init() {} CBase() { Init(); } };");
+    }
+
+    public void testVirtualCallInConstructorClean() {
+        assertNoProblems(new VirtualCallInConstructorInspection(),
+                "class CBase { public: virtual void Init() {} CBase() { Print(\"ctor\"); } };");
+    }
+
+    // ===== Phase 5: extra negative-case coverage for structurally-migrated inspections =====
+
+    public void testAccountInfoExposureClean() {
+        assertNoProblems(new AccountInfoExposureInspection(),
+                "void foo() { double bal = AccountInfoDouble(ACCOUNT_BALANCE); }");
+    }
+
+    public void testGlobalVariableConflictClean() {
+        assertNoProblems(new GlobalVariableConflictInspection(),
+                "void foo() { GlobalVariableSet(\"gv\", 1.0); }");
+    }
+
+    public void testDanglingObjectReferenceClean() {
+        assertNoProblems(new DanglingObjectReferenceInspection(),
+                "void foo() { delete ptr; ptr = NULL; }");
+    }
+
+    public void testStaleHandleUsageClean() {
+        assertNoProblems(new StaleHandleUsageInspection(),
+                "void foo() { int h2 = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE);\n" +
+                "  IndicatorRelease(handle); CopyBuffer(h2, 0, 0, 1, buf); }",
+                "test.mq5");
+    }
+
+    public void testDoubleIndicatorReleaseDifferentHandlesClean() {
+        assertNoProblems(new DoubleIndicatorReleaseInspection(),
+                "void OnDeinit(const int reason) { IndicatorRelease(h1); IndicatorRelease(h2); }",
+                "test.mq5");
+    }
 }

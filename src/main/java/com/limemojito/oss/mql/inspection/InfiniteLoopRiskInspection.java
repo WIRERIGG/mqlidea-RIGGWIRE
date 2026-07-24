@@ -82,7 +82,7 @@ public class InfiniteLoopRiskInspection extends MQL5SafetyInspectionBase {
 
     @NotNull
     private static String innerConditionText(@NotNull ASTNode conditionBlock) {
-        String text = BracketBlockTokenWalker.stripCommentsAndStrings(conditionBlock.getText()).trim();
+        String text = StatementAst.heuristicText(conditionBlock).trim();
         if (text.startsWith("(")) text = text.substring(1);
         if (text.endsWith(")")) text = text.substring(0, text.length() - 1);
         return text.trim();

@@ -29,8 +29,8 @@ public class TimeseriesDirectionInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, MQL5_COPY_FUNCS)
-                        && !BracketBlockTokenWalker.containsFunctionCall(body, "ArraySetAsSeries")) {
+                if (StatementAst.hasAnyCall(body, MQL5_COPY_FUNCS)
+                        && !StatementAst.hasCall(body, "ArraySetAsSeries")) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

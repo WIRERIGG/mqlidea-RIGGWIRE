@@ -17,12 +17,10 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class MissingErrorRecoveryInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "OrderSend() failure without retry or recovery logic";
-    private static final Pattern LOOP_KEYWORD_PATTERN = Pattern.compile("\\b(?:for|while)\\b");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -31,11 +29,11 @@ public class MissingErrorRecoveryInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCall(body, "OrderSend")) {
-                    String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
+                if (StatementAst.hasCall(body, "OrderSend")) {
+                    String text = StatementAst.heuristicText(body);
                     boolean hasRetry = text.contains("retry") || text.contains("attempt")
-                            || LOOP_KEYWORD_PATTERN.matcher(text).find();
-                    boolean hasErrorHandling = text.contains("GetLastError") || text.contains("retcode");
+                            || StatementAst.hasDescendant(body, StatementAst.LOOP_STATEMENTS);
+                    boolean hasErrorHandling = StatementAst.hasCall(body, "GetLastError") || text.contains("retcode");
                     if (hasErrorHandling && !hasRetry) {
                         problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                     }

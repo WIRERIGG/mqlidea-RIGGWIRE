@@ -19,6 +19,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * AST-based detection: an account-info call and an output call both present in the same function
+ * body (structural call recognition — an {@code IDENTIFIER} directly followed by a {@code (...)}
+ * args block — instead of a regex over comment/string-stripped text). Kept function-scoped
+ * (matching the original intent: the account value may flow through a local variable into the
+ * output call, e.g. {@code double bal = AccountBalance(); Print(bal);}), so this remains a nudge
+ * rather than a precise taint check.
+ */
 public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Account information sent to external output — potential data privacy risk";
@@ -35,8 +43,7 @@ public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, ACCOUNT_FUNCS)
-                        && BracketBlockTokenWalker.containsAnyFunctionCall(body, OUTPUT_FUNCS)) {
+                if (StatementAst.hasAnyCall(body, ACCOUNT_FUNCS) && StatementAst.hasAnyCall(body, OUTPUT_FUNCS)) {
                     problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

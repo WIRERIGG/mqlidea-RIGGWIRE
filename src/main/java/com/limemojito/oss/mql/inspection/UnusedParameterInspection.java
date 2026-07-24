@@ -48,7 +48,7 @@ public class UnusedParameterInspection extends MQL5SafetyInspectionBase {
                     }
                     String paramName = lastId.getText();
                     if (paramName == null || paramName.isEmpty()) continue;
-                    if (!BracketBlockTokenWalker.containsIdentifier(body, paramName)) {
+                    if (!StatementAst.hasIdentifier(body, paramName)) {
                         problems.add(createWeakWarning(manager, arg.getPsi(),
                                 String.format(MESSAGE, paramName)));
                     }

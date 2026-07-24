@@ -21,16 +21,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class VirtualCallInConstructorInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE =
             "Virtual method called in constructor/destructor — virtual dispatch is not yet/no longer active, will call base version";
-
-    private static final Pattern VIRTUAL_METHOD_DECL =
-            Pattern.compile("\\bvirtual\\s+\\w+\\s+(\\w+)\\s*\\(");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -97,12 +92,7 @@ public class VirtualCallInConstructorInspection extends MQL5SafetyInspectionBase
     }
 
     private boolean callsAnyVirtualMethod(@NotNull ASTNode body, @NotNull Set<String> virtualMethodNames) {
-        for (String methodName : virtualMethodNames) {
-            if (BracketBlockTokenWalker.containsFunctionCall(body, methodName)) {
-                return true;
-            }
-        }
-        return false;
+        return StatementAst.hasAnyCall(body, virtualMethodNames);
     }
 
     private boolean hasVirtualKeyword(@NotNull ASTNode funcNode) {

@@ -29,7 +29,7 @@ public class MissingArrayPreallocationInspection extends MQL5SafetyInspectionBas
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.countFunctionCalls(body, "ArrayResize") > 2) {
+                if (StatementAst.countCalls(body, "ArrayResize") > 2) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

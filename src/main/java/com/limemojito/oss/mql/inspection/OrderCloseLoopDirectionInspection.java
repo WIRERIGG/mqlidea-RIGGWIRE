@@ -12,18 +12,26 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.regex.Matcher;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
  * MQL4-only. Flags a forward (ascending) loop over OrdersTotal() that closes
  * or deletes orders inside — the order pool re-indexes after each close, so a
  * forward loop skips every other order. Iterate downward instead.
+ * <p>
+ * The header shape is located structurally (the real {@code FOR_STATEMENT}'s condition
+ * {@code (...)} block, via {@link StatementAst#findConditionBlock}) and the header-pattern regex
+ * is now applied only to that block's own text — not the whole function — so it can no longer
+ * match a for-header that belongs to a different loop. The body is likewise the real AST loop body
+ * ({@link StatementAst#findLoopBody}), eliminating the old hand-rolled brace/semicolon scanner.
  */
 public class OrderCloseLoopDirectionInspection extends MQL5SafetyInspectionBase {
 
@@ -36,9 +44,10 @@ public class OrderCloseLoopDirectionInspection extends MQL5SafetyInspectionBase 
      * Descending loops ({@code i >= 0; i--}) do not match.
      */
     private static final Pattern FORWARD_ORDERS_LOOP = Pattern.compile(
-            "\\bfor\\s*\\(\\s*[^;]*=\\s*0\\s*;[^;]*<\\s*OrdersTotal\\s*\\(\\s*\\)[^;]*;[^)]*\\+\\+\\s*\\)");
+            "^\\(\\s*[^;]*=\\s*0\\s*;[^;]*<\\s*OrdersTotal\\s*\\(\\s*\\)[^;]*;[^)]*\\+\\+\\s*\\)$");
 
-    private static final Pattern CLOSE_OR_DELETE = Pattern.compile("\\b(?:OrderClose|OrderDelete)\\s*\\(");
+    private static final TokenSet FOR_STATEMENT = TokenSet.create(MQL4Elements.FOR_STATEMENT);
+    private static final Set<String> CLOSE_OR_DELETE = Set.of("OrderClose", "OrderDelete");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -49,8 +58,15 @@ public class OrderCloseLoopDirectionInspection extends MQL5SafetyInspectionBase 
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                if (hasForwardCloseLoop(text)) {
+                boolean[] flagged = {false};
+                StatementAst.forEachDescendant(body, FOR_STATEMENT, forLoop -> {
+                    if (flagged[0] || !isForwardOrdersLoop(forLoop)) return;
+                    ASTNode loopBody = StatementAst.findLoopBody(forLoop);
+                    if (loopBody != null && StatementAst.hasAnyCall(loopBody, CLOSE_OR_DELETE)) {
+                        flagged[0] = true;
+                    }
+                });
+                if (flagged[0]) {
                     problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
@@ -58,46 +74,10 @@ public class OrderCloseLoopDirectionInspection extends MQL5SafetyInspectionBase 
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
-    private static boolean hasForwardCloseLoop(@NotNull String text) {
-        Matcher m = FORWARD_ORDERS_LOOP.matcher(text);
-        while (m.find()) {
-            ProgressManager.checkCanceled();
-            String loopBody = extractLoopBody(text, m.end());
-            if (CLOSE_OR_DELETE.matcher(loopBody).find()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Returns the loop body starting after the for-header: a balanced brace
-     * block if one follows, a single statement up to the next {@code ;}
-     * otherwise. Falls back to the remaining text when braces are unbalanced.
-     */
-    @NotNull
-    private static String extractLoopBody(@NotNull String text, int afterHeader) {
-        int i = afterHeader;
-        while (i < text.length() && Character.isWhitespace(text.charAt(i))) i++;
-        if (i >= text.length()) return "";
-        if (text.charAt(i) == '{') {
-            int end = findMatchingBrace(text, i);
-            return end >= 0 ? text.substring(i, end + 1) : text.substring(i);
-        }
-        int semi = text.indexOf(';', i);
-        return semi >= 0 ? text.substring(i, semi + 1) : text.substring(i);
-    }
-
-    private static int findMatchingBrace(@NotNull String text, int openPos) {
-        int depth = 0;
-        for (int i = openPos; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '{') depth++;
-            else if (c == '}') {
-                depth--;
-                if (depth == 0) return i;
-            }
-        }
-        return -1;
+    private static boolean isForwardOrdersLoop(@NotNull ASTNode forLoop) {
+        ASTNode condition = StatementAst.findConditionBlock(forLoop);
+        if (condition == null) return false;
+        String header = StatementAst.heuristicText(condition).replaceAll("\\s+", " ").trim();
+        return FORWARD_ORDERS_LOOP.matcher(header).find();
     }
 }

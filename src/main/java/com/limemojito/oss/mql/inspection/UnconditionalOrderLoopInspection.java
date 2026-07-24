@@ -61,7 +61,7 @@ public class UnconditionalOrderLoopInspection extends MQL5SafetyInspectionBase {
     private static boolean isUnconditionalOrderLoop(@NotNull ASTNode loop) {
         // Header call — e.g. for(int i = PositionsTotal() - 1; i >= 0; i--) — runs every tick.
         ASTNode header = StatementAst.findConditionBlock(loop);
-        if (header != null && BracketBlockTokenWalker.containsAnyFunctionCall(header, ORDER_LOOP_FUNCS)) {
+        if (header != null && StatementAst.hasAnyCall(header, ORDER_LOOP_FUNCS)) {
             return true;
         }
         ASTNode loopBody = StatementAst.findLoopBody(loop);

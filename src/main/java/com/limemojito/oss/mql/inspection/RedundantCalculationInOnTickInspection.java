@@ -39,7 +39,7 @@ public class RedundantCalculationInOnTickInspection extends MQL5SafetyInspection
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
                 for (String funcName : EXPENSIVE_FUNCS) {
-                    if (BracketBlockTokenWalker.countFunctionCalls(body, funcName) > 1) {
+                    if (StatementAst.countCalls(body, funcName) > 1) {
                         problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                         break;
                     }

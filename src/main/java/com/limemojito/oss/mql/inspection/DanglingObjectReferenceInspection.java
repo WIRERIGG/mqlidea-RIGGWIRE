@@ -12,18 +12,25 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+/**
+ * AST-based detection: a bare {@code delete <identifier>;} ({@link StatementAst#deletedIdentifier})
+ * whose identifier is referenced again afterwards ({@link StatementAst#hasIdentifierAfter}) — unless
+ * the very next statement is the safe {@code <identifier> = NULL;} guard
+ * ({@link StatementAst#isNullAssignmentStatement}). {@code delete arr[i];} (array-element delete)
+ * is excluded by construction.
+ */
 public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Object deleted then same identifier used afterwards — potential dangling reference";
-    private static final Pattern DELETE_PATTERN = Pattern.compile("\\bdelete\\s+(\\w+)");
+    private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -33,31 +40,20 @@ public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase 
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                Matcher m = DELETE_PATTERN.matcher(text);
-                while (m.find()) {
-                    String deletedVar = m.group(1);
-                    int afterDelete = m.end();
-                    String remaining = text.substring(afterDelete);
-                    // Skip array-element deletes such as "delete arr[i];" — the element,
-                    // not the identifier itself, is being deleted.
-                    if (remaining.stripLeading().startsWith("[")) {
-                        continue;
+                boolean[] flagged = {false};
+                StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
+                    if (flagged[0]) return;
+                    ASTNode idNode = StatementAst.deletedIdentifier(stmt);
+                    if (idNode == null) return;
+                    String name = idNode.getText();
+                    ASTNode nextStatement = StatementAst.nextNonTrivia(stmt);
+                    if (StatementAst.isNullAssignmentStatement(nextStatement, name)) return;
+                    if (StatementAst.hasIdentifierAfter(body, name, stmt.getTextRange().getEndOffset())) {
+                        flagged[0] = true;
                     }
-                    if (Pattern.compile("\\b" + Pattern.quote(deletedVar) + "\\b").matcher(remaining).find()) {
-                        // Strip the trailing ";" of the delete statement itself so the safe
-                        // pattern "delete obj; obj = NULL;" is recognised.
-                        String afterDeleteTrimmed = remaining.stripLeading();
-                        if (afterDeleteTrimmed.startsWith(";")) {
-                            afterDeleteTrimmed = afterDeleteTrimmed.substring(1).stripLeading();
-                        }
-                        Pattern nullAssign = Pattern.compile(
-                                "^" + Pattern.quote(deletedVar) + "\\s*=\\s*(?i:NULL)");
-                        if (!nullAssign.matcher(afterDeleteTrimmed).find()) {
-                            problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
-                            break;
-                        }
-                    }
+                });
+                if (flagged[0]) {
+                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
         }

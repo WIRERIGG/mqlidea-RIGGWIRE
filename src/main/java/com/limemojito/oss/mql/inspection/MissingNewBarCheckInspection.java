@@ -37,15 +37,14 @@ public class MissingNewBarCheckInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && "OnTick".equals(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (!BracketBlockTokenWalker.containsAnyFunctionCall(body, HEAVY_FUNCS)) continue;
-                if (body == null) continue;
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
+                if (body == null || !StatementAst.hasAnyCall(body, HEAVY_FUNCS)) continue;
+                String text = StatementAst.heuristicText(body);
                 boolean hasNewBarGuard = text.contains("IsNewBar")
                         || text.contains("isNewBar")
                         || text.contains("static datetime")
                         || text.contains("static int prevBars")
-                        || text.contains("iTime")
-                        || text.contains("Bars(");
+                        || StatementAst.hasCall(body, "iTime")
+                        || StatementAst.hasCall(body, "Bars");
                 if (!hasNewBarGuard) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }

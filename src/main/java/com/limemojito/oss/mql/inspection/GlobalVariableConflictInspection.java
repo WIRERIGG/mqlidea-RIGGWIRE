@@ -32,7 +32,7 @@ public class GlobalVariableConflictInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCall(body, "GlobalVariableSet")) {
+                if (StatementAst.hasCall(body, "GlobalVariableSet")) {
                     funcsWithGlobalSet.add(func);
                 }
             }

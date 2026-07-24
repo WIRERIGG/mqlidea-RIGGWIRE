@@ -41,7 +41,7 @@ public class ArrayResizeInLoopInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
                     ASTNode loopBody = StatementAst.findLoopBody(loop);
-                    if (loopBody == null || !BracketBlockTokenWalker.containsFunctionCall(loopBody, ARRAY_RESIZE)) {
+                    if (loopBody == null || !StatementAst.hasCall(loopBody, ARRAY_RESIZE)) {
                         return;
                     }
                     PsiElement psi = loop.getPsi();

@@ -29,12 +29,8 @@ public class ArrayResizeReturnCheckInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCall(body, "ArrayResize")) {
-                    String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                    boolean hasCheck = text.contains("< 0") || text.contains("<= 0")
-                            || text.contains("== -1") || text.contains("< 1")
-                            || text.contains("GetLastError");
-                    if (!hasCheck) {
+                if (StatementAst.hasCall(body, "ArrayResize")) {
+                    if (!StatementAst.hasFailureReturnCheck(body)) {
                         problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
                     }
                 }

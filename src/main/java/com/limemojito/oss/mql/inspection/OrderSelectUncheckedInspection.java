@@ -12,24 +12,30 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * MQL4-only. Flags OrderSelect() called as a bare statement with its boolean
- * result ignored — order data read afterwards may be stale or invalid.
+ * result ignored — order data read afterwards may be stale or invalid. Detection reuses
+ * {@link ReturnValueIgnoredInspection#bareCallName}: a bare {@code EXPRESSION_STATEMENT} whose
+ * only content is {@code OrderSelect(...)} with no capturing assignment. Because the condition
+ * of an {@code if}/{@code while} and a call's argument list are never themselves
+ * {@code EXPRESSION_STATEMENT} nodes in this grammar, {@code if(OrderSelect(...))},
+ * {@code ok = OrderSelect(...)} and {@code return OrderSelect(...)} are excluded by construction
+ * — no hand-rolled paren-depth/statement-boundary text scan is needed.
  */
 public class OrderSelectUncheckedInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE =
             "OrderSelect() result ignored — check its bool return before reading order data";
 
-    private static final Pattern ORDER_SELECT_CALL = Pattern.compile("\\bOrderSelect\\s*\\(");
+    private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -40,47 +46,17 @@ public class OrderSelectUncheckedInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                if (hasBareOrderSelect(text)) {
+                boolean[] flagged = {false};
+                StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
+                    if (!flagged[0] && "OrderSelect".equals(ReturnValueIgnoredInspection.bareCallName(stmt))) {
+                        flagged[0] = true;
+                    }
+                });
+                if (flagged[0]) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
                 }
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
-    }
-
-    private static boolean hasBareOrderSelect(@NotNull String text) {
-        Matcher m = ORDER_SELECT_CALL.matcher(text);
-        while (m.find()) {
-            ProgressManager.checkCanceled();
-            if (isStatementPosition(text, m.start())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * True when the call at {@code callStart} sits at statement position:
-     * not inside parentheses (if/while/for conditions, argument lists) and
-     * immediately preceded (ignoring whitespace) by a statement boundary
-     * ({@code ;}, <code>{</code>, <code>}</code> or start of the body).
-     * This excludes uses such as {@code if(OrderSelect(...))},
-     * {@code ok = OrderSelect(...)}, {@code !OrderSelect(...)},
-     * {@code return OrderSelect(...)} and {@code && OrderSelect(...)}.
-     */
-    private static boolean isStatementPosition(@NotNull String text, int callStart) {
-        int parenDepth = 0;
-        for (int i = 0; i < callStart; i++) {
-            char c = text.charAt(i);
-            if (c == '(') parenDepth++;
-            else if (c == ')') parenDepth--;
-        }
-        if (parenDepth > 0) return false;
-        int q = callStart - 1;
-        while (q >= 0 && Character.isWhitespace(text.charAt(q))) q--;
-        if (q < 0) return true;
-        char prev = text.charAt(q);
-        return prev == ';' || prev == '{' || prev == '}';
     }
 }

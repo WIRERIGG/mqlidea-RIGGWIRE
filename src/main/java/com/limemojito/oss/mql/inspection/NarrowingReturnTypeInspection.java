@@ -13,6 +13,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
@@ -20,7 +21,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Flags an integer-returning function that returns a floating-point literal — a genuine narrowing
@@ -29,6 +29,12 @@ import java.util.regex.Pattern;
  * helpers, comparators) is idiomatic, lossless MQL5. Nothing is narrowed by a function choosing to return
  * an int, so that rule produced only false positives. This detects the real case: {@code return 3.7;}
  * from an int-returning function silently truncates.
+ * <p>
+ * The float literal is looked for structurally ({@code DOUBLE_LITERAL} token inside a
+ * {@code RETURN_STATEMENT}) rather than via a regex over the return's text — a real lexer token
+ * for {@code obj1.value} is {@code IDENTIFIER("obj1") DOT IDENTIFIER("value")}, never a
+ * {@code DOUBLE_LITERAL}, so the member-access-on-digit-suffixed-identifier false positive (Fable
+ * review, bug #2) cannot occur by construction; no lookbehind hack is needed.
  */
 public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
 
@@ -39,11 +45,8 @@ public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
             MQL4Elements.INT_KEYWORD, MQL4Elements.LONG_KEYWORD, MQL4Elements.SHORT_KEYWORD,
             MQL4Elements.CHAR_KEYWORD, MQL4Elements.UINT_KEYWORD, MQL4Elements.ULONG_KEYWORD,
             MQL4Elements.USHORT_KEYWORD, MQL4Elements.UCHAR_KEYWORD);
-    // A `return` whose expression contains a floating-point literal (1.0, .5, 2.) before the statement
-    // end. The (?<![\w.]) lookbehind stops the digit-dot of member access on a digit-suffixed identifier
-    // (e.g. `return obj1.value;` — the `1.` there) from matching as a literal (Fable review, bug #2).
-    private static final Pattern RETURN_FLOAT_LITERAL =
-            Pattern.compile("\\breturn\\b[^;]*?(?<![\\w.])(?:\\d+\\.\\d*|\\.\\d+)");
+    private static final TokenSet RETURN_STATEMENT = TokenSet.create(MQL4Elements.RETURN_STATEMENT);
+    private static final TokenSet DOUBLE_LITERAL = TokenSet.create(MQL4Elements.DOUBLE_LITERAL);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -57,8 +60,13 @@ public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
 
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                String text = BracketBlockTokenWalker.stripCommentsAndStrings(body.getText());
-                if (RETURN_FLOAT_LITERAL.matcher(text).find()) {
+                boolean[] flagged = {false};
+                StatementAst.forEachDescendant(body, RETURN_STATEMENT, returnStmt -> {
+                    if (!flagged[0] && StatementAst.hasDescendant(returnStmt, DOUBLE_LITERAL)) {
+                        flagged[0] = true;
+                    }
+                });
+                if (flagged[0]) {
                     problems.add(createWarning(manager, child.getNavigationElement(),
                             String.format(MESSAGE, func.getFunctionName())));
                 }

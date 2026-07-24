@@ -29,7 +29,7 @@ public class OverComplexErrorHandlingInspection extends MQL5SafetyInspectionBase
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.countFunctionCalls(body, "GetLastError") > 3) {
+                if (StatementAst.countCalls(body, "GetLastError") > 3) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

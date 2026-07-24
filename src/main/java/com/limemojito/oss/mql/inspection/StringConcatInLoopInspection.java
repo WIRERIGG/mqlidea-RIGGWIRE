@@ -29,8 +29,6 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "String concatenation inside loop — use StringConcatenate() or StringAdd() for better performance";
 
-    private static final String CONCAT_PATTERN = "\\+\\s*\"|\"+\\s*\\+";
-
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
@@ -41,7 +39,7 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
                     ASTNode loopBody = StatementAst.findLoopBody(loop);
-                    if (loopBody == null || !BracketBlockTokenWalker.containsPattern(loopBody, CONCAT_PATTERN)) {
+                    if (loopBody == null || !StatementAst.hasStringConcat(loopBody)) {
                         return;
                     }
                     PsiElement psi = loop.getPsi();

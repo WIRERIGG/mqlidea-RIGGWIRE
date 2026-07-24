@@ -33,10 +33,10 @@ public class MissingIndicatorReleaseInspection extends MQL5SafetyInspectionBase 
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, MQL5_HANDLE_CREATORS)) {
+                if (StatementAst.hasAnyCall(body, MQL5_HANDLE_CREATORS)) {
                     hasHandleCreation = true;
                 }
-                if (BracketBlockTokenWalker.containsFunctionCall(body, "IndicatorRelease")) {
+                if (StatementAst.hasCall(body, "IndicatorRelease")) {
                     hasRelease = true;
                 }
             }
@@ -50,7 +50,7 @@ public class MissingIndicatorReleaseInspection extends MQL5SafetyInspectionBase 
             } else {
                 for (MQL4FunctionElement deinit : onDeinit) {
                     ASTNode body = findBracketsBlock(deinit);
-                    if (!BracketBlockTokenWalker.containsFunctionCall(body, "IndicatorRelease")) {
+                    if (!StatementAst.hasCall(body, "IndicatorRelease")) {
                         problems.add(createProblem(manager, deinit.getNavigationElement(), MESSAGE));
                     }
                 }

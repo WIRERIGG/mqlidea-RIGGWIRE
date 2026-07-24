@@ -34,7 +34,7 @@ public class IndicatorCreationInOnTickInspection extends MQL5SafetyInspectionBas
                     && !func.isDeclaration()
                     && TICK_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsAnyFunctionCall(body, MQL5_HANDLE_CREATORS)) {
+                if (StatementAst.hasAnyCall(body, MQL5_HANDLE_CREATORS)) {
                     problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

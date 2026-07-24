@@ -29,9 +29,9 @@ public class ArrayAccessWithoutSizeCheckInspection extends MQL5SafetyInspectionB
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsArrayAccess(body)
-                        && !BracketBlockTokenWalker.containsFunctionCall(body, "ArraySize")
-                        && !BracketBlockTokenWalker.containsFunctionCall(body, "ArrayRange")) {
+                if (StatementAst.hasArrayAccess(body)
+                        && !StatementAst.hasCall(body, "ArraySize")
+                        && !StatementAst.hasCall(body, "ArrayRange")) {
                     problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }

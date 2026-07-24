@@ -29,9 +29,9 @@ public class UnsafeArrayCopyInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCall(body, "ArrayCopy")) {
-                    if (!BracketBlockTokenWalker.containsFunctionCall(body, "ArraySize")
-                            && !BracketBlockTokenWalker.containsFunctionCall(body, "ArrayRange")) {
+                if (StatementAst.hasCall(body, "ArrayCopy")) {
+                    if (!StatementAst.hasCall(body, "ArraySize")
+                            && !StatementAst.hasCall(body, "ArrayRange")) {
                         problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                     }
                 }

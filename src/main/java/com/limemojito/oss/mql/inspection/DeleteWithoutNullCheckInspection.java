@@ -12,13 +12,17 @@ import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
+import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class DeleteWithoutNullCheckInspection extends MQL5SafetyInspectionBase {
+
+    private static final TokenSet DELETE_KEYWORD = TokenSet.create(MQL4Elements.DELETE_KEYWORD);
 
     // NOTE: absence of a null check before `delete` is not "use-after-free" (that is dereferencing a
     // pointer AFTER deletion — see DanglingObjectReferenceInspection). MQL5 does not require a null check
@@ -33,10 +37,9 @@ public class DeleteWithoutNullCheckInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsPattern(body, "\\bdelete\\b")) {
-                    if (!BracketBlockTokenWalker.containsPattern(body, "!=\\s*NULL")
-                            && !BracketBlockTokenWalker.containsPattern(body, "==\\s*NULL")
-                            && !BracketBlockTokenWalker.containsIdentifier(body, "CheckPointer")) {
+                if (body != null && StatementAst.hasDescendant(body, DELETE_KEYWORD)) {
+                    if (!StatementAst.hasNullComparison(body)
+                            && !StatementAst.hasIdentifier(body, "CheckPointer")) {
                         problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                     }
                 }

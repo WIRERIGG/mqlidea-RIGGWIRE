@@ -56,7 +56,7 @@ public class RepeatedApiCallInspection extends MQL5SafetyInspectionBase {
                                      @NotNull List<ProblemDescriptor> problems) {
         for (String funcName : EXPENSIVE_FUNCTIONS) {
             ProgressManager.checkCanceled();
-            int count = BracketBlockTokenWalker.countFunctionCalls(body, funcName);
+            int count = StatementAst.countCalls(body, funcName);
             if (count > CALL_THRESHOLD) {
                 problems.add(createWeakWarning(manager, function.getNavigationElement(),
                         String.format(MESSAGE, funcName, count)));

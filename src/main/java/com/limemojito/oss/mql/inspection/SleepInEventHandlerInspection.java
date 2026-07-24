@@ -33,7 +33,7 @@ public class SleepInEventHandlerInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && BLOCKED_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (BracketBlockTokenWalker.containsFunctionCall(body, "Sleep")) {
+                if (StatementAst.hasCall(body, "Sleep")) {
                     problems.add(createProblem(manager, child.getNavigationElement(),
                             String.format(MESSAGE, func.getFunctionName())));
                 }
