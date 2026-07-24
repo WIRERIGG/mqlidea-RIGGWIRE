@@ -15,6 +15,12 @@ public class PreprocessorTest extends MQL4ParserTestBase {
         doTest();
     }
 
+    public void testPropertyColorList() {
+        // #property indicator_colorN accepts a comma-separated color list for DRAW_COLOR_* plots
+        // (e.g. clrGold,clrDodgerBlue,...) — the commas must not be reported as unexpected tokens.
+        doTest();
+    }
+
     public void testInclude() {
         doTest();
     }
