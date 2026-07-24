@@ -107,7 +107,7 @@ When you stop typing (or trigger **Compile Check Now**), the ExternalAnnotator h
 
 Known limitations, tracked as upcoming work:
 
-- **Quick-fixes cover ~10 of 80 inspections** — property/doc-comment/empty-body/delete-nullify fixes ship today; the **Trading Safety** group reports problems without automated remediation yet (planned: wrap-in-check and insert-release fixes)
+- **Quick-fixes cover a growing subset of inspections** — property/doc-comment/empty-body/delete-nullify fixes plus **Trading Safety** remediations (wrap an unchecked `CopyRates`/`CopyBuffer`/`ArrayResize` call in a `< 0` failure check; insert an `INVALID_HANDLE` guard after indicator-handle creation); more Trading Safety fixes planned
 - **Inspection suppression is editor-only** — `// noinspection`-style comments plus Suppress-for-function / Suppress-for-file intentions work in the editor, but batch **Inspect Code** results and statement/line-level scope are not yet supported
 - **Member-access rename/completion gap** — because `obj.field` / `obj.Method()` are not type-resolved, renaming a member does not rewrite its call sites and dot-completion only knows bundled StdLib types (project-defined types need type inference, planned)
 - **Header (`.mqh`) compile errors are not yet surfaced** — the compiler integration currently reports diagnostics for the compiled `.mq4`/`.mq5` file only
@@ -145,7 +145,7 @@ src/main/resources/
 └── mql/doc/                     Bundled MQL documentation + JSON catalogs
 ```
 
-~231 Java source files; the test suite (246 tests) covers the parser, resolution, inspections, and compiler-output parsing.
+~233 Java source files; the test suite (253 tests) covers the parser, resolution, inspections, and compiler-output parsing.
 
 ---
 

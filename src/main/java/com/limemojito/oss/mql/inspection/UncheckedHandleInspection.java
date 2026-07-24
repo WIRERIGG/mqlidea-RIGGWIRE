@@ -35,7 +35,14 @@ public class UncheckedHandleInspection extends MQL5SafetyInspectionBase {
                     // INVALID_HANDLE is -1, so `== -1` / `!= -1` (and the other failure-check
                     // idioms hasFailureReturnCheck already recognises) are equally valid checks.
                     if (!StatementAst.hasIdentifier(body, "INVALID_HANDLE") && !StatementAst.hasFailureReturnCheck(body)) {
-                        problems.add(createProblem(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
+                        PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
+                        String handle = StatementAst.assignmentTargetName(call);
+                        // Offer the guard fix only when the handle was assigned to a named variable.
+                        if (handle != null) {
+                            problems.add(createProblem(manager, anchor, MESSAGE, new CheckHandleAfterCreationFix(handle)));
+                        } else {
+                            problems.add(createProblem(manager, anchor, MESSAGE));
+                        }
                     }
                 }
             }

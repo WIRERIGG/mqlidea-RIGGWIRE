@@ -260,6 +260,19 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
                 ProblemHighlightType.GENERIC_ERROR_OR_WARNING, onTheFly);
     }
 
+    /**
+     * Error-or-warning variant carrying one or more {@link LocalQuickFix}es (onTheFly always true —
+     * the fixes are only meaningful for the interactive/editor case).
+     */
+    @NotNull
+    protected ProblemDescriptor createProblem(@NotNull InspectionManager manager,
+                                              @NotNull PsiElement element,
+                                              @NotNull String message,
+                                              @NotNull LocalQuickFix... fixes) {
+        return manager.createProblemDescriptor(element, element, message,
+                ProblemHighlightType.GENERIC_ERROR_OR_WARNING, true, fixes);
+    }
+
     @NotNull
     protected ProblemDescriptor createWarning(@NotNull InspectionManager manager,
                                               @NotNull PsiElement element,

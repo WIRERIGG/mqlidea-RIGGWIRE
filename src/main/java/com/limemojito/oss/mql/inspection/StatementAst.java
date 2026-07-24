@@ -736,4 +736,53 @@ final class StatementAst implements MQL4Elements {
         if (text == null) return false;
         return text.contains("SYMBOL_ASK") || text.contains("SYMBOL_BID") || text.contains("SYMBOL_LAST");
     }
+
+    /** Statement nodes that a value-producing call can be the top of (bare call or var-decl init). */
+    private static final TokenSet CALL_HOSTING_STATEMENTS =
+            TokenSet.create(EXPRESSION_STATEMENT, VAR_DECLARATION_STATEMENT);
+
+    /**
+     * The enclosing {@code EXPRESSION_STATEMENT} or {@code VAR_DECLARATION_STATEMENT} of {@code node}
+     * (the innermost one), or null — the unit a quick fix inserts after / rewrites.
+     */
+    @Nullable
+    static ASTNode enclosingStatement(@NotNull ASTNode node) {
+        for (ASTNode current = node; current != null; current = current.getTreeParent()) {
+            if (CALL_HOSTING_STATEMENTS.contains(current.getElementType())) return current;
+        }
+        return null;
+    }
+
+    /**
+     * True when {@code callIdentifier} is the leading token of a bare call statement
+     * {@code foo(...);} — its enclosing {@code EXPRESSION_STATEMENT}'s first non-trivia child IS the
+     * call identifier (no assignment target, no declared type in front). Only such a statement can be
+     * safely wrapped as {@code if(foo(...) < 0) ...} by a quick fix; an assigned/declared call
+     * ({@code int n = foo(...);}) must not be.
+     */
+    static boolean isBareCallStatement(@NotNull ASTNode callIdentifier) {
+        ASTNode stmt = enclosingStatement(callIdentifier);
+        if (stmt == null || stmt.getElementType() != EXPRESSION_STATEMENT) return false;
+        ASTNode first = stmt.getFirstChildNode();
+        while (first != null && isTrivia(first)) first = first.getTreeNext();
+        return first == callIdentifier;
+    }
+
+    /**
+     * The identifier a value is assigned to in {@code callIdentifier}'s enclosing statement — the LHS
+     * of the first {@code =} in an {@code int h = iMA(...);} declaration or an {@code h = iMA(...);}
+     * assignment — or null if the call is not the RHS of a simple assignment.
+     */
+    @Nullable
+    static String assignmentTargetName(@NotNull ASTNode callIdentifier) {
+        ASTNode stmt = enclosingStatement(callIdentifier);
+        if (stmt == null) return null;
+        for (ASTNode child = stmt.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            if (child.getElementType() == EQ) {
+                ASTNode lhs = prevNonTrivia(child);
+                return (lhs != null && lhs.getElementType() == IDENTIFIER) ? lhs.getText() : null;
+            }
+        }
+        return null;
+    }
 }

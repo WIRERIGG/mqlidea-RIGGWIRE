@@ -32,7 +32,13 @@ public class UncheckedCopyRatesInspection extends MQL5SafetyInspectionBase {
                 ASTNode call = StatementAst.findAnyCall(body, MQL5_COPY_FUNCS);
                 if (call != null && !StatementAst.hasFailureReturnCheck(body)
                         && !StatementAst.callResultCompared(call)) {
-                    problems.add(createWarning(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
+                    PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
+                    // Offer the wrap-in-check fix only for a bare call statement (safe to rewrite).
+                    if (StatementAst.isBareCallStatement(call)) {
+                        problems.add(createWarning(manager, anchor, MESSAGE, new WrapCallInFailureCheckFix(call.getText())));
+                    } else {
+                        problems.add(createWarning(manager, anchor, MESSAGE));
+                    }
                 }
             }
         }

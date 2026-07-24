@@ -61,7 +61,7 @@ src/test/                               # parser + inspection tests (219)
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 246). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 253). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **21** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.
@@ -71,7 +71,7 @@ src/test/                               # parser + inspection tests (219)
 ## Known Limitations / Roadmap
 
 (from the 2026 architecture review — being worked through)
-- Quick-fixes cover ~10 of 80 inspections; the Trading Safety group has none yet (highest-value gap — `MQL5SafetyInspectionBase` already exposes `createWarning(..., LocalQuickFix...)` overloads).
+- Quick-fixes cover a growing subset; the Trading Safety group now has three (wrap unchecked `CopyRates`/`CopyBuffer`/`ArrayResize` in a `< 0` check via `WrapCallInFailureCheckFix`; `INVALID_HANDLE` guard via `CheckHandleAfterCreationFix`). More flagship checks (UncheckedOrderSend, MissingIndicatorRelease) still report-only.
 - Inspection suppression is wired (comment + Suppress-for-function/file intentions via `MQL5SafetyInspectionBase` → `CustomSuppressableInspectionTool`) but editor-only: no batch **Inspect Code** suppression and no statement/line-level scope; built on pre-2016 deprecated API.
 - Member-access (`obj.field`/`obj.Method()`) is not type-resolved, so rename silently misses those call sites and dot-completion only covers bundled StdLib types.
 - Header (`.mqh`) compile errors from the ExternalAnnotator are not yet surfaced.

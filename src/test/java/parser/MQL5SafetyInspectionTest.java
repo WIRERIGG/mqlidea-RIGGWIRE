@@ -123,6 +123,29 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "test.mq5");
     }
 
+    public void testUncheckedHandleQuickFixInsertsInvalidHandleCheck() {
+        String result = applyFirstQuickFix(new UncheckedHandleInspection(),
+                "int handle;\n" +
+                "int OnInit() { handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE); return 0; }",
+                "test.mq5");
+        assertTrue("Expected an INVALID_HANDLE guard inserted after creation:\n" + result,
+                result.contains("if(handle == INVALID_HANDLE)"));
+    }
+
+    public void testUncheckedCopyRatesQuickFixWrapsInFailureCheck() {
+        String result = applyFirstQuickFix(new UncheckedCopyRatesInspection(),
+                "void foo() { double buf[]; CopyBuffer(handle, 0, 0, 10, buf); }", "test.mq5");
+        assertTrue("Expected the CopyBuffer call wrapped in a < 0 failure check:\n" + result,
+                result.contains("if(CopyBuffer(handle, 0, 0, 10, buf) < 0)"));
+    }
+
+    public void testArrayResizeReturnCheckQuickFixWrapsInFailureCheck() {
+        String result = applyFirstQuickFix(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double arr[]; ArrayResize(arr, 100); }", "test.mq4");
+        assertTrue("Expected the ArrayResize call wrapped in a < 0 failure check:\n" + result,
+                result.contains("if(ArrayResize(arr, 100) < 0)"));
+    }
+
     public void testMissingIndicatorRelease() {
         assertHasProblems(new MissingIndicatorReleaseInspection(),
                 "int handle;\n" +
