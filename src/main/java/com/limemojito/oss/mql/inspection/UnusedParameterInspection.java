@@ -33,6 +33,10 @@ public class UnusedParameterInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(func);
                 if (body == null) continue;
                 List<ASTNode> args = getFunctionArgs(func);
+                if (args.isEmpty()) continue;
+                // Collect the body's identifier set once, then test each parameter against it —
+                // instead of walking the whole body once per parameter.
+                java.util.Set<String> usedNames = StatementAst.collectIdentifiers(body);
                 for (ASTNode arg : args) {
                     ASTNode idNode = arg.findChildByType(MQL4Elements.IDENTIFIER);
                     if (idNode == null) continue;
@@ -48,7 +52,7 @@ public class UnusedParameterInspection extends MQL5SafetyInspectionBase {
                     }
                     String paramName = lastId.getText();
                     if (paramName == null || paramName.isEmpty()) continue;
-                    if (!StatementAst.hasIdentifier(body, paramName)) {
+                    if (!usedNames.contains(paramName)) {
                         problems.add(createWeakWarning(manager, arg.getPsi(),
                                 String.format(MESSAGE, paramName)));
                     }

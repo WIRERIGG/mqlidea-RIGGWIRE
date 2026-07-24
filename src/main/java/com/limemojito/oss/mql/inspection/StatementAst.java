@@ -15,6 +15,7 @@ import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -309,6 +310,29 @@ final class StatementAst implements MQL4Elements {
         int[] count = {0};
         forEachCall(root, Set.of(name), id -> count[0]++);
         return count[0];
+    }
+
+    /**
+     * All {@code IDENTIFIER} token texts occurring anywhere in {@code root}, collected in ONE walk —
+     * for callers that would otherwise call {@link #hasIdentifier} once per candidate name (e.g. one
+     * body walk per function parameter). Test membership with {@code Set.contains} afterward.
+     */
+    @NotNull
+    static Set<String> collectIdentifiers(@Nullable ASTNode root) {
+        Set<String> names = new HashSet<>();
+        collectIdentifiersInto(root, names);
+        return names;
+    }
+
+    private static void collectIdentifiersInto(@Nullable ASTNode root, @NotNull Set<String> out) {
+        if (root == null) return;
+        for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (child.getElementType() == IDENTIFIER) {
+                out.add(child.getText());
+            }
+            collectIdentifiersInto(child, out);
+        }
     }
 
     /** True when an {@code IDENTIFIER} token with text {@code name} occurs anywhere in {@code root} (call or bare reference). */

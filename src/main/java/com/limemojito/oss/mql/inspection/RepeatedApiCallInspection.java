@@ -16,7 +16,9 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class RepeatedApiCallInspection extends MQL5SafetyInspectionBase {
@@ -54,10 +56,13 @@ public class RepeatedApiCallInspection extends MQL5SafetyInspectionBase {
                                      @NotNull InspectionManager manager,
                                      @NotNull PsiElement function,
                                      @NotNull List<ProblemDescriptor> problems) {
+        // One walk of the body accumulating per-name counts, instead of one full walk per name
+        // (was 14 walks of the OnTick body every daemon pass).
+        Map<String, Integer> counts = new HashMap<>();
+        StatementAst.forEachCall(body, EXPENSIVE_FUNCTIONS, id -> counts.merge(id.getText(), 1, Integer::sum));
         for (String funcName : EXPENSIVE_FUNCTIONS) {
-            ProgressManager.checkCanceled();
-            int count = StatementAst.countCalls(body, funcName);
-            if (count > CALL_THRESHOLD) {
+            Integer count = counts.get(funcName);
+            if (count != null && count > CALL_THRESHOLD) {
                 problems.add(createWeakWarning(manager, function.getNavigationElement(),
                         String.format(MESSAGE, funcName, count)));
             }
