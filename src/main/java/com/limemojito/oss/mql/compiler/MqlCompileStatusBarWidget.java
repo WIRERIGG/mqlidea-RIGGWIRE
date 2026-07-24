@@ -13,6 +13,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
+import com.intellij.util.Consumer;
+import java.awt.event.MouseEvent;
 import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -90,7 +92,18 @@ final class MqlCompileStatusBarWidget implements StatusBarWidget, StatusBarWidge
     @Override
     @Nullable
     public String getTooltipText() {
-        return "MQL compiler status for the active file (docs/REVAMP_PLAN.md Phase 1)";
+        return "MQL compiler status for the active file — click to run Compile Check Now";
+    }
+
+    @Override
+    @Nullable
+    public Consumer<MouseEvent> getClickConsumer() {
+        return event -> {
+            VirtualFile file = currentFile();
+            if (file != null) {
+                CompileCheckNowAction.runCompileCheck(project, file);
+            }
+        };
     }
 
     @Nullable

@@ -58,12 +58,21 @@ public final class CompileCheckNowAction extends AnAction {
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
         VirtualFile file = e.getData(CommonDataKeys.VIRTUAL_FILE);
-        if (project == null || file == null || !MqlCompilerExternalAnnotator.isCompilableProgram(file.getName())) {
+        if (project != null && file != null) {
+            runCompileCheck(project, file);
+        }
+    }
+
+    /**
+     * Force a fresh compile of {@code file} and refresh diagnostics/status — the shared entry point
+     * for both the "Compile Check Now" action and a click on the status-bar widget. No-op when the
+     * file isn't a compilable MQL program.
+     */
+    public static void runCompileCheck(@NotNull Project project, @NotNull VirtualFile file) {
+        if (!MqlCompilerExternalAnnotator.isCompilableProgram(file.getName())) {
             return;
         }
-
         FileDocumentManager.getInstance().saveAllDocuments();
-
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Compiling " + file.getName(), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
