@@ -34,13 +34,15 @@ public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
     private static final String MESSAGE =
             "Important function return value ignored — check return values of ArrayResize/FileOpen/ObjectCreate/etc. to detect failures";
 
+    // Only functions whose ignored return genuinely hides a FAILURE (as the message says). Excludes
+    // cosmetic/idiomatic calls whose return is routinely and correctly ignored: ObjectDelete
+    // (delete-if-exists), ChartSetInteger/Double/String (cosmetic chart props), ArrayCopy/ArraySort
+    // (in-place), StringFind/StringReplace (not failure-critical) — those were the false positives.
     private static final Set<String> IMPORTANT_FUNCTIONS = Set.of(
-            "ArrayResize", "ArrayCopy", "ArraySort",
-            "StringFind", "StringReplace",
+            "ArrayResize",
             "FileOpen", "FileCopy", "FileMove",
             "GlobalVariableSet",
-            "ChartSetInteger", "ChartSetDouble", "ChartSetString",
-            "ObjectCreate", "ObjectDelete",
+            "ObjectCreate",
             "EventSetTimer", "EventSetMillisecondTimer"
     );
 

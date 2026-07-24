@@ -67,12 +67,31 @@ public class LargeStructByValueInspection extends MQL5SafetyInspectionBase {
                 argChild = argChild.getTreeNext();
             }
 
-            if (!hasRef && isUserType && typeName != null) {
-                if (MQL5_LARGE_STRUCTS.contains(typeName) || Character.isUpperCase(typeName.charAt(0))) {
-                    problems.add(createWarning(manager, arg.getPsi(),
-                            String.format(MESSAGE, typeName)));
-                }
+            if (!hasRef && isUserType && typeName != null && shouldFlag(typeName)) {
+                problems.add(createWarning(manager, arg.getPsi(),
+                        String.format(MESSAGE, typeName)));
             }
         }
+    }
+
+    /**
+     * True only for a genuinely copy-worthy type: a known large MQL5 struct, or a CamelCase
+     * user-defined type. All-uppercase names ({@code ENUM_TIMEFRAMES}, {@code TRADE_ACTION}, …) are
+     * enums/constants — passing them by value is correct and must NOT be flagged (the old
+     * {@code isUpperCase(first-char)} heuristic wrongly flagged every enum parameter).
+     */
+    private static boolean shouldFlag(@NotNull String typeName) {
+        if (MQL5_LARGE_STRUCTS.contains(typeName)) {
+            return true;
+        }
+        if (typeName.isEmpty() || !Character.isUpperCase(typeName.charAt(0))) {
+            return false;
+        }
+        for (int i = 0; i < typeName.length(); i++) {
+            if (Character.isLowerCase(typeName.charAt(i))) {
+                return true; // has a lowercase letter → CamelCase user type, not an ALL_CAPS enum
+            }
+        }
+        return false;
     }
 }

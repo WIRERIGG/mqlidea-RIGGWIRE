@@ -30,14 +30,24 @@ public class ArrayAccessWithoutSizeCheckInspection extends MQL5SafetyInspectionB
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 ASTNode access = StatementAst.findArrayAccess(body);
-                if (access != null
-                        && !StatementAst.hasCall(body, "ArraySize")
-                        && !StatementAst.hasCall(body, "ArrayRange")) {
+                if (access != null && body != null && !isSizeAware(body)) {
                     // Anchor the warning at the array access itself, not the whole function header.
                     problems.add(createWarning(manager, StatementAst.anchor(access, child.getNavigationElement()), MESSAGE));
                 }
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+
+    // Signals that the function is already size-aware, so its array indexing is governed by a known
+    // bound — don't flag it. Covers explicit size calls (ArraySize/ArrayRange), the OnCalculate size
+    // contract (rates_total/prev_calculated), and bar-count bounds (Bars/BarsCalculated/iBars).
+    // Computed in one identifier walk. This removes the flood of false positives on indicator code
+    // that indexes timeseries/buffers by rates_total rather than ArraySize.
+    private static boolean isSizeAware(@NotNull ASTNode body) {
+        java.util.Set<String> ids = StatementAst.collectIdentifiers(body);
+        return ids.contains("ArraySize") || ids.contains("ArrayRange")
+                || ids.contains("rates_total") || ids.contains("prev_calculated")
+                || ids.contains("Bars") || ids.contains("BarsCalculated") || ids.contains("iBars");
     }
 }

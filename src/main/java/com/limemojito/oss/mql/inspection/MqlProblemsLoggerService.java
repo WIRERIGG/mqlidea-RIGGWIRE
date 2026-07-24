@@ -407,13 +407,29 @@ public final class MqlProblemsLoggerService implements Disposable {
     @NotNull
     private List<LocalInspectionTool> discoverInspections() {
         List<LocalInspectionTool> tools = new ArrayList<>();
+        // Respect the user's inspection profile (which honours enabledByDefault) — only report
+        // findings from inspections that are actually ENABLED. Previously every MQL inspection was
+        // run regardless, so opt-in style/naming checks (enabledByDefault="false") flooded the
+        // report with noise the user never turned on.
+        com.intellij.codeInspection.ex.InspectionProfileImpl profile =
+                com.intellij.profile.codeInspection.InspectionProjectProfileManager.getInstance(project).getCurrentProfile();
         for (LocalInspectionEP ep : LOCAL_INSPECTION_EP.getExtensionList()) {
-            if ("MQL4".equals(ep.language)) {
-                try {
-                    tools.add((LocalInspectionTool) ep.instantiateTool());
-                } catch (Exception e) {
-                    LOG.debug("Failed to instantiate inspection: " + ep.getShortName(), e);
+            if (!"MQL4".equals(ep.language)) {
+                continue;
+            }
+            com.intellij.codeInsight.daemon.HighlightDisplayKey key =
+                    com.intellij.codeInsight.daemon.HighlightDisplayKey.find(ep.getShortName());
+            if (key != null) {
+                if (!profile.isToolEnabled(key)) {
+                    continue;
                 }
+            } else if (!ep.enabledByDefault) {
+                continue; // key not registered yet — fall back to the plugin's own default
+            }
+            try {
+                tools.add((LocalInspectionTool) ep.instantiateTool());
+            } catch (Exception e) {
+                LOG.debug("Failed to instantiate inspection: " + ep.getShortName(), e);
             }
         }
         return tools;
