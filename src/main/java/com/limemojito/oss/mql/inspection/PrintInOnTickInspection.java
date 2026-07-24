@@ -36,9 +36,10 @@ public class PrintInOnTickInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && TICK_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasAnyCall(body, LOGGING_FUNCS)) {
-                    problems.add(manager.createProblemDescriptor(child.getNavigationElement(),
-                            child.getNavigationElement(), MESSAGE,
+                ASTNode call = StatementAst.findAnyCall(body, LOGGING_FUNCS);
+                if (call != null) {
+                    PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
+                    problems.add(manager.createProblemDescriptor(anchor, anchor, MESSAGE,
                             ProblemHighlightType.WARNING, true));
                 }
             }

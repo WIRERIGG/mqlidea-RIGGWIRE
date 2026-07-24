@@ -39,26 +39,27 @@ public class StaleHandleUsageInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean[] flagged = {false};
+                // Anchor at the actual reuse (CopyBuffer) call site, not the function header.
+                ASTNode[] flagged = {null};
                 StatementAst.forEachCall(body, INDICATOR_RELEASE, releaseCall -> {
-                    if (flagged[0]) return;
+                    if (flagged[0] != null) return;
                     ASTNode args = StatementAst.callArgsBlock(releaseCall);
                     ASTNode handleId = args == null ? null : firstIdentifier(args);
                     if (handleId == null) return;
                     String handle = handleId.getText();
                     int afterRelease = args.getTextRange().getEndOffset();
-                    boolean[] reused = {false};
+                    ASTNode[] reused = {null};
                     StatementAst.forEachCall(body, COPY_BUFFER, copyCall -> {
-                        if (reused[0] || copyCall.getStartOffset() < afterRelease) return;
+                        if (reused[0] != null || copyCall.getStartOffset() < afterRelease) return;
                         ASTNode copyArgs = StatementAst.callArgsBlock(copyCall);
                         if (copyArgs != null && StatementAst.hasIdentifier(copyArgs, handle)) {
-                            reused[0] = true;
+                            reused[0] = copyCall;
                         }
                     });
-                    if (reused[0]) flagged[0] = true;
+                    if (reused[0] != null) flagged[0] = reused[0];
                 });
-                if (flagged[0]) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                if (flagged[0] != null) {
+                    problems.add(createWarning(manager, StatementAst.anchor(flagged[0], child.getNavigationElement()), MESSAGE, isOnTheFly));
                 }
             }
         }

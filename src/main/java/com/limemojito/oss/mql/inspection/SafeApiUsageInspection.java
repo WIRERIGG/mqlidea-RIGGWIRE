@@ -29,14 +29,15 @@ public class SafeApiUsageInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasCall(body, "OrderSend")) {
+                ASTNode call = StatementAst.findCall(body, "OrderSend");
+                if (call != null) {
                     boolean hasVolumeCheck = StatementAst.hasIdentifier(body, "SYMBOL_VOLUME_MIN")
                             || StatementAst.hasIdentifier(body, "SYMBOL_VOLUME_MAX")
                             || StatementAst.hasIdentifier(body, "SYMBOL_VOLUME_STEP")
                             || StatementAst.hasCall(body, "MarketInfo")
                             || StatementAst.hasCall(body, "SymbolInfoDouble");
                     if (!hasVolumeCheck) {
-                        problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                        problems.add(createWarning(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                     }
                 }
             }

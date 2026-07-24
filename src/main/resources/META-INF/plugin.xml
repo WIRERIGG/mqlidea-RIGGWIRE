@@ -135,6 +135,7 @@
                                implementationClass="com.limemojito.oss.mql.parser.MQL4ParserDefinition"/>
         <lang.syntaxHighlighterFactory language="MQL4"
                                        implementationClass="com.limemojito.oss.mql.editor.MQL4SyntaxHighlighter$MQL4SyntaxHighlighterFactory"/>
+        <colorSettingsPage implementation="com.limemojito.oss.mql.editor.MQL4ColorSettingsPage"/>
         <lang.commenter language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4Commenter"/>
         <lang.documentationProvider language="MQL4"
                                     implementationClass="com.limemojito.oss.mql.doc.MQL4DocumentationProvider"/>

@@ -30,9 +30,10 @@ public class UncheckedHandleInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasAnyCall(body, MQL5_HANDLE_CREATORS)) {
+                ASTNode call = StatementAst.findAnyCall(body, MQL5_HANDLE_CREATORS);
+                if (call != null) {
                     if (!StatementAst.hasIdentifier(body, "INVALID_HANDLE")) {
-                        problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE));
+                        problems.add(createProblem(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                     }
                 }
             }

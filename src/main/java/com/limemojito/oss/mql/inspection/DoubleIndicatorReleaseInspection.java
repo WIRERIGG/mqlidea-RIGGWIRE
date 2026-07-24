@@ -16,9 +16,10 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -44,20 +45,23 @@ public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 // Releasing two DIFFERENT handles (the normal multi-indicator OnDeinit pattern) is
                 // correct; only the SAME handle variable released more than once is a real double-free.
-                Set<String> seen = new HashSet<>();
-                List<String> duplicated = new ArrayList<>();
+                Map<String, ASTNode> firstSeen = new HashMap<>();
+                // Anchor at the actual second (duplicate) call site, not the function header.
+                Map<String, ASTNode> duplicated = new LinkedHashMap<>();
                 StatementAst.forEachCall(body, INDICATOR_RELEASE, callId -> {
                     ASTNode args = StatementAst.callArgsBlock(callId);
                     if (args == null) return;
                     String text = args.getText();
                     String handle = text.length() >= 2 ? text.substring(1, text.length() - 1).trim() : text.trim();
-                    if (!seen.add(handle) && !duplicated.contains(handle)) {
-                        duplicated.add(handle);
+                    ASTNode previous = firstSeen.putIfAbsent(handle, callId);
+                    if (previous != null) {
+                        duplicated.putIfAbsent(handle, callId);
                     }
                 });
-                for (String handle : duplicated) {
-                    problems.add(createProblem(manager, child.getNavigationElement(),
-                            String.format(MESSAGE, handle)));
+                for (Map.Entry<String, ASTNode> entry : duplicated.entrySet()) {
+                    problems.add(createProblem(manager,
+                            StatementAst.anchor(entry.getValue(), child.getNavigationElement()),
+                            String.format(MESSAGE, entry.getKey())));
                 }
             }
         }

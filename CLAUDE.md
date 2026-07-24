@@ -2,128 +2,80 @@
 
 ## What This Is
 
-An IntelliJ IDEA plugin providing MQL4/MQL5 language support for MetaTrader trading development. Features 75 code safety inspections, AI-powered code healing (Grok analysis + Claude refactoring), and comprehensive MQL5 support.
+An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.0) providing MQL4/MQL5 language support for MetaTrader trading development in IntelliJ IDEA and CLion. It focuses on being honest and genuinely helpful for real MQL projects: early, inline detection of syntactic/semantic errors, and full IDE assistance (navigation, refactoring, completion, docs, formatting) plus a compiler-backed error annotator.
+
+> The former **AI Code Healing** subsystem (Grok analysis + Claude diff apply, SQLite DB, healing tool window, gutter markers, pre-commit prompts) was **removed in the 2026.1.0 revamp**. Only the AI-free "Generate MQL Inspection Catalog" action (`catalog/`) survives. Do not re-add healing.
 
 ## Build
 
 ```bash
-# Requires JAVA_HOME pointing to JBR 21
-export JAVA_HOME="/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.2/jbr"
-./gradlew.bat --no-daemon --console=plain build
+# macOS: use the CLion (or IntelliJ) bundled JBR 21 as JAVA_HOME
+export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
+./gradlew build          # compile + test + verify
+./gradlew test           # tests only (219 pass)
+./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
 ```
 
-- Java 21 (JetBrains Runtime 21.0.9)
-- Gradle 9.3 via wrapper
-- IntelliJ Platform Gradle Plugin 2.11.0
-- Target IDE: IntelliJ IDEA 2025.3.2+
+- Java 21 (JetBrains Runtime), Gradle 9.3 via wrapper, IntelliJ Platform Gradle Plugin 2.11.0.
+- Target IDE: IntelliJ IDEA / CLion **2025.3.2+** (since-build 253.30387).
+- The plugin only depends on `com.intellij.modules.lang`, so it loads in CLion as well as IDEA.
 
 ## Dependencies
 
-| Library | Version | Purpose |
-|---------|---------|---------|
-| `org.xerial:sqlite-jdbc` | 3.45.1.0 | Healing database (`.idea/mql-healing.db`) |
-| `com.squareup.okhttp3:okhttp` | 4.12.0 | Grok + Claude API HTTP clients |
-| `com.google.code.gson:gson` | 2.10.1 | JSON serialization for API calls |
+| Library | Purpose |
+|---------|---------|
+| `com.google.code.gson:gson` | JSON parsing for the bundled MQL doc catalogs |
+
+(No SQLite / OkHttp / AI-client dependencies — those left with the healing system.)
 
 ## Project Structure
 
 ```
 src/main/java/com/limemojito/oss/mql/
-├── healing/                              # AI Code Healing system
-│   ├── HealingService.java              # Orchestrator — schedules Grok + Claude cycles
-│   ├── ai/
-│   │   ├── ApiKeyStorage.java           # PasswordSafe wrapper for API keys
-│   │   ├── ClaudeClient.java            # Claude API — generates unified diffs
-│   │   ├── DiffParser.java              # Parses unified diff into DiffPatch/Hunk records
-│   │   └── GrokClient.java              # Grok API — analyzes problems with MQL5 context
-│   ├── actions/
-│   │   ├── ApplyClaudeDiffFix.java      # LocalQuickFix for applying Claude diffs
-│   │   └── DiffApplier.java             # Applies diffs via WriteCommandAction (bottom-up)
-│   ├── db/
-│   │   ├── ClaudeTask.java              # Record: diff task status tracking
-│   │   ├── GrokInsight.java             # Record: Grok analysis results
-│   │   ├── HealingDatabase.java         # SQLite project service (3 tables)
-│   │   ├── HealingStartupActivity.java  # Init DB + start service on project open
-│   │   └── ProblemRecord.java           # Record: problem data from inspections
-│   ├── ui/
-│   │   ├── HealingAnnotator.java        # Alt+Enter "Apply AI fix" intentions
-│   │   ├── HealingLineMarkerProvider.java # Gutter icon on files with AI fixes
-│   │   └── HealingToolWindowFactory.java # Tool window: AI Healing + Claude Code tabs
-│   └── vcs/
-│       └── HealingCheckinHandlerFactory.java # Pre-commit prompt for pending fixes
-├── inspection/                           # 75 MQL5 safety inspections
-│   ├── MQL5SafetyInspectionBase.java    # Base class for inspections
-│   ├── MqlProblemsLoggerService.java    # Scans files, caches results, syncs to healing DB
-│   ├── BracketBlockTokenWalker.java     # Token scanner for opaque {} blocks
-│   └── ...                               # 72 inspection classes
-├── settings/
-│   ├── MQL4PluginSettings.java          # Settings interface (includes healing settings)
-│   ├── MQL4PluginSettingsImpl.java      # Persistent state (healing fields added)
-│   └── MQL4PluginSettingsPanel.java     # Settings UI (AI Healing section)
-├── MQL4Icons.java                        # Icons including Healing/Healing16
-└── ...                                   # Parser, editor, SDK, indexing (60+ files)
+├── MQL4Language / MQL4FileType / MQL5FileType / MQL4Icons   # language + file types
+├── MqlDialect.java                     # MQL4 vs MQL5 resolution (.mqh inherits project dialect)
+├── psi/ , psi/impl/ , psi/stub/        # PSI, element factory, stub elements + indexes
+├── parser/                             # JFlex lexer + parser (with error recovery)
+├── editor/                             # syntax highlighter, semantic annotator, color settings,
+│                                       #   commenter, brace matcher, folding, formatter, completion,
+│                                       #   parameter info
+├── inspection/                         # ~80 local inspections (MQL5SafetyInspectionBase + StatementAst)
+├── compiler/                           # ExternalAnnotator: mt5/Wine/MetaEditor launchers +
+│                                       #   MqlCompilerService (inline compile errors, memoised)
+├── reference/ , refactoring/ , findusages/   # resolve, rename, find usages, #include navigation
+├── index/                              # goto-symbol / goto-class contributors
+├── structure/                          # structure view
+├── doc/                                # quick documentation (bundled MQL HTML catalogs)
+├── runconfig/                          # run configuration + program runner (compile via mt5)
+├── settings/                           # settings panel + persistent state
+└── catalog/                            # Generate MQL Inspection Catalog action (AI-free)
 
 src/main/resources/
-├── META-INF/plugin.xml                   # Plugin manifest — ALL extensions registered here
-├── icons/
-│   ├── mql_healing.svg                   # AI healing icon (red ECG-pulse badge)
-│   ├── mql_healing_16.svg               # healing icon (tool window, gutter)
-│   └── ...                               # File type icons
-├── inspectionDescriptions/               # 52 HTML inspection descriptions
-├── liveTemplates/                        # MQL5 live templates
-└── mql/                                  # MQL docs (1,314 HTML) + JSON catalogs
+├── META-INF/plugin.xml                 # ALL extension points registered here
+├── icons/ , inspectionDescriptions/ , liveTemplates/ , mql/ (doc HTML + JSON catalogs)
 
-src/test/                                 # Parser tests + MQL sample files (9 tests)
-cpp_tests/                                # C++ safety test patterns (134 GoogleTest cases)
-.claude/agents/                           # Claude Code agent definitions
-.claude/MQL5_REFERENCE.md               # MQL5 API reference
+src/test/                               # parser + inspection tests (219)
 ```
-
-## AI Healing Architecture
-
-> ⚠️ **DEPRECATED — being retired per [`docs/REVAMP_PLAN.md`](docs/REVAMP_PLAN.md).** The apply path (DiffApplier, apply intentions, gutter markers, pre-commit prompt) is removed in Phase 0 (governance forbids applying `.mq5`/`.mqh` edits outside ea-code-gate, and 0 of 619 generated fixes were ever applied). The Grok phase, SQLite DB, and tool window are cut in later phases. Only `HealingCatalogWriter` survives, salvaged as an AI-free inspection catalog. The description below documents the *legacy* system for reference only.
-
-### Database Schema (`.idea/mql-healing.db`)
-```sql
-problems(id, file_url, file_path, line, severity, message, inspection_name, fix_hint, first_seen_at, last_seen_at, resolved_at)
-grok_insights(id, problem_id FK, insight, created_at)
-claude_tasks(id, problem_id FK, diff, status, created_at, applied_at)
-```
-
-### Data Flow
-1. `MqlProblemsLoggerService` scans all MQL files → caches problems → syncs to `HealingDatabase`
-2. `HealingService` (scheduled) queries DB for unanalyzed problems → sends to `GrokClient` → stores insights
-3. `HealingService` queries problems with insights but no Claude tasks → sends to `ClaudeClient` → stores diffs
-4. `DiffApplier` applies diffs via `WriteCommandAction` (bottom-up hunk order, conflict detection)
-5. UI surfaces fixes via tool window, gutter icons, Alt+Enter intentions, and pre-commit prompts
-
-### Settings (persisted in `mql4-plugin.xml`)
-- `healingDelayMinutes` (default: 5) — interval between healing cycles
-- `autoHealEnabled` (default: false) — master switch for automatic healing
-- `grokModel` (default: "grok-2") — Grok model for analysis
-- `claudeModel` (default: "claude-sonnet-4-5-20250929") — Claude model for diffs
-- API keys stored in IntelliJ PasswordSafe (not in settings file)
-
-### Plugin.xml Extensions (healing)
-- `projectService`: HealingDatabase, HealingService
-- `postStartupActivity`: HealingStartupActivity
-- `toolWindow`: MQL Healing (AI Healing + Claude Code tabs)
-- `codeInsight.lineMarkerProvider`: HealingLineMarkerProvider
-- `annotator`: HealingAnnotator
-- `checkinHandlerFactory`: HealingCheckinHandlerFactory
 
 ## Rules
 
-- **Direction is governed by [`docs/REVAMP_PLAN.md`](docs/REVAMP_PLAN.md).** The plugin is being revamped toward one goal: be honest and genuinely helpful for real MQL4/MQL5 projects, and detect syntactic/semantic errors early, inline. When this file and the revamp plan disagree, the plan wins.
-- Removing features is allowed **when the revamp plan calls for it** (e.g. the AI-healing apply path, the Grok phase, style-noise inspection defaults). Do not remove anything the plan keeps. Outside the plan's scope, prefer add/enhance over remove.
-- All new extensions must be registered in `plugin.xml`; removed extensions must have their `plugin.xml` registrations removed too.
-- All existing tests must pass after changes (the suite has grown well beyond the original 9). Delete only the tests that cover deliberately-removed features.
-- Source is Java (not Kotlin) targeting Java 21
-- Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml
-- Stub schema version is 19 — increment when changing stub structure
-- PasswordSafe calls must use `SlowOperations.allowSlowOperations()` or run off EDT
-- Tool window refresh must run DB/PasswordSafe queries on pooled thread, update UI via `SwingUtilities.invokeLater()`
-- Run `./gradlew.bat build` to verify after every change
+- Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
+- All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
+- All existing tests must pass after changes (`./gradlew test` — 219). Delete only tests covering deliberately-removed features.
+- Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
+- Stub schema version is **21** — increment when changing stub structure.
+- Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.
+- Never swallow `ProcessCanceledException` (it extends `RuntimeException`) — always let it propagate.
+- Run `./gradlew build` to verify after every change.
+
+## Known Limitations / Roadmap
+
+(from the 2026 architecture review — being worked through)
+- Inspection suppression comments not yet wired; no quick-fixes yet.
+- Some inspections still anchor warnings to the enclosing function (being re-anchored to the offending construct via `StatementAst.find*` + `anchor()`).
+- Header (`.mqh`) compile errors from the ExternalAnnotator are not yet surfaced.
+- Compile-checking is currently macOS/Wine via the `mt5` wrapper.
+- Resolve caching (ResolveCache / CachedValuesManager over the `#include` closure) in progress.
 
 ## Available Agents
 
@@ -133,6 +85,4 @@ claude_tasks(id, problem_id FK, diff, status, created_at, applied_at)
 | `plugin-developer` | IntelliJ plugin architecture and extensions |
 | `mql5-specialist` | MQL5 language expertise and parser guidance |
 | `code-quality` | Code inspections and quality rules |
-| `code-optimizer` | Performance optimization |
-| `build-resolver` | Gradle build and CI/CD issues |
-| `safety-analyzer` | C++ safety patterns → MQL5 inspections |
+| `build-resolver` | Gradle build and CI issues |

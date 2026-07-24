@@ -29,9 +29,9 @@ public class MissingFileCloseInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasCall(body, "FileOpen")
-                        && !StatementAst.hasCall(body, "FileClose")) {
-                    problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE));
+                ASTNode call = StatementAst.findCall(body, "FileOpen");
+                if (call != null && !StatementAst.hasCall(body, "FileClose")) {
+                    problems.add(createProblem(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                 }
             }
         }

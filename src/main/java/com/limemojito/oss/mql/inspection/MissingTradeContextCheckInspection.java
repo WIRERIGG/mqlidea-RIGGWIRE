@@ -46,10 +46,11 @@ public class MissingTradeContextCheckInspection extends MQL5SafetyInspectionBase
                     && !SKIPPED_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                if (StatementAst.hasAnyCall(body, TRADE_OPERATIONS)
+                ASTNode call = StatementAst.findAnyCall(body, TRADE_OPERATIONS);
+                if (call != null
                         && !StatementAst.hasCall(body, "IsTradeAllowed")
                         && !StatementAst.hasCall(body, "IsTradeContextBusy")) {
-                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                    problems.add(createWeakWarning(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE, isOnTheFly));
                 }
             }
         }

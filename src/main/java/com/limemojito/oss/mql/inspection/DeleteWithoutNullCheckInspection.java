@@ -37,10 +37,11 @@ public class DeleteWithoutNullCheckInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (body != null && StatementAst.hasDescendant(body, DELETE_KEYWORD)) {
+                ASTNode deleteNode = body == null ? null : StatementAst.findDescendant(body, DELETE_KEYWORD);
+                if (deleteNode != null) {
                     if (!StatementAst.hasNullComparison(body)
                             && !StatementAst.hasIdentifier(body, "CheckPointer")) {
-                        problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
+                        problems.add(createWeakWarning(manager, StatementAst.anchor(deleteNode, child.getNavigationElement()), MESSAGE));
                     }
                 }
             }

@@ -9,6 +9,9 @@ package com.limemojito.oss.mql.compiler;
 import com.intellij.execution.configurations.GeneralCommandLine;
 import com.intellij.execution.process.CapturingProcessHandler;
 import com.intellij.execution.process.ProcessOutput;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -123,7 +126,14 @@ public final class MqlCompilerService {
     @NotNull
     private CompileResult runCompile(@NotNull GeneralCommandLine cmd, @NotNull File source) {
         try {
-            ProcessOutput out = new CapturingProcessHandler(cmd).runProcess((int) COMPILE_TIMEOUT_MS);
+            CapturingProcessHandler handler = new CapturingProcessHandler(cmd);
+            // Honour daemon cancellation: with an indicator the Wine/MetaEditor process is
+            // destroyed when the annotation pass is cancelled, instead of blocking the thread and
+            // leaking a ~60s process. Falls back to a plain timed run when no indicator is present.
+            ProgressIndicator indicator = ProgressManager.getInstance().getProgressIndicator();
+            ProcessOutput out = indicator != null
+                    ? handler.runProcessWithProgressIndicator(indicator, (int) COMPILE_TIMEOUT_MS, true)
+                    : handler.runProcess((int) COMPILE_TIMEOUT_MS);
             String log = readLog(source);
             if (log == null) {
                 // fall back to stdout/stderr if the .log wasn't produced
@@ -136,6 +146,8 @@ public final class MqlCompilerService {
             int warnings = sum != null ? sum[1] : (int) diags.stream()
                     .filter(d -> d.severity() == CompilerDiagnostic.Severity.WARNING).count();
             return new CompileResult(diags, true, errors, warnings);
+        } catch (ProcessCanceledException pce) {
+            throw pce; // never swallow cancellation — let the daemon abort cleanly
         } catch (Exception e) {
             LOG.warn("compile failed for " + source, e);
             return CompileResult.unavailable();

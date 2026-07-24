@@ -36,10 +36,11 @@ public class SecureCodingPatternsInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasAnyCall(body, HANDLE_FUNCS)) {
+                ASTNode call = StatementAst.findAnyCall(body, HANDLE_FUNCS);
+                if (call != null) {
                     if (!StatementAst.hasIdentifier(body, "INVALID_HANDLE")
                             && !hasNegativeOneOrNegativeComparison(body)) {
-                        problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
+                        problems.add(createWeakWarning(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                     }
                 }
             }

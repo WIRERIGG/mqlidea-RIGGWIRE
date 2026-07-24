@@ -32,8 +32,11 @@ public class HardcodedCredentialsInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (body != null && StatementAst.anyStringLiteralMatches(body, CREDENTIAL_PATTERN)) {
-                    problems.add(createProblem(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                if (body != null) {
+                    ASTNode literal = StatementAst.findStringLiteralMatch(body, CREDENTIAL_PATTERN);
+                    if (literal != null) {
+                        problems.add(createProblem(manager, StatementAst.anchor(literal, child.getNavigationElement()), MESSAGE, isOnTheFly));
+                    }
                 }
             }
         }

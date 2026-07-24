@@ -36,8 +36,9 @@ public class ObjectCreationInOnTickInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && TICK_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                if (body != null && StatementAst.hasDescendant(body, NEW_KEYWORD)) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                ASTNode newNode = body == null ? null : StatementAst.findDescendant(body, NEW_KEYWORD);
+                if (newNode != null) {
+                    problems.add(createWarning(manager, StatementAst.anchor(newNode, child.getNavigationElement()), MESSAGE));
                 }
             }
         }

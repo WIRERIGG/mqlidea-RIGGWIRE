@@ -8,9 +8,11 @@ package com.limemojito.oss.mql.editor.codecompletion;
 import com.intellij.codeInsight.completion.CompletionParameters;
 import com.intellij.codeInsight.completion.CompletionProvider;
 import com.intellij.codeInsight.completion.CompletionResultSet;
+import com.intellij.codeInsight.completion.PrefixMatcher;
 import com.intellij.codeInsight.completion.PrioritizedLookupElement;
 import com.intellij.codeInsight.completion.util.ParenthesesInsertHandler;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -41,9 +43,17 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
         PsiFile file = parameters.getOriginalFile();
         Project project = file.getProject();
         GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+        // Only build lookup elements for keys the user's prefix can actually match — iterating and
+        // constructing an element for every project symbol on each keystroke is wasteful and the
+        // result set would discard the non-matches anyway.
+        PrefixMatcher prefixMatcher = result.getPrefixMatcher();
 
         MQL4FunctionNameIndex functionIndex = MQL4FunctionNameIndex.getInstance();
         for (String name : functionIndex.getAllKeys(project)) {
+            ProgressManager.checkCanceled();
+            if (!prefixMatcher.prefixMatches(name)) {
+                continue;
+            }
             for (MQL4FunctionElement function : functionIndex.get(name, project, scope)) {
                 if (!name.equals(function.getFunctionName())) {
                     continue;
@@ -60,6 +70,10 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
 
         MQL4ClassNameIndex classIndex = MQL4ClassNameIndex.getInstance();
         for (String name : classIndex.getAllKeys(project)) {
+            ProgressManager.checkCanceled();
+            if (!prefixMatcher.prefixMatches(name)) {
+                continue;
+            }
             for (MQL4ClassElement cls : classIndex.get(name, project, scope)) {
                 if (!name.equals(cls.getTypeName())) {
                     continue;

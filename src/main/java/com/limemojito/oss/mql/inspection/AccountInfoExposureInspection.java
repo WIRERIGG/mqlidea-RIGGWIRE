@@ -43,8 +43,12 @@ public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                if (StatementAst.hasAnyCall(body, ACCOUNT_FUNCS) && StatementAst.hasAnyCall(body, OUTPUT_FUNCS)) {
-                    problems.add(createWarning(manager, child.getNavigationElement(), MESSAGE));
+                if (StatementAst.hasAnyCall(body, ACCOUNT_FUNCS)) {
+                    // Anchor at the output call — that is where the account data actually leaves the EA.
+                    ASTNode outputCall = StatementAst.findAnyCall(body, OUTPUT_FUNCS);
+                    if (outputCall != null) {
+                        problems.add(createWarning(manager, StatementAst.anchor(outputCall, child.getNavigationElement()), MESSAGE));
+                    }
                 }
             }
         }

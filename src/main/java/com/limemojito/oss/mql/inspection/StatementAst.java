@@ -163,13 +163,24 @@ final class StatementAst implements MQL4Elements {
      * {@link #forEachDescendant}. Cancellable.
      */
     static boolean hasDescendant(@NotNull ASTNode root, @NotNull TokenSet types) {
+        return findDescendant(root, types) != null;
+    }
+
+    /**
+     * The first descendant (composite or token) whose element type is in {@code types}, or null —
+     * for anchoring a warning at the offending construct. Same traversal as {@link #hasDescendant}.
+     */
+    @Nullable
+    static ASTNode findDescendant(@NotNull ASTNode root, @NotNull TokenSet types) {
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
-            if (types.contains(child.getElementType()) || hasDescendant(child, types)) {
-                return true;
+            if (types.contains(child.getElementType())) {
+                return child;
             }
+            ASTNode found = findDescendant(child, types);
+            if (found != null) return found;
         }
-        return false;
+        return null;
     }
 
     /**
@@ -302,43 +313,67 @@ final class StatementAst implements MQL4Elements {
 
     /** True when an {@code IDENTIFIER} token with text {@code name} occurs anywhere in {@code root} (call or bare reference). */
     static boolean hasIdentifier(@Nullable ASTNode root, @NotNull String name) {
-        if (root == null) return false;
+        return findIdentifier(root, name) != null;
+    }
+
+    /** The first {@code IDENTIFIER} token with text {@code name} anywhere in {@code root}, or null — for anchoring. */
+    @Nullable
+    static ASTNode findIdentifier(@Nullable ASTNode root, @NotNull String name) {
+        if (root == null) return null;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
-            if (child.getElementType() == IDENTIFIER && name.equals(child.getText())) return true;
-            if (hasIdentifier(child, name)) return true;
+            if (child.getElementType() == IDENTIFIER && name.equals(child.getText())) return child;
+            ASTNode found = findIdentifier(child, name);
+            if (found != null) return found;
         }
-        return false;
+        return null;
     }
 
     /** True when an {@code IDENTIFIER} token with text {@code name} occurs at or after {@code offset} in {@code root}. */
     static boolean hasIdentifierAfter(@Nullable ASTNode root, @NotNull String name, int offset) {
-        if (root == null) return false;
+        return findIdentifierAfter(root, name, offset) != null;
+    }
+
+    /**
+     * The first {@code IDENTIFIER} token with text {@code name} occurring at or after {@code offset}
+     * in {@code root}, or null — for anchoring a warning at the actual (e.g. post-delete) use site.
+     */
+    @Nullable
+    static ASTNode findIdentifierAfter(@Nullable ASTNode root, @NotNull String name, int offset) {
+        if (root == null) return null;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (child.getElementType() == IDENTIFIER && name.equals(child.getText())
                     && child.getStartOffset() >= offset) {
-                return true;
+                return child;
             }
-            if (hasIdentifierAfter(child, name, offset)) return true;
+            ASTNode found = findIdentifierAfter(child, name, offset);
+            if (found != null) return found;
         }
-        return false;
+        return null;
     }
 
     /** True when any {@code STRING_LITERAL} token's (unquoted) content matches {@code pattern}. */
     static boolean anyStringLiteralMatches(@Nullable ASTNode root, @NotNull Pattern pattern) {
-        if (root == null) return false;
+        return findStringLiteralMatch(root, pattern) != null;
+    }
+
+    /** The first {@code STRING_LITERAL} token node whose (unquoted) content matches {@code pattern}, or null — for anchoring. */
+    @Nullable
+    static ASTNode findStringLiteralMatch(@Nullable ASTNode root, @NotNull Pattern pattern) {
+        if (root == null) return null;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (child.getElementType() == STRING_LITERAL) {
                 String text = child.getText();
                 String content = text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")
                         ? text.substring(1, text.length() - 1) : text;
-                if (pattern.matcher(content).find()) return true;
+                if (pattern.matcher(content).find()) return child;
             }
-            if (anyStringLiteralMatches(child, pattern)) return true;
+            ASTNode found = findStringLiteralMatch(child, pattern);
+            if (found != null) return found;
         }
-        return false;
+        return null;
     }
 
     /** True when an {@code EQ_EQ}/{@code NOT_EQ} token is adjacent (either side) to an identifier {@code NULL}. */
