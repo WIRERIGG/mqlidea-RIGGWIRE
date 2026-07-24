@@ -30,6 +30,11 @@ import java.util.List;
  * ({@code EQ_EQ}, {@code NOT_EQ}, {@code LESS_EQ}, {@code GT_EQ}), a comparison like
  * {@code if (Period == 20)} can never be mistaken for a reassignment — no negative-lookbehind
  * regex hack is needed to tell them apart.
+ * <p>
+ * An identifier that matches the input name but is itself a member-access target —
+ * {@code cfg.MaxRisk = ...} — is not a reassignment of the input {@code MaxRisk}; it is a
+ * completely unrelated field on some other object that merely happens to share the name. Skipped
+ * whenever the identifier's previous non-trivia token is a {@code DOT}.
  */
 public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase {
 
@@ -75,12 +80,12 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
             IElementType t = child.getElementType();
             if (StatementAst.ASSIGNMENT_OPERATORS.contains(t)) {
                 ASTNode prev = StatementAst.prevNonTrivia(child);
-                if (isName(prev, name)) return prev;
+                if (isName(prev, name) && !isMemberAccessTarget(prev)) return prev;
             } else if (t == MQL4Elements.PLUS_PLUS || t == MQL4Elements.MINUS_MINUS) {
                 ASTNode prev = StatementAst.prevNonTrivia(child);
-                if (isName(prev, name)) return prev;
+                if (isName(prev, name) && !isMemberAccessTarget(prev)) return prev;
                 ASTNode next = StatementAst.nextNonTrivia(child);
-                if (isName(next, name)) return next;
+                if (isName(next, name) && !isMemberAccessTarget(next)) return next;
             }
             ASTNode found = findReassignment(child, name);
             if (found != null) return found;
@@ -90,5 +95,11 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
 
     private static boolean isName(@Nullable ASTNode node, @NotNull String name) {
         return node != null && node.getElementType() == MQL4Elements.IDENTIFIER && name.equals(node.getText());
+    }
+
+    /** True when {@code identifier} is preceded by a {@code DOT} — i.e. it is {@code x} in {@code obj.x}, a member access, not a plain variable. */
+    private static boolean isMemberAccessTarget(@NotNull ASTNode identifier) {
+        ASTNode before = StatementAst.prevNonTrivia(identifier);
+        return before != null && before.getElementType() == MQL4Elements.DOT;
     }
 }

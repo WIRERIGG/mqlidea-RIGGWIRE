@@ -22,7 +22,10 @@ import java.util.Set;
 /**
  * AST-based detection: an {@code IndicatorRelease(handle)} call followed (at or after its own end
  * offset) by a {@code CopyBuffer(...)} call whose args reference the same handle identifier — the
- * released handle reused without reassignment.
+ * released handle reused without reassignment. The re-init idiom
+ * {@code IndicatorRelease(h); h = iMA(...); CopyBuffer(h, ...);} is not flagged: a reassignment of
+ * the handle identifier occurring between the release and the reuse means the reuse refers to a
+ * freshly created handle, not the released one.
  */
 public class StaleHandleUsageInspection extends MQL5SafetyInspectionBase {
 
@@ -52,9 +55,14 @@ public class StaleHandleUsageInspection extends MQL5SafetyInspectionBase {
                     StatementAst.forEachCall(body, COPY_BUFFER, copyCall -> {
                         if (reused[0] != null || copyCall.getStartOffset() < afterRelease) return;
                         ASTNode copyArgs = StatementAst.callArgsBlock(copyCall);
-                        if (copyArgs != null && StatementAst.hasIdentifier(copyArgs, handle)) {
-                            reused[0] = copyCall;
+                        if (copyArgs == null || !StatementAst.hasIdentifier(copyArgs, handle)) return;
+                        // Re-init idiom: the handle was reassigned before this reuse, so it is a
+                        // fresh handle, not the released one — not stale.
+                        ASTNode reassignment = StatementAst.findAssignmentAfter(body, handle, afterRelease);
+                        if (reassignment != null && reassignment.getStartOffset() < copyCall.getStartOffset()) {
+                            return;
                         }
+                        reused[0] = copyCall;
                     });
                     if (reused[0] != null) flagged[0] = reused[0];
                 });

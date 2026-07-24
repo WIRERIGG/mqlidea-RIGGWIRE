@@ -21,6 +21,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Flags an unconditional logging call in {@code OnTick()}/{@code OnCalculate()} — one that fires on
+ * every single tick and floods the log/UI. A logging call nested inside an {@code if} is left
+ * alone: that is the conditional/error-path idiom
+ * {@code if(!trade.Buy(...)) Print("failed", GetLastError());}, which logs only on the (rare)
+ * failure path, not every tick.
+ */
 public class PrintInOnTickInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Print()/Comment() in OnTick() causes excessive logging and performance degradation";
@@ -36,9 +43,15 @@ public class PrintInOnTickInspection extends MQL5SafetyInspectionBase {
                     && !func.isDeclaration()
                     && TICK_HANDLERS.contains(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
-                ASTNode call = StatementAst.findAnyCall(body, LOGGING_FUNCS);
-                if (call != null) {
-                    PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
+                if (body == null) continue;
+                ASTNode[] found = {null};
+                StatementAst.forEachCall(body, LOGGING_FUNCS, id -> {
+                    if (found[0] == null && !StatementAst.isNestedInIfStatement(id, body)) {
+                        found[0] = id;
+                    }
+                });
+                if (found[0] != null) {
+                    PsiElement anchor = StatementAst.anchor(found[0], child.getNavigationElement());
                     problems.add(manager.createProblemDescriptor(anchor, anchor, MESSAGE,
                             ProblemHighlightType.WARNING, true));
                 }

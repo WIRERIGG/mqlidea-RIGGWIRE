@@ -259,6 +259,37 @@ final class StatementAst implements MQL4Elements {
     }
 
     /**
+     * Text of a call's {@code (...)} args, or null if {@code callIdentifier} is not a call. Unlike
+     * {@link #callArgsBlock}, this also covers the raw-flat-tokens parser gap it documents (a
+     * {@code VAR_DECLARATION_STATEMENT} initializer such as {@code double a = SymbolInfoDouble(_Symbol, SYMBOL_BID);}):
+     * when the call's args are not wrapped in a proper {@code BRACKETS_BLOCK}, this walks the raw
+     * sibling tokens from the call's own {@code (} to its matching {@code )}, tracking paren depth,
+     * and reconstructs the same text a properly nested call would have.
+     */
+    @Nullable
+    static String callArgsText(@NotNull ASTNode callIdentifier) {
+        ASTNode next = nextNonTrivia(callIdentifier);
+        if (next == null) return null;
+        if (isParenBlock(next)) {
+            return next.getText();
+        }
+        if (next.getElementType() != L_ROUND_BRACKET) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        int depth = 0;
+        for (ASTNode sibling = next; sibling != null; sibling = sibling.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            IElementType t = sibling.getElementType();
+            if (t == L_ROUND_BRACKET) depth++;
+            else if (t == R_ROUND_BRACKET) depth--;
+            sb.append(sibling.getText());
+            if (depth == 0) break;
+        }
+        return sb.toString();
+    }
+
+    /**
      * Depth-first walk over {@code root} invoking {@code onCallIdentifier} with the
      * {@code IDENTIFIER} node of every call whose callee name is in {@code names}. Cancellable.
      */
@@ -417,35 +448,36 @@ final class StatementAst implements MQL4Elements {
     }
 
     /**
-     * True when an assignment {@code name = NULL} occurs at or after {@code offset} in {@code root}
-     * ({@code EQ} token whose previous sibling is identifier {@code name} and next sibling is {@code NULL}).
+     * True when an assignment {@code name = <anything>} occurs at or after {@code offset} in
+     * {@code root} ({@code EQ} token whose previous sibling is identifier {@code name}). Covers the
+     * delete-then-recreate idiom ({@code delete obj; obj = new CFoo();}) as well as the narrower
+     * {@code obj = NULL;} guard — any reassignment ends the "dangling pointer" window, not just a
+     * literal NULL.
      */
-    static boolean hasNullAssignmentAfter(@Nullable ASTNode root, @NotNull String name, int offset) {
-        if (root == null) return false;
+    static boolean hasAssignmentAfter(@Nullable ASTNode root, @NotNull String name, int offset) {
+        return findAssignmentAfter(root, name, offset) != null;
+    }
+
+    /**
+     * The {@code EQ} token of the first assignment {@code name = <anything>} occurring at or after
+     * {@code offset} in {@code root}, or null. The assignment's left-hand identifier is
+     * {@link #prevNonTrivia} of the returned node.
+     */
+    @Nullable
+    static ASTNode findAssignmentAfter(@Nullable ASTNode root, @NotNull String name, int offset) {
+        if (root == null) return null;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (child.getElementType() == EQ && child.getStartOffset() >= offset) {
                 ASTNode prev = prevNonTrivia(child);
-                ASTNode next = nextNonTrivia(child);
-                if (prev != null && prev.getElementType() == IDENTIFIER && name.equals(prev.getText())
-                        && isNullToken(next)) {
-                    return true;
+                if (prev != null && prev.getElementType() == IDENTIFIER && name.equals(prev.getText())) {
+                    return child;
                 }
             }
-            if (hasNullAssignmentAfter(child, name, offset)) return true;
+            ASTNode found = findAssignmentAfter(child, name, offset);
+            if (found != null) return found;
         }
-        return false;
-    }
-
-    /** True when {@code statement} is exactly {@code <name> = NULL;}. */
-    static boolean isNullAssignmentStatement(@Nullable ASTNode statement, @NotNull String name) {
-        if (statement == null || statement.getElementType() != EXPRESSION_STATEMENT) return false;
-        ASTNode id = statement.getFirstChildNode();
-        while (id != null && isTrivia(id)) id = id.getTreeNext();
-        if (id == null || id.getElementType() != IDENTIFIER || !name.equals(id.getText())) return false;
-        ASTNode eq = nextNonTrivia(id);
-        if (eq == null || eq.getElementType() != EQ) return false;
-        return isNullToken(nextNonTrivia(eq));
+        return null;
     }
 
     private static boolean isNullToken(@Nullable ASTNode node) {
@@ -515,12 +547,19 @@ final class StatementAst implements MQL4Elements {
         }
     }
 
+    /** Comparison operator tokens accepted by {@link #hasFailureReturnCheck}'s identifier/call-operand rule. */
+    private static final TokenSet FAILURE_COMPARISON_OPERATORS = TokenSet.create(LT, LESS_EQ, GT, GT_EQ, EQ_EQ, NOT_EQ);
+
     /**
      * True when {@code root} contains a comparison shaped like a failure-return check:
-     * {@code < 0}, {@code <= 0}, {@code < 1} or {@code == -1} (as adjacent tokens, ignoring
-     * whitespace) — or a direct call to {@code GetLastError}. Covers the common
-     * "was this negative-on-failure return value checked" idiom (ArrayResize/CopyRates/... all
-     * return -1 on failure) without matching these substrings inside unrelated text.
+     * {@code < 0}, {@code <= 0}, {@code < 1}, {@code == -1} or {@code != -1} (as adjacent tokens,
+     * ignoring whitespace), a direct call to {@code GetLastError}, or a {@code <}/{@code <=}/
+     * {@code >}/{@code >=}/{@code ==}/{@code !=} comparison whose other operand is a bare
+     * identifier — covers the count-comparison idiom {@code if(CopyBuffer(...) < count)} /
+     * {@code if(ArrayResize(a, n) != n)} (a call's own leading token is also an
+     * {@code IDENTIFIER}, so this also matches a call used as the other operand). Covers the
+     * common "was this negative-on-failure return value checked" idiom (ArrayResize/CopyRates/...
+     * all return -1 on failure) without matching these substrings inside unrelated text.
      */
     static boolean hasFailureReturnCheck(@Nullable ASTNode root) {
         if (root == null) return false;
@@ -538,7 +577,7 @@ final class StatementAst implements MQL4Elements {
                         && ("0".equals(next.getText()) || (t == LT && "1".equals(next.getText())))) {
                     return true;
                 }
-            } else if (t == EQ_EQ) {
+            } else if (t == EQ_EQ || t == NOT_EQ) {
                 ASTNode next = nextNonTrivia(child);
                 if (next != null && next.getElementType() == MINUS) {
                     ASTNode afterMinus = nextNonTrivia(next);
@@ -548,9 +587,25 @@ final class StatementAst implements MQL4Elements {
                     }
                 }
             }
+            if (FAILURE_COMPARISON_OPERATORS.contains(t) && hasIdentifierOperand(child)) {
+                return true;
+            }
             if (hasFailureReturnCheckToken(child)) return true;
         }
         return false;
+    }
+
+    /**
+     * True when either side of a comparison token is a bare {@code IDENTIFIER}. A call's own
+     * leading token is an {@code IDENTIFIER} too, so this covers both a plain variable operand
+     * ({@code < count}) and a call used as the other operand ({@code == ArraySize(a)}) without
+     * needing to parse a full expression tree.
+     */
+    private static boolean hasIdentifierOperand(@NotNull ASTNode comparisonOperator) {
+        ASTNode prev = prevNonTrivia(comparisonOperator);
+        ASTNode next = nextNonTrivia(comparisonOperator);
+        return (prev != null && prev.getElementType() == IDENTIFIER)
+                || (next != null && next.getElementType() == IDENTIFIER);
     }
 
     /** True when an {@code IDENTIFIER} token is directly followed by {@code [} — an array index access. */
@@ -611,5 +666,35 @@ final class StatementAst implements MQL4Elements {
             if (psi != null) return psi;
         }
         return fallback;
+    }
+
+    /**
+     * True when {@code node} has an {@code IF_STATEMENT} ancestor strictly between itself and
+     * {@code boundaryRoot} (exclusive of {@code boundaryRoot} itself) — used to tell an
+     * unconditional/top-level statement (e.g. a bare {@code return 0;} in {@code OnCalculate})
+     * apart from one nested inside a guard clause ({@code if(rates_total<Period) return(0);}).
+     */
+    static boolean isNestedInIfStatement(@NotNull ASTNode node, @NotNull ASTNode boundaryRoot) {
+        for (ASTNode current = node.getTreeParent(); current != null && current != boundaryRoot; current = current.getTreeParent()) {
+            if (current.getElementType() == IF_STATEMENT) return true;
+        }
+        return false;
+    }
+
+    /**
+     * True when {@code callIdentifier} is a call to a market-data function whose value changes on
+     * every tick: {@code SymbolInfoTick}/{@code TimeCurrent}/{@code TimeLocal}, or a
+     * {@code SymbolInfoDouble}/{@code SymbolInfoInteger}/{@code SymbolInfoString} call whose
+     * arguments reference {@code SYMBOL_ASK}, {@code SYMBOL_BID} or {@code SYMBOL_LAST}. These
+     * must never be recommended for caching across ticks — doing so would trade on a stale price.
+     */
+    static boolean isVolatileMarketCall(@NotNull ASTNode callIdentifier) {
+        String name = callIdentifier.getText();
+        if ("SymbolInfoTick".equals(name) || "TimeCurrent".equals(name) || "TimeLocal".equals(name)) {
+            return true;
+        }
+        String text = callArgsText(callIdentifier);
+        if (text == null) return false;
+        return text.contains("SYMBOL_ASK") || text.contains("SYMBOL_BID") || text.contains("SYMBOL_LAST");
     }
 }

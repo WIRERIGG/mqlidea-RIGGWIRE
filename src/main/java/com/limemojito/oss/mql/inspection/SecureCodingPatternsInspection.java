@@ -48,12 +48,18 @@ public class SecureCodingPatternsInspection extends MQL5SafetyInspectionBase {
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
-    /** True when a {@code != -1} or {@code < 0} comparison occurs anywhere in {@code root}. */
+    /**
+     * True when a {@code != -1}, {@code == -1} or {@code < 0} comparison occurs anywhere in
+     * {@code root}. {@code INVALID_HANDLE} is {@code -1}, so both directions of the sentinel
+     * comparison ({@code handle == -1} to detect failure, {@code handle != -1} to guard success)
+     * count as a check.
+     */
     private static boolean hasNegativeOneOrNegativeComparison(@Nullable ASTNode root) {
         if (root == null) return false;
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
-            if (child.getElementType() == MQL4Elements.NOT_EQ && isNegativeOne(StatementAst.nextNonTrivia(child))) {
+            if ((child.getElementType() == MQL4Elements.NOT_EQ || child.getElementType() == MQL4Elements.EQ_EQ)
+                    && isNegativeOne(StatementAst.nextNonTrivia(child))) {
                 return true;
             }
             if (child.getElementType() == MQL4Elements.LT) {

@@ -16,9 +16,17 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+/**
+ * Flags a constant lookup repeated in {@code OnTick()}. Excludes volatile market properties
+ * ({@code SYMBOL_ASK}/{@code SYMBOL_BID}/{@code SYMBOL_LAST}, {@code SymbolInfoTick},
+ * {@code TimeCurrent}, {@code TimeLocal}) from the repeat count — those change on every tick and
+ * MUST NOT be cached across ticks (see {@link StatementAst#isVolatileMarketCall}).
+ */
 public class RedundantCalculationInOnTickInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "Constant lookups repeated in OnTick() — consider caching in a variable";
@@ -38,11 +46,13 @@ public class RedundantCalculationInOnTickInspection extends MQL5SafetyInspection
                     && "OnTick".equals(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                for (String funcName : EXPENSIVE_FUNCS) {
-                    if (StatementAst.countCalls(body, funcName) > 1) {
-                        problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
-                        break;
-                    }
+                Map<String, Integer> counts = new HashMap<>();
+                StatementAst.forEachCall(body, EXPENSIVE_FUNCS, id -> {
+                    if (StatementAst.isVolatileMarketCall(id)) return;
+                    counts.merge(id.getText(), 1, Integer::sum);
+                });
+                if (counts.values().stream().anyMatch(count -> count > 1)) {
+                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE));
                 }
             }
         }

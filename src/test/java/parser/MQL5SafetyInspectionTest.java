@@ -114,6 +114,15 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "test.mq5");
     }
 
+    public void testUncheckedHandleNegativeOneCheckClean() {
+        // INVALID_HANDLE is -1 — checking against the literal sentinel is equally valid.
+        assertNoProblems(new UncheckedHandleInspection(),
+                "int handle;\n" +
+                "int OnInit() { handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE);\n" +
+                "  if(handle == -1) return INIT_FAILED; return 0; }",
+                "test.mq5");
+    }
+
     public void testMissingIndicatorRelease() {
         assertHasProblems(new MissingIndicatorReleaseInspection(),
                 "int handle;\n" +
@@ -147,6 +156,22 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "int OnInit() { return 0; }");
     }
 
+    public void testMissingInputValidationMqhHeaderNoOnInitClean() {
+        // A .mqh header never has (or needs) an OnInit() of its own — the "file has input params
+        // but no OnInit()" warning must be restricted to actual .mq4/.mq5 program files.
+        assertNoProblems(new MissingInputValidationInspection(),
+                "input int InpPeriod = 14;",
+                "test.mqh");
+    }
+
+    public void testMissingInputValidationOnInitNoIfNotEmptyClean() {
+        // A non-empty OnInit() that does real setup (e.g. a timer) without an if-statement is not
+        // "missing validation" — plenty of legitimate inputs (string/enum/bool) need no range check.
+        assertNoProblems(new MissingInputValidationInspection(),
+                "input int InpPeriod = 14;\n" +
+                "int OnInit() { EventSetTimer(60); return 0; }");
+    }
+
     public void testMissingFileClose() {
         assertHasProblems(new MissingFileCloseInspection(),
                 "void foo() { int h = FileOpen(\"test.txt\", FILE_READ); }");
@@ -165,6 +190,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testUncheckedCopyRatesClean() {
         assertNoProblems(new UncheckedCopyRatesInspection(),
                 "void foo() { MqlRates rates[]; if(CopyRates(_Symbol, PERIOD_H1, 0, 100, rates) < 0) return; }");
+    }
+
+    public void testUncheckedCopyRatesCountComparisonClean() {
+        // The count-comparison idiom: checking the copied amount against the requested count.
+        assertNoProblems(new UncheckedCopyRatesInspection(),
+                "void foo() { MqlRates rates[]; int count = 10;\n" +
+                "  if(CopyRates(_Symbol, PERIOD_H1, 0, count, rates) < count) return; }");
     }
 
     public void testDoubleIndicatorRelease() {
@@ -254,6 +286,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "class CTest { int m_x; public: CTest() { m_x = 0; } };");
     }
 
+    public void testMissingDestructorLocalResourceNotMemberClean() {
+        // A resource acquired AND released entirely through a local variable inside a method owns
+        // nothing at the class level and needs no destructor.
+        assertNoProblems(new MissingDestructorInspection(),
+                "class CTest { public: void Foo() { int h = FileOpen(\"x.txt\", FILE_READ); FileClose(h); } };");
+    }
+
     public void testVirtualWithoutDestructor() {
         // Smoke test — depends on class inner block containing FUNCTION nodes with VIRTUAL_KEYWORD
         assertInspectionRuns(new VirtualWithoutDestructorInspection(),
@@ -293,6 +332,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "#property version \"1.00\"\n#property description \"Test\"\nvoid OnStart() { }");
     }
 
+    public void testPreprocessorPropertyServiceClean() {
+        // `#property service` declares a valid MQL5 service program — a parameterless flag like
+        // `library`/`strict`, not an "Unknown property".
+        assertNoProblems(new PreprocessorPropertyInspection(),
+                "#property service\nvoid OnStart() { }");
+    }
+
     public void testExcessiveGlobalVariables() {
         // Smoke test — depends on parser producing VAR_DECLARATION_STATEMENT for standalone int vars
         StringBuilder code = new StringBuilder();
@@ -308,6 +354,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertInspectionRuns(new ImmutableInputParameterInspection(),
                 "input int InpPeriod = 14;\n" +
                 "void OnInit() { InpPeriod = 20; }");
+    }
+
+    public void testImmutableInputParameterMemberAccessClean() {
+        // `cfg.MaxRisk = ...` reassigns a field on some other object, not the input `MaxRisk`.
+        assertNoProblems(new ImmutableInputParameterInspection(),
+                "input int MaxRisk = 5;\n" +
+                "void foo() { cfg.MaxRisk = 10; }");
     }
 
     // ===== Naming & Style =====
@@ -363,6 +416,19 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "int Total() { return obj1.value; }");
     }
 
+    public void testNarrowingReturnTypeExplicitCastClean() {
+        // An explicit cast makes any truncation intentional and visible — not the silent narrowing
+        // this inspection targets.
+        assertNoProblems(new NarrowingReturnTypeInspection(),
+                "int Round3(double x) { return (int)MathRound(x*1.5); }");
+    }
+
+    public void testNarrowingReturnTypeLiteralInConditionClean() {
+        // A float literal inside a ternary's condition is never the returned value.
+        assertNoProblems(new NarrowingReturnTypeInspection(),
+                "int Choose(double x) { return x>0.5 ? 1 : 0; }");
+    }
+
     public void testUninitializedVariable() {
         // Smoke test — inspection checks IElementType.toString() names that may differ from expected
         assertInspectionRuns(new UninitializedVariableInspection(),
@@ -397,6 +463,12 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void OnTick() { OrderSend(request, result); }");
     }
 
+    public void testPrintInOnTickConditionalErrorLoggingClean() {
+        // Conditional/error-path logging fires only on the (rare) failure path, not every tick.
+        assertNoProblems(new PrintInOnTickInspection(),
+                "void OnTick() { if(!OrderSend(request, result)) Print(\"failed\", GetLastError()); }");
+    }
+
     public void testSleepInEventHandler() {
         assertHasProblems(new SleepInEventHandlerInspection(),
                 "void OnTick() { Sleep(1000); }");
@@ -406,6 +478,20 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertHasProblems(new RedundantCalculationInOnTickInspection(),
                 "void OnTick() { double spread = SymbolInfoDouble(_Symbol, SYMBOL_SPREAD);\n" +
                 "  double spread2 = SymbolInfoDouble(_Symbol, SYMBOL_SPREAD); }");
+    }
+
+    public void testRedundantCalculationInOnTickVolatileAskBidClean() {
+        // SYMBOL_BID changes every tick and must never be cached — repeating this call is correct.
+        assertNoProblems(new RedundantCalculationInOnTickInspection(),
+                "void OnTick() { double a = SymbolInfoDouble(_Symbol, SYMBOL_BID);\n" +
+                "  double b = SymbolInfoDouble(_Symbol, SYMBOL_BID); }");
+    }
+
+    public void testRedundantCalculationInOnTickVolatileSymbolInfoTickClean() {
+        // SymbolInfoTick() changes every tick and must never be cached.
+        assertNoProblems(new RedundantCalculationInOnTickInspection(),
+                "void OnTick() { MqlTick tick1; SymbolInfoTick(_Symbol, tick1);\n" +
+                "  MqlTick tick2; SymbolInfoTick(_Symbol, tick2); }");
     }
 
     public void testStringConcatInLoop() {
@@ -435,7 +521,17 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     // ===== Security & Data =====
 
     public void testAccountInfoExposure() {
+        // Print/PrintFormat/Comment/Alert only write to the local log/UI — not a privacy risk — so
+        // the positive case must use a function that actually leaves the machine.
         assertHasProblems(new AccountInfoExposureInspection(),
+                "void foo() { double bal = AccountInfoDouble(ACCOUNT_BALANCE);\n" +
+                "  SendMail(\"Balance\", DoubleToString(bal)); }");
+    }
+
+    public void testAccountInfoExposurePrintCleanNoLeavesMachine() {
+        // Print() never leaves the machine (writes to the local terminal log) — logging account
+        // data with it is not a data privacy risk and must not be flagged.
+        assertNoProblems(new AccountInfoExposureInspection(),
                 "void foo() { double bal = AccountInfoDouble(ACCOUNT_BALANCE);\n" +
                 "  Print(bal); }");
     }
@@ -443,6 +539,12 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testHardcodedCredentials() {
         assertHasProblems(new HardcodedCredentialsInspection(),
                 "void foo() { string password = \"secret123\"; }");
+    }
+
+    public void testHardcodedCredentialsProseMentionClean() {
+        // A credential-sounding word merely mentioned in prose (no assignment shape) must not flag.
+        assertNoProblems(new HardcodedCredentialsInspection(),
+                "void foo() { Print(\"Authorization failed\"); }");
     }
 
     public void testSafeApiUsage() {
@@ -480,6 +582,16 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testStaleHandleUsage() {
         assertHasProblems(new StaleHandleUsageInspection(),
                 "void foo() { IndicatorRelease(handle); CopyBuffer(handle, 0, 0, 1, buf); }",
+                "test.mq5");
+    }
+
+    public void testStaleHandleUsageReinitializedClean() {
+        // The re-init idiom: the handle is reassigned before the reuse, so it is a fresh handle,
+        // not the released one.
+        assertNoProblems(new StaleHandleUsageInspection(),
+                "void foo() { IndicatorRelease(handle);\n" +
+                "  handle = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE);\n" +
+                "  CopyBuffer(handle, 0, 0, 1, buf); }",
                 "test.mq5");
     }
 
@@ -531,6 +643,12 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { int h = FileOpen(\"test.txt\", FILE_READ); }");
     }
 
+    public void testSecureCodingPatternsNegativeOneCheckClean() {
+        // INVALID_HANDLE is -1 — `== -1` is an equally valid check to `!= -1`.
+        assertNoProblems(new SecureCodingPatternsInspection(),
+                "void foo() { int h = FileOpen(\"test.txt\", FILE_READ); if(h == -1) return; }");
+    }
+
     // ===== Memory & Allocation (new inspections) =====
 
     public void testObjectCreationInOnTick() {
@@ -553,6 +671,12 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { double arr[]; if(ArrayResize(arr, 100) < 0) return; }");
     }
 
+    public void testArrayResizeReturnCheckCountComparisonClean() {
+        // The count-comparison idiom: checking the resized array's size against the requested count.
+        assertNoProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double arr[]; int n = 100; if(ArrayResize(arr, n) != n) return; }");
+    }
+
     public void testNullAfterDelete() {
         assertHasProblems(new NullAfterDeleteInspection(),
                 "void foo() { delete ptr; }");
@@ -561,6 +685,20 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testNullAfterDeleteClean() {
         assertNoProblems(new NullAfterDeleteInspection(),
                 "void foo() { delete ptr; ptr = NULL; }");
+    }
+
+    public void testNullAfterDeleteReassignedNonNullClean() {
+        // The delete-then-recreate idiom: any reassignment ends the dangling window, not just NULL.
+        assertNoProblems(new NullAfterDeleteInspection(),
+                "void foo() { delete obj; obj = new CFoo(); }");
+    }
+
+    public void testNullAfterDeleteOnDeinitLastStatementClean() {
+        // Nothing dangles once OnDeinit finishes tearing down — a bare delete as the last statement
+        // there is not a leaked/dangling pointer.
+        assertNoProblems(new NullAfterDeleteInspection(),
+                "void OnDeinit(const int reason) { delete ptr; }",
+                "test.mq5");
     }
 
     public void testNullAfterDeleteQuickFixInsertsNullAssignment() {
@@ -739,6 +877,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // MQL5-only inspection must not fire on an .mq4 file
         assertNoProblems(new OnCalculateReturnInspection(),
                 "int OnCalculate() { return 0; }");
+    }
+
+    public void testOnCalculateReturnGuardedByIfClean() {
+        // The idiomatic warm-up guard `if(rates_total<Period) return(0);` is a correct, intentional
+        // early-out, not the "forces full recalculation" bug this inspection targets.
+        assertNoProblems(new OnCalculateReturnInspection(),
+                "int OnCalculate() { if(rates_total<Period) return(0); return rates_total; }",
+                "test.mq5");
     }
 
     // ===== Statement-AST migrations (real statement tree instead of text heuristics) =====
@@ -980,15 +1126,32 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     }
 
     public void testRepeatedApiCall() {
+        // SYMBOL_POINT/SYMBOL_DIGITS-style properties are stable across ticks — a genuine
+        // cacheable repeat (SYMBOL_BID/SYMBOL_ASK below are the volatile, must-not-cache case).
         assertHasProblems(new RepeatedApiCallInspection(),
-                "void OnTick() { double a = SymbolInfoDouble(_Symbol, SYMBOL_BID);\n" +
-                "  double b = SymbolInfoDouble(_Symbol, SYMBOL_ASK);\n" +
-                "  double c = SymbolInfoDouble(_Symbol, SYMBOL_BID); }");
+                "void OnTick() { double a = SymbolInfoDouble(_Symbol, SYMBOL_POINT);\n" +
+                "  double b = SymbolInfoDouble(_Symbol, SYMBOL_POINT);\n" +
+                "  double c = SymbolInfoDouble(_Symbol, SYMBOL_POINT); }");
     }
 
     public void testRepeatedApiCallClean() {
         assertNoProblems(new RepeatedApiCallInspection(),
                 "void OnTick() { double a = SymbolInfoDouble(_Symbol, SYMBOL_BID); }");
+    }
+
+    public void testRepeatedApiCallVolatileAskBidClean() {
+        // SYMBOL_ASK/SYMBOL_BID change every tick and must never be cached — repeating these calls
+        // is correct, not a caching opportunity.
+        assertNoProblems(new RepeatedApiCallInspection(),
+                "void OnTick() { double a = SymbolInfoDouble(_Symbol, SYMBOL_BID);\n" +
+                "  double b = SymbolInfoDouble(_Symbol, SYMBOL_ASK);\n" +
+                "  double c = SymbolInfoDouble(_Symbol, SYMBOL_BID); }");
+    }
+
+    public void testRepeatedApiCallTimeCurrentClean() {
+        // TimeCurrent() changes every tick and must never be cached.
+        assertNoProblems(new RepeatedApiCallInspection(),
+                "void OnTick() { datetime a = TimeCurrent(); datetime b = TimeCurrent(); datetime c = TimeCurrent(); }");
     }
 
     public void testUnusedParameter() {
@@ -1029,6 +1192,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testDanglingObjectReferenceClean() {
         assertNoProblems(new DanglingObjectReferenceInspection(),
                 "void foo() { delete ptr; ptr = NULL; }");
+    }
+
+    public void testDanglingObjectReferenceReassignedNonNullClean() {
+        // The delete-then-recreate idiom: any reassignment ends the dangling window, and the
+        // reassignment's own left-hand identifier is never itself counted as a dangling use.
+        assertNoProblems(new DanglingObjectReferenceInspection(),
+                "void foo() { delete obj; obj = new CFoo(); }");
     }
 
     public void testStaleHandleUsageClean() {

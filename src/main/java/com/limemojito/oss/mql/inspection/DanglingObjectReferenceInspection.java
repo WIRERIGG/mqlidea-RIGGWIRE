@@ -17,15 +17,18 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /**
  * AST-based detection: a bare {@code delete <identifier>;} ({@link StatementAst#deletedIdentifier})
- * whose identifier is referenced again afterwards ({@link StatementAst#hasIdentifierAfter}) — unless
- * the very next statement is the safe {@code <identifier> = NULL;} guard
- * ({@link StatementAst#isNullAssignmentStatement}). {@code delete arr[i];} (array-element delete)
- * is excluded by construction.
+ * whose identifier is referenced again afterwards — unless that reference is (or comes at/after) a
+ * reassignment {@code <identifier> = <anything>;} ({@link StatementAst#findAssignmentAfter}), which
+ * ends the dangling window: the delete-then-recreate idiom {@code delete obj; obj = new CFoo();}
+ * assigns a fresh value, so anything from that assignment onward refers to the new object, not the
+ * deleted one. The reassignment's own left-hand identifier (the write, not a use) is never counted
+ * as a dangling use either. {@code delete arr[i];} (array-element delete) is excluded by construction.
  */
 public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase {
 
@@ -47,9 +50,13 @@ public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase 
                     ASTNode idNode = StatementAst.deletedIdentifier(stmt);
                     if (idNode == null) return;
                     String name = idNode.getText();
-                    ASTNode nextStatement = StatementAst.nextNonTrivia(stmt);
-                    if (StatementAst.isNullAssignmentStatement(nextStatement, name)) return;
-                    ASTNode use = StatementAst.findIdentifierAfter(body, name, stmt.getTextRange().getEndOffset());
+                    int deleteEnd = stmt.getTextRange().getEndOffset();
+                    ASTNode reassignEq = StatementAst.findAssignmentAfter(body, name, deleteEnd);
+                    ASTNode lhsToExclude = reassignEq != null ? StatementAst.prevNonTrivia(reassignEq) : null;
+                    ASTNode use = findDanglingUse(body, name, deleteEnd, lhsToExclude);
+                    if (use != null && reassignEq != null && use.getStartOffset() >= reassignEq.getStartOffset()) {
+                        use = null; // at/after the reassignment — refers to the fresh value, not dangling
+                    }
                     if (use != null) {
                         danglingUse[0] = use;
                     }
@@ -60,5 +67,24 @@ public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase 
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+
+    /**
+     * First {@code IDENTIFIER} token with text {@code name} at or after {@code fromOffset} in
+     * {@code root}, skipping {@code excludeNode} (the reassignment's own left-hand identifier,
+     * which is a write, not a use).
+     */
+    @Nullable
+    private static ASTNode findDanglingUse(@NotNull ASTNode root, @NotNull String name, int fromOffset, @Nullable ASTNode excludeNode) {
+        for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (child.getElementType() == MQL4Elements.IDENTIFIER && name.equals(child.getText())
+                    && child.getStartOffset() >= fromOffset && child != excludeNode) {
+                return child;
+            }
+            ASTNode found = findDanglingUse(child, name, fromOffset, excludeNode);
+            if (found != null) return found;
+        }
+        return null;
     }
 }

@@ -145,6 +145,10 @@ public class PreprocessorPropertyInspection extends LocalInspectionTool implemen
         VALIDATORS_BY_NAME.put("description", new RequiredLiteralValidator(STRING_LITERAL));
         VALIDATORS_BY_NAME.put("stacksize", new RequiredLiteralValidator(INTEGER_LITERAL));
         VALIDATORS_BY_NAME.put("library", new OptionalAnyLiteralValidator());
+        // `#property service` declares a valid MQL5 service program (a parameterless flag, like
+        // `library`/`strict`) — it was missing from this map and so was falsely reported as an
+        // "Unknown property".
+        VALIDATORS_BY_NAME.put("service", new OptionalAnyLiteralValidator());
         VALIDATORS_BY_NAME.put("indicator_chart_window", new OptionalAnyLiteralValidator());
         VALIDATORS_BY_NAME.put("indicator_separate_window", new OptionalAnyLiteralValidator());
         VALIDATORS_BY_NAME.put("indicator_height", new RequiredLiteralValidator(INTEGER_LITERAL));

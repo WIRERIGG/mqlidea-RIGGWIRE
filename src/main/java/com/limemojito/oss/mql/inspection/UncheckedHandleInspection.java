@@ -32,7 +32,9 @@ public class UncheckedHandleInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(child);
                 ASTNode call = StatementAst.findAnyCall(body, MQL5_HANDLE_CREATORS);
                 if (call != null) {
-                    if (!StatementAst.hasIdentifier(body, "INVALID_HANDLE")) {
+                    // INVALID_HANDLE is -1, so `== -1` / `!= -1` (and the other failure-check
+                    // idioms hasFailureReturnCheck already recognises) are equally valid checks.
+                    if (!StatementAst.hasIdentifier(body, "INVALID_HANDLE") && !StatementAst.hasFailureReturnCheck(body)) {
                         problems.add(createProblem(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                     }
                 }

@@ -25,6 +25,11 @@ import java.util.List;
  * OnCalculate() — returning 0 tells the terminal that nothing was calculated,
  * forcing a full indicator recalculation on every tick. Return rates_total
  * (or prev_calculated) instead.
+ * <p>
+ * Only an unconditional (not nested inside an {@code if}) {@code return 0} is flagged. The
+ * idiomatic warm-up guard {@code if(rates_total<Period) return(0);} is a correct, intentional
+ * early-out — not the "forces full recalculation" bug this inspection targets — so a
+ * {@code return 0} nested inside an {@code if} is left alone.
  */
 public class OnCalculateReturnInspection extends MQL5SafetyInspectionBase {
 
@@ -44,12 +49,15 @@ public class OnCalculateReturnInspection extends MQL5SafetyInspectionBase {
                     && "OnCalculate".equals(func.getFunctionName())) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean[] flagged = {false};
+                ASTNode[] flagged = {null};
                 StatementAst.forEachDescendant(body, RETURN_STATEMENT, returnStmt -> {
-                    if (!flagged[0] && isReturnZero(returnStmt)) flagged[0] = true;
+                    if (flagged[0] == null && isReturnZero(returnStmt)
+                            && !StatementAst.isNestedInIfStatement(returnStmt, body)) {
+                        flagged[0] = returnStmt;
+                    }
                 });
-                if (flagged[0]) {
-                    problems.add(createWeakWarning(manager, child.getNavigationElement(), MESSAGE, isOnTheFly));
+                if (flagged[0] != null) {
+                    problems.add(createWeakWarning(manager, StatementAst.anchor(flagged[0], child.getNavigationElement()), MESSAGE, isOnTheFly));
                 }
             }
         }

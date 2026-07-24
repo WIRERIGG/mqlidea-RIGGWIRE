@@ -26,6 +26,11 @@ import java.util.Set;
  * (matching the original intent: the account value may flow through a local variable into the
  * output call, e.g. {@code double bal = AccountBalance(); Print(bal);}), so this remains a nudge
  * rather than a precise taint check.
+ * <p>
+ * {@code OUTPUT_FUNCS} is restricted to functions that actually leave the machine. {@code Print}/
+ * {@code PrintFormat}/{@code Comment}/{@code Alert} only write to the local terminal log/UI — never
+ * a privacy risk — so including them flagged the ordinary, safe idiom
+ * {@code double bal = AccountBalance(); Print(bal);} on every EA that logs its own balance.
  */
 public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
 
@@ -34,7 +39,7 @@ public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
             "AccountInfoDouble", "AccountInfoInteger", "AccountInfoString",
             "AccountBalance", "AccountEquity", "AccountNumber", "AccountName"
     );
-    private static final Set<String> OUTPUT_FUNCS = Set.of("Print", "PrintFormat", "WebRequest", "SendFTP", "SendMail", "SendNotification");
+    private static final Set<String> OUTPUT_FUNCS = Set.of("WebRequest", "SendFTP", "SendMail", "SendNotification");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {

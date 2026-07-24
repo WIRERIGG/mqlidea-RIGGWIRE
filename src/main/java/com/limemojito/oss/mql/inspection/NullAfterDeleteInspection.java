@@ -22,8 +22,11 @@ import java.util.List;
 
 /**
  * AST-based detection: a bare {@code delete <identifier>;} ({@link StatementAst#deletedIdentifier})
- * with no {@code <identifier> = NULL} assignment anywhere afterwards
- * ({@link StatementAst#hasNullAssignmentAfter}).
+ * with no {@code <identifier> = <anything>} reassignment anywhere afterwards
+ * ({@link StatementAst#hasAssignmentAfter}) — not just the literal {@code = NULL} guard, since the
+ * delete-then-recreate idiom {@code delete obj; obj = new CFoo();} equally ends the dangling window.
+ * Also does not flag a delete that is the last statement directly in {@code OnDeinit()}'s body:
+ * nothing dangles once the handler (and usually the program) has finished tearing down.
  */
 public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
 
@@ -38,9 +41,10 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
+                boolean isOnDeinit = "OnDeinit".equals(func.getFunctionName());
                 // One problem per function (preserves the original cardinality): the message names
-                // the first delete found whose variable is never subsequently nulled. Anchor at that
-                // delete's identifier, not the function header.
+                // the first delete found whose variable is never subsequently reassigned. Anchor at
+                // that delete's identifier, not the function header.
                 ASTNode[] offenderNode = {null};
                 ASTNode[] offenderStatement = {null};
                 String[] offenderName = {null};
@@ -48,8 +52,14 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
                     if (offenderNode[0] != null) return;
                     ASTNode idNode = StatementAst.deletedIdentifier(stmt);
                     if (idNode == null) return;
+                    if (isOnDeinit && stmt.getTreeParent() == body) {
+                        ASTNode after = StatementAst.nextNonTrivia(stmt);
+                        if (after == null || after.getElementType() == MQL4Elements.R_CURLY_BRACKET) {
+                            return; // last statement in OnDeinit — nothing dangles afterward
+                        }
+                    }
                     String name = idNode.getText();
-                    if (!StatementAst.hasNullAssignmentAfter(body, name, stmt.getTextRange().getEndOffset())) {
+                    if (!StatementAst.hasAssignmentAfter(body, name, stmt.getTextRange().getEndOffset())) {
                         offenderNode[0] = idNode;
                         offenderStatement[0] = stmt;
                         offenderName[0] = name;

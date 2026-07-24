@@ -21,6 +21,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Flags a cacheable API call repeated more than {@link #CALL_THRESHOLD} times in {@code OnTick()}.
+ * Excludes volatile market properties ({@code SYMBOL_ASK}/{@code SYMBOL_BID}/{@code SYMBOL_LAST},
+ * {@code SymbolInfoTick}, {@code TimeCurrent}, {@code TimeLocal}) from the count — those change on
+ * every tick and MUST NOT be cached across ticks, so recommending it would be actively wrong advice
+ * (see {@link StatementAst#isVolatileMarketCall}).
+ */
 public class RepeatedApiCallInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE =
@@ -59,7 +66,10 @@ public class RepeatedApiCallInspection extends MQL5SafetyInspectionBase {
         // One walk of the body accumulating per-name counts, instead of one full walk per name
         // (was 14 walks of the OnTick body every daemon pass).
         Map<String, Integer> counts = new HashMap<>();
-        StatementAst.forEachCall(body, EXPENSIVE_FUNCTIONS, id -> counts.merge(id.getText(), 1, Integer::sum));
+        StatementAst.forEachCall(body, EXPENSIVE_FUNCTIONS, id -> {
+            if (StatementAst.isVolatileMarketCall(id)) return;
+            counts.merge(id.getText(), 1, Integer::sum);
+        });
         for (String funcName : EXPENSIVE_FUNCTIONS) {
             Integer count = counts.get(funcName);
             if (count != null && count > CALL_THRESHOLD) {

@@ -18,6 +18,7 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,12 @@ import java.util.Set;
  * for {@code obj1.value} is {@code IDENTIFIER("obj1") DOT IDENTIFIER("value")}, never a
  * {@code DOUBLE_LITERAL}, so the member-access-on-digit-suffixed-identifier false positive (Fable
  * review, bug #2) cannot occur by construction; no lookbehind hack is needed.
+ * <p>
+ * Two further false positives are avoided by only looking at the returned value itself, not any
+ * {@code DOUBLE_LITERAL} anywhere in the return statement's subtree: an explicit cast
+ * ({@code return (int)MathRound(x*1.5);}) is an intentional, visible truncation — the whole return
+ * statement is skipped whenever it contains a {@code CAST_BLOCK} — and a float literal buried in a
+ * condition ({@code return x>0.5 ? 1 : 0;}) is never the returned value, so it is never flagged.
  */
 public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
 
@@ -46,7 +53,7 @@ public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
             MQL4Elements.CHAR_KEYWORD, MQL4Elements.UINT_KEYWORD, MQL4Elements.ULONG_KEYWORD,
             MQL4Elements.USHORT_KEYWORD, MQL4Elements.UCHAR_KEYWORD);
     private static final TokenSet RETURN_STATEMENT = TokenSet.create(MQL4Elements.RETURN_STATEMENT);
-    private static final TokenSet DOUBLE_LITERAL = TokenSet.create(MQL4Elements.DOUBLE_LITERAL);
+    private static final TokenSet CAST_BLOCK = TokenSet.create(MQL4Elements.CAST_BLOCK);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -62,7 +69,7 @@ public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 boolean[] flagged = {false};
                 StatementAst.forEachDescendant(body, RETURN_STATEMENT, returnStmt -> {
-                    if (!flagged[0] && StatementAst.hasDescendant(returnStmt, DOUBLE_LITERAL)) {
+                    if (!flagged[0] && isBareFloatReturn(returnStmt)) {
                         flagged[0] = true;
                     }
                 });
@@ -73,5 +80,40 @@ public class NarrowingReturnTypeInspection extends MQL5SafetyInspectionBase {
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+
+    /**
+     * True when {@code returnStmt} returns a bare (optionally negated) {@code DOUBLE_LITERAL} —
+     * {@code return 1.5;}, {@code return(1.5);} or {@code return -1.5;} — and contains no explicit
+     * cast anywhere (an explicit cast makes any truncation intentional and visible).
+     */
+    private static boolean isBareFloatReturn(@NotNull ASTNode returnStmt) {
+        if (StatementAst.hasDescendant(returnStmt, CAST_BLOCK)) return false;
+        ASTNode keyword = returnStmt.findChildByType(MQL4Elements.RETURN_KEYWORD);
+        if (keyword == null) return false;
+        ASTNode next = StatementAst.nextNonTrivia(keyword);
+        if (next == null) return false;
+        if (StatementAst.isParenBlock(next)) {
+            ASTNode inner = StatementAst.nextNonTrivia(next.getFirstChildNode());
+            return isBareLiteral(inner, MQL4Elements.R_ROUND_BRACKET);
+        }
+        return isBareLiteral(next, MQL4Elements.SEMICOLON);
+    }
+
+    /**
+     * True when {@code node} is a (optionally negated) {@code DOUBLE_LITERAL} directly followed —
+     * with nothing else in between — by {@code terminator} ({@code ;} for a bare
+     * {@code return <lit>;}, or the closing {@code )} for a {@code return(<lit>)} form).
+     */
+    private static boolean isBareLiteral(@Nullable ASTNode node, @NotNull IElementType terminator) {
+        if (node == null) return false;
+        ASTNode literal = node;
+        if (literal.getElementType() == MQL4Elements.MINUS) {
+            literal = StatementAst.nextNonTrivia(literal);
+            if (literal == null) return false;
+        }
+        if (literal.getElementType() != MQL4Elements.DOUBLE_LITERAL) return false;
+        ASTNode after = StatementAst.nextNonTrivia(literal);
+        return after != null && after.getElementType() == terminator;
     }
 }
