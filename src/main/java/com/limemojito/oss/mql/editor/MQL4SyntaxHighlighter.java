@@ -110,10 +110,17 @@ public class MQL4SyntaxHighlighter extends SyntaxHighlighterBase {
         @Override
         public IElementType advance() throws IOException {
             IElementType originalType = lexer.advance();
+            CharSequence text = lexer.yytext();
+            // A bare (non-clr) colour name is really an identifier — re-map it before the built-in
+            // lookup so a variable named `Gold` highlights as an identifier and a genuine bare colour
+            // constant still gets built-in-constant colour via the catalog below.
+            if (originalType == MQL4Elements.COLOR_CONSTANT_LITERAL
+                    && com.limemojito.oss.mql.MqlColorAwareLexer.isBareColorName(text)) {
+                originalType = MQL4Elements.IDENTIFIER;
+            }
             if (originalType != MQL4Elements.IDENTIFIER) {
                 return originalType;
             }
-            CharSequence text = lexer.yytext();
             DocEntry docEntry = MQL4DocumentationProvider.getEntryByText(text.toString());
             if (docEntry == null) {
                 return originalType;

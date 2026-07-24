@@ -18,6 +18,7 @@ import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.MQL4Lexer;
+import com.limemojito.oss.mql.MqlColorAwareLexer;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
 import com.limemojito.oss.mql.psi.MQL4File;
@@ -33,7 +34,9 @@ public class MQL4ParserDefinition implements ParserDefinition, MQL4Elements {
     @NotNull
     @Override
     public Lexer createLexer(Project project) {
-        return new FlexAdapter(new MQL4Lexer(null));
+        // Wrap so a bare web-colour name (Gold, Silver, Lime, ...) lexes as an IDENTIFIER, not a
+        // COLOR_CONSTANT_LITERAL — otherwise you cannot name a variable `Gold`. clrGold stays a colour.
+        return new MqlColorAwareLexer(new FlexAdapter(new MQL4Lexer(null)));
     }
 
     @NotNull
