@@ -32,7 +32,7 @@ import java.util.Set;
 public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE =
-            "Important function return value ignored — check return values of ArrayResize/FileOpen/ObjectCreate/etc. to detect failures";
+            "Important function return value ignored — check return values of FileOpen/FileCopy/FileMove to detect failures";
 
     // Only functions whose ignored return genuinely hides a FAILURE (as the message says). Excludes
     // cosmetic/idiomatic calls whose return is routinely and correctly ignored: ObjectDelete
@@ -41,9 +41,12 @@ public class ReturnValueIgnoredInspection extends MQL5SafetyInspectionBase {
     // ArrayResize is intentionally NOT here — ArrayResizeReturnCheckInspection owns it (avoids a
     // double warning). EventSetTimer/GlobalVariableSet are excluded: the canonical MQL idiom is a
     // bare EventSetTimer(60); in OnInit, and GlobalVariableSet's datetime return is routinely ignored.
+    // ObjectCreate is likewise excluded (Fable FP): it is a no-op when the named object already
+    // exists, so the canonical drawing idiom `ObjectDelete(0, name); ObjectCreate(0, name, ...);`
+    // (ST_TrendMeasure.mq5, LEIlight.mq5, TrendCipher.mq5 — some sites even comment "ObjectCreate is
+    // a no-op on existing objects") ignores the bool return by design, not by oversight.
     private static final Set<String> IMPORTANT_FUNCTIONS = Set.of(
-            "FileOpen", "FileCopy", "FileMove",
-            "ObjectCreate"
+            "FileOpen", "FileCopy", "FileMove"
     );
 
     private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);

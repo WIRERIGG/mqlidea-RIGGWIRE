@@ -9,7 +9,6 @@ package com.limemojito.oss.mql.inspection;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
-import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressManager;
@@ -54,10 +53,10 @@ public class MissingDefaultCaseInspection extends MQL5SafetyInspectionBase {
                     if (switchBody.findChildByType(MQL4Elements.DEFAULT_KEYWORD) != null) return;
                     PsiElement psi = switchStmt.getPsi();
                     if (psi != null && psi.isValid()) {
-                        problems.add(manager.createProblemDescriptor(
-                                psi, psi,
-                                MESSAGE, ProblemHighlightType.WARNING, isOnTheFly,
-                                new AddDefaultCaseFix()));
+                        // WEAK_WARNING (Fable FP): a fully-covered enum switch legitimately needs no
+                        // default and this inspection has no enum-coverage resolution to tell that
+                        // apart from a real missing-case bug — see plugin.xml registration comment.
+                        problems.add(createWeakWarning(manager, psi, MESSAGE, new AddDefaultCaseFix()));
                     }
                 });
             }

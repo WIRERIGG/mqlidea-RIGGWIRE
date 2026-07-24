@@ -252,7 +252,30 @@ final class StatementAst implements MQL4Elements {
         if (identifier.getElementType() != IDENTIFIER) return false;
         ASTNode next = nextNonTrivia(identifier);
         if (next == null) return false;
-        return isParenBlock(next) || next.getElementType() == L_ROUND_BRACKET;
+        if (!(isParenBlock(next) || next.getElementType() == L_ROUND_BRACKET)) return false;
+        return !isMemberOrScopedCall(identifier);
+    }
+
+    /**
+     * True when {@code identifier} is immediately preceded by a {@code .} ({@link #DOT}) or
+     * {@code ::} ({@link #COLON_COLON}) token — i.e. it names a member method call
+     * ({@code obj.Method(...)}) or a scoped/static method call ({@code CClass::Method(...)}), not
+     * a call to a global function. The call-matching primitives ({@link #isCallIdentifier} and
+     * everything built on it: {@link #forEachCall}, {@link #findAnyCall}, {@link #findCall},
+     * {@link #hasCall}, {@link #hasAnyCall}, {@link #countCalls}) are used throughout the
+     * inspections to recognise calls to specific GLOBAL MQL4/MQL5 function names (OrderDelete,
+     * FileOpen, IndicatorRelease, ...). Without this guard, {@code obj_Trade.OrderDelete(ticket)}
+     * (a CTrade method call) or {@code CClass::SelfSameName(...)} (a static delegation call) would
+     * wrongly match a matcher looking for the identically-named global function — the exact false
+     * positives Fable found in {@code ModernMQL5IdiomInspection} (RIGGWIRE_FINAL.mq5's
+     * {@code obj_Trade.OrderDelete(ticket)} flagged as the deprecated MQL4 global function) and
+     * {@code StackOverflowRiskInspection} (TradeOperationWrapper.mqh's
+     * {@code return CTradeOperationWrapper::SafeOrderModify(...);} static delegation flagged as
+     * infinite self-recursion).
+     */
+    static boolean isMemberOrScopedCall(@NotNull ASTNode identifier) {
+        ASTNode prev = prevNonTrivia(identifier);
+        return prev != null && (prev.getElementType() == DOT || prev.getElementType() == COLON_COLON);
     }
 
     /**
@@ -718,6 +741,48 @@ final class StatementAst implements MQL4Elements {
             if (current.getElementType() == IF_STATEMENT) return true;
         }
         return false;
+    }
+
+    /**
+     * The nearest {@code IF_STATEMENT} ancestor of {@code node} strictly between itself and
+     * {@code boundaryRoot} (exclusive), or null if {@code node} is not nested in any {@code if}
+     * within that boundary. Unlike {@link #isNestedInIfStatement}, this returns the actual branch
+     * node so two nodes can be compared for "same branch" (mutually-exclusive early-return
+     * branches, e.g. sibling {@code if(x == INVALID_HANDLE) { cleanup(); return; }} guards, have
+     * different, non-null nearest-if ancestors and so are never mistaken for the same execution
+     * path).
+     */
+    @Nullable
+    static ASTNode nearestEnclosingIfStatement(@NotNull ASTNode node, @NotNull ASTNode boundaryRoot) {
+        for (ASTNode current = node.getTreeParent(); current != null && current != boundaryRoot; current = current.getTreeParent()) {
+            if (current.getElementType() == IF_STATEMENT) return current;
+        }
+        return null;
+    }
+
+    /**
+     * Number of top-level (depth-0) comma-separated arguments in a call's {@code (...)} args
+     * block, or 0 for a call with no args-block or an empty {@code ()} — for callers that need to
+     * distinguish call arities (e.g. {@code ArrayResize}'s 2-arg vs. doc-endorsed 3-arg reserve
+     * form). Nested calls/array literals inside an argument are their own nested
+     * {@code BRACKETS_BLOCK} child, not raw tokens at this level, so a comma inside one is never
+     * miscounted as a top-level argument separator.
+     */
+    static int callArgCount(@NotNull ASTNode callIdentifier) {
+        ASTNode argsBlock = callArgsBlock(callIdentifier);
+        if (argsBlock == null) return 0;
+        int commas = 0;
+        boolean sawContent = false;
+        for (ASTNode child = argsBlock.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            IElementType t = child.getElementType();
+            if (t == L_ROUND_BRACKET || t == R_ROUND_BRACKET || isTrivia(child)) continue;
+            if (t == COMMA) {
+                commas++;
+            } else {
+                sawContent = true;
+            }
+        }
+        return (sawContent || commas > 0) ? commas + 1 : 0;
     }
 
     /**

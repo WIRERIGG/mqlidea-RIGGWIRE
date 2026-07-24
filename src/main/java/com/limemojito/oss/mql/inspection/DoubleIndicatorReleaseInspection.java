@@ -16,10 +16,11 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -28,6 +29,14 @@ import java.util.Set;
  * distinct array elements ({@code handles[0]} vs {@code handles[1]}) or distinct factory calls are
  * still correctly treated as different handles (Fable review, concern #3), and nested/adjacent
  * unrelated parens can no longer confuse which call an argument belongs to.
+ * <p>
+ * Branch-aware (Fable FP): two releases of the same handle are only a genuine double-free if they
+ * can both execute on the same run. The partial-failure cleanup idiom
+ * (RIGGWIRE_DataCapture.mq5:105-107) releases the SAME earlier handle from several mutually
+ * exclusive {@code if(... == INVALID_HANDLE) { IndicatorRelease(h); ...; return INIT_FAILED; }}
+ * guards — at most one of those branches ever runs. Two release calls are grouped by their
+ * {@link StatementAst#nearestEnclosingIfStatement} within the function body; only calls that share
+ * the same branch (including both being unconditional / top-level) are flagged as a duplicate.
  */
 public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
 
@@ -44,8 +53,9 @@ public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
                 // Releasing two DIFFERENT handles (the normal multi-indicator OnDeinit pattern) is
-                // correct; only the SAME handle variable released more than once is a real double-free.
-                Map<String, ASTNode> firstSeen = new HashMap<>();
+                // correct; only the SAME handle variable released more than once ON THE SAME
+                // execution path is a real double-free.
+                Map<String, List<ASTNode>> branchesSeen = new LinkedHashMap<>();
                 // Anchor at the actual second (duplicate) call site, not the function header.
                 Map<String, ASTNode> duplicated = new LinkedHashMap<>();
                 StatementAst.forEachCall(body, INDICATOR_RELEASE, callId -> {
@@ -53,10 +63,13 @@ public class DoubleIndicatorReleaseInspection extends MQL5SafetyInspectionBase {
                     if (args == null) return;
                     String text = args.getText();
                     String handle = text.length() >= 2 ? text.substring(1, text.length() - 1).trim() : text.trim();
-                    ASTNode previous = firstSeen.putIfAbsent(handle, callId);
-                    if (previous != null) {
+                    ASTNode branch = StatementAst.nearestEnclosingIfStatement(callId, body);
+                    List<ASTNode> branches = branchesSeen.computeIfAbsent(handle, k -> new ArrayList<>());
+                    boolean sameBranchSeenBefore = branches.stream().anyMatch(seen -> Objects.equals(seen, branch));
+                    if (sameBranchSeenBefore) {
                         duplicated.putIfAbsent(handle, callId);
                     }
+                    branches.add(branch);
                 });
                 for (Map.Entry<String, ASTNode> entry : duplicated.entrySet()) {
                     problems.add(createProblem(manager,

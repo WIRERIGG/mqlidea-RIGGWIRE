@@ -205,6 +205,16 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { int h = FileOpen(\"test.txt\", FILE_READ); FileClose(h); }");
     }
 
+    public void testMissingFileCloseCrossFunctionPairingClean() {
+        // RIGGWIRE_DataCapture.mq5:115/176, RIGGWIRE_Logger.mqh:79/248 (Fable FP): the global-handle
+        // idiom opens the file in OnInit() and closes it in OnDeinit() — different functions, same file.
+        assertNoProblems(new MissingFileCloseInspection(),
+                "int g_fileHandle;\n" +
+                "int OnInit() { g_fileHandle = FileOpen(\"test.txt\", FILE_WRITE); return 0; }\n" +
+                "void OnDeinit(const int reason) { FileClose(g_fileHandle); }",
+                "test.mq5");
+    }
+
     public void testUncheckedCopyRates() {
         assertHasProblems(new UncheckedCopyRatesInspection(),
                 "void foo() { MqlRates rates[]; CopyRates(_Symbol, PERIOD_H1, 0, 100, rates); }");
@@ -484,6 +494,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { double arr[]; for(int i=0; i<10; i++) { ArrayResize(arr, i); } }");
     }
 
+    public void testArrayResizeInLoopReserveArgClean() {
+        // ArrayResize(a, i, reserve) — the 3-arg form is the doc-endorsed pattern for exactly this
+        // situation (arrayresize.html): FastProfitLocker.mqh:388, TrendConfirmation.mqh:827/845/876.
+        assertNoProblems(new ArrayResizeInLoopInspection(),
+                "void foo() { double arr[]; for(int i=0; i<10; i++) { ArrayResize(arr, i, 20); } }");
+    }
+
     public void testPrintInOnTick() {
         assertHasProblems(new PrintInOnTickInspection(),
                 "void OnTick() { Print(\"tick\"); }");
@@ -605,11 +622,26 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { MathSrand(GetTickCount()); }");
     }
 
+    public void testDeterministicSeedFlagsTimeCurrentSeed() {
+        // Bug fix: math/mathsrand.html explicitly states MathSrand(TimeCurrent()) is "not suitable"
+        // (TimeCurrent() can be unchanged for a long time, e.g. over a weekend) — this must be
+        // flagged, not silently suppressed the way an earlier (inverted) version of this check did.
+        assertHasProblems(new DeterministicSeedInspection(),
+                "void foo() { MathSrand(TimeCurrent()); }");
+    }
+
     // ===== Advanced Patterns =====
 
     public void testStackOverflowRisk() {
         assertHasProblems(new StackOverflowRiskInspection(),
                 "void Recurse() { Recurse(); }");
+    }
+
+    public void testStackOverflowRiskStaticDelegationClean() {
+        // RC-1 (Fable FP): TradeOperationWrapper.mqh:566 `return CTradeOperationWrapper::SafeOrderModify(...);`
+        // is a static delegation call (CClass::Method), not the enclosing global function calling itself.
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "bool SafeOrderModify(ulong ticket) { return CTradeOperationWrapper::SafeOrderModify(ticket); }");
     }
 
     public void testDanglingObjectReference() {
@@ -664,6 +696,19 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // Smoke test — inspection only runs on .mq5 files; file type registration may vary in test env
         assertInspectionRuns(new ModernMQL5IdiomInspection(),
                 "void foo() { int total = OrdersTotal(); OrderSelect(0, SELECT_BY_POS); }");
+    }
+
+    public void testModernMQL5IdiomFlagsGlobalDeprecatedCall() {
+        // A genuine bare call to the deprecated MQL4-only global function must still be flagged.
+        assertHasProblems(new ModernMQL5IdiomInspection(),
+                "void foo() { OrderDelete(ticket); }", "test.mq5");
+    }
+
+    public void testModernMQL5IdiomMemberCallClean() {
+        // RC-1 (Fable FP): obj_Trade.OrderDelete(ticket) calls CTrade's method (RIGGWIRE_FINAL.mq5:2371),
+        // not the deprecated MQL4 global OrderDelete() — a member call must not match the global-function matcher.
+        assertNoProblems(new ModernMQL5IdiomInspection(),
+                "void foo() { if(!obj_Trade.OrderDelete(ticket)) { Print(\"err\"); } }", "test.mq5");
     }
 
     public void testDataConsistency() {
@@ -989,6 +1034,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void f() { if(FileOpen(\"x.txt\", FILE_READ) < 0) { return; } }");
     }
 
+    public void testReturnValueIgnoredObjectCreateRecreateIdiomClean() {
+        // ObjectCreate() is a no-op when the named object already exists (ST_TrendMeasure.mq5:192/210,
+        // LEIlight.mq5:3704/3893) — the canonical delete-then-recreate drawing idiom must not flag.
+        assertNoProblems(new ReturnValueIgnoredInspection(),
+                "void f() { ObjectDelete(0, name); ObjectCreate(0, name, OBJ_TREND, 0, t1, p1, t2, p2); }");
+    }
+
     public void testUncheckedOrderSendAssignedClean() {
         // Anti-false-positive: result captured by a local variable declaration
         assertNoProblems(new UncheckedOrderSendInspection(),
@@ -1085,6 +1137,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // Anti-false-positive: order call guarded by an if inside the loop is not unconditional
         assertNoProblems(new UnconditionalOrderLoopInspection(),
                 "void OnTick() { for(int i=0; i<total; i++) { if(need) { OrderSelect(i, SELECT_BY_POS); } } }");
+    }
+
+    public void testUnconditionalOrderLoopEntireLoopGuardedByIfClean() {
+        // RIGGWIRE_FINAL.mq5:2348/2365 (Fable FP): the header-call form `for(int i = PositionsTotal() - 1; ...)`
+        // is itself nested inside a weekend-close `if(...)` guard — only runs under specific conditions.
+        assertNoProblems(new UnconditionalOrderLoopInspection(),
+                "void OnTick() { if(shouldClose) {\n" +
+                "  for(int i = PositionsTotal() - 1; i >= 0; i--) { } } }");
     }
 
     public void testInfiniteLoopRiskWhileTrue() {
@@ -1259,6 +1319,18 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testDoubleIndicatorReleaseDifferentHandlesClean() {
         assertNoProblems(new DoubleIndicatorReleaseInspection(),
                 "void OnDeinit(const int reason) { IndicatorRelease(h1); IndicatorRelease(h2); }",
+                "test.mq5");
+    }
+
+    public void testDoubleIndicatorReleaseMutuallyExclusiveIfBranchesClean() {
+        // RIGGWIRE_DataCapture.mq5:105-107 (Fable FP): partial-failure cleanup releases the SAME
+        // earlier handle from several mutually exclusive `if(... == INVALID_HANDLE) { ...; return; }`
+        // guards — at most one branch ever runs, so this is not a double-free.
+        assertNoProblems(new DoubleIndicatorReleaseInspection(),
+                "int OnInit() {\n" +
+                "  if(a == INVALID_HANDLE) { IndicatorRelease(h); return INIT_FAILED; }\n" +
+                "  if(b == INVALID_HANDLE) { IndicatorRelease(h); return INIT_FAILED; }\n" +
+                "  return INIT_SUCCEEDED; }",
                 "test.mq5");
     }
 }

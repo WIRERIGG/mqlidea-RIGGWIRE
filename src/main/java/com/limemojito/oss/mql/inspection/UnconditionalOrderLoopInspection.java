@@ -28,10 +28,17 @@ import java.util.Set;
  * directly (not nested inside an {@code IF_STATEMENT} guard within the loop). Calls guarded by
  * an {@code if} inside the loop, or appearing outside any loop, are no longer flagged — the old
  * heuristic fired whenever {@code OnTick} merely contained such a call without caching keywords.
+ * <p>
+ * The loop itself may also sit inside an enclosing {@code if} guard (e.g. RIGGWIRE_FINAL.mq5's
+ * weekend-close {@code if(Enable_FTMO_Compliance && Auto_Close_Weekend) { if(MustCloseForWeekend())
+ * { for(int i = PositionsTotal() - 1; ...) {...} } }}) — that is exactly the "only run this order
+ * loop under specific conditions" pattern the message recommends, so the header-call check must
+ * not fire on it either. Reuses {@link StatementAst#isNestedInIfStatement} (the same guard
+ * {@code PrintInOnTickInspection} uses) at the whole-loop level.
  */
 public class UnconditionalOrderLoopInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "OrdersTotal()/PositionsTotal() called every tick without change detection — consider caching or event-driven check";
+    private static final String MESSAGE = "OrdersTotal()/PositionsTotal() driving a loop unconditionally every tick — guard the order loop with a condition check";
     private static final Set<String> ORDER_LOOP_FUNCS = Set.of(
             "OrdersTotal", "PositionsTotal", "OrderSelect", "PositionSelect"
     );
@@ -47,6 +54,7 @@ public class UnconditionalOrderLoopInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
                 StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
+                    if (StatementAst.isNestedInIfStatement(loop, body)) return;
                     if (!isUnconditionalOrderLoop(loop)) return;
                     PsiElement psi = loop.getPsi();
                     if (psi != null && psi.isValid()) {

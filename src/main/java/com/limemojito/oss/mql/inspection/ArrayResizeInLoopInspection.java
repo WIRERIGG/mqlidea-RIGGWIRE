@@ -17,6 +17,7 @@ import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * AST-based detection of {@code ArrayResize()} inside a loop: the call must occur in the body
@@ -24,12 +25,19 @@ import java.util.List;
  * the loop header, whether a {@code {...}} block or a single statement). Calls before/after a
  * loop — including the old false positive where a brace-less loop was followed by an unrelated
  * {@code {...}} block containing the call — are no longer flagged.
+ * <p>
+ * The 3-argument {@code ArrayResize(array, new_size, reserve_size)} form is the doc-endorsed
+ * pattern for exactly this situation (arrayresize.html: "it is recommended to use a third
+ * parameter that sets a reserve to reduce the number of physical memory allocations" — subsequent
+ * calls only change the reported size, without a physical reallocation) — that form is never
+ * flagged, only the plain 2-arg form which reallocates on every call.
  */
 public class ArrayResizeInLoopInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "ArrayResize() inside loop — pre-allocate array before loop for better performance";
 
     private static final String ARRAY_RESIZE = "ArrayResize";
+    private static final Set<String> ARRAY_RESIZE_NAMES = Set.of(ARRAY_RESIZE);
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -41,9 +49,15 @@ public class ArrayResizeInLoopInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
                     ASTNode loopBody = StatementAst.findLoopBody(loop);
-                    if (loopBody == null || !StatementAst.hasCall(loopBody, ARRAY_RESIZE)) {
-                        return;
-                    }
+                    if (loopBody == null) return;
+                    ASTNode[] flagged = {null};
+                    StatementAst.forEachCall(loopBody, ARRAY_RESIZE_NAMES, callId -> {
+                        // 3rd (reserve) argument present — the recommended no-reallocation pattern.
+                        if (flagged[0] == null && StatementAst.callArgCount(callId) < 3) {
+                            flagged[0] = callId;
+                        }
+                    });
+                    if (flagged[0] == null) return;
                     PsiElement psi = loop.getPsi();
                     if (psi != null && psi.isValid()) {
                         problems.add(createWarning(manager, psi, MESSAGE));

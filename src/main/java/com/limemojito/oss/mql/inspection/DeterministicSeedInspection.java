@@ -18,9 +18,20 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * Flags {@code MathSrand()} seeded with anything other than {@code GetTickCount()}. Per the spec
+ * (math/mathsrand.html): {@code GetTickCount()} is the one call explicitly recommended for a
+ * non-recurring sequence; {@code MathSrand(TimeCurrent())} is explicitly called out as
+ * <em>not</em> suitable ("returns the time of the last tick, which can be unchanged for a long
+ * time, for example at the weekend") — so {@code TimeCurrent()}/{@code TimeLocal()} must not
+ * suppress this warning the way an earlier version did. The check also inspects the seed
+ * argument itself (via {@link StatementAst#callArgsText}) rather than merely whether
+ * {@code GetTickCount} is called anywhere in the function, so an unrelated {@code GetTickCount()}
+ * call elsewhere in the body can no longer mask a bad seed.
+ */
 public class DeterministicSeedInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "MathSrand() with hardcoded seed — use GetTickCount() for non-deterministic randomness";
+    private static final String MESSAGE = "MathSrand() not seeded with GetTickCount() — hardcoded/TimeCurrent()/TimeLocal() seeds are not suitable for non-deterministic randomness";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -31,9 +42,9 @@ public class DeterministicSeedInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(child);
                 ASTNode call = StatementAst.findCall(body, "MathSrand");
                 if (call != null) {
-                    if (!StatementAst.hasCall(body, "GetTickCount")
-                            && !StatementAst.hasCall(body, "TimeLocal")
-                            && !StatementAst.hasCall(body, "TimeCurrent")) {
+                    String seedArg = StatementAst.callArgsText(call);
+                    boolean seededWithTickCount = seedArg != null && seedArg.contains("GetTickCount");
+                    if (!seededWithTickCount) {
                         problems.add(createWeakWarning(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                     }
                 }

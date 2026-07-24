@@ -18,19 +18,41 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+/**
+ * Flags a {@code FileOpen()} call when the FILE has no {@code FileClose()} call anywhere in it.
+ * Scoped to the whole file (not per-function) so the common global-handle idiom — open the file
+ * in {@code OnInit()}, close it in {@code OnDeinit()} (RIGGWIRE_DataCapture.mq5:115/176,
+ * RIGGWIRE_Logger.mqh:79/248) — is recognised as paired even though the two calls live in
+ * different functions. A per-function pairing would wrongly flag {@code OnInit()}'s
+ * {@code FileOpen()} as leaking just because the matching {@code FileClose()} is in
+ * {@code OnDeinit()} instead.
+ */
 public class MissingFileCloseInspection extends MQL5SafetyInspectionBase {
 
-    private static final String MESSAGE = "FileOpen() without corresponding FileClose() — potential resource leak";
+    private static final String MESSAGE = "FileOpen() without corresponding FileClose() anywhere in the file — potential resource leak";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
+        boolean hasClose = false;
+        for (PsiElement child : file.getChildren()) {
+            ProgressManager.checkCanceled();
+            if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
+                ASTNode body = findBracketsBlock(child);
+                if (body != null && StatementAst.hasCall(body, "FileClose")) {
+                    hasClose = true;
+                    break;
+                }
+            }
+        }
+        if (hasClose) return ProblemDescriptor.EMPTY_ARRAY;
+
         for (PsiElement child : file.getChildren()) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 ASTNode call = StatementAst.findCall(body, "FileOpen");
-                if (call != null && !StatementAst.hasCall(body, "FileClose")) {
+                if (call != null) {
                     problems.add(createProblem(manager, StatementAst.anchor(call, child.getNavigationElement()), MESSAGE));
                 }
             }

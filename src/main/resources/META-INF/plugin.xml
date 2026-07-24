@@ -244,7 +244,12 @@
                          displayName="Missing const on reference parameter"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingConstParameterInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <!-- Retired to default-OFF: MQL structures/MqlXxx types are ALWAYS passed by reference per
+             the spec (variables/formal.html — "data of the structure type are always passed by
+             reference"), so there is no by-value struct copy to warn about; the CamelCase-user-type
+             heuristic also FPs on ordinary CamelCase enum parameters (NEWS.mqh's
+             InitNewsSystem(NewsDataSource, NewsImpact)). -->
+        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WARNING"
                          displayName="Large struct passed by value"
                          implementationClass="com.limemojito.oss.mql.inspection.LargeStructByValueInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -414,7 +419,11 @@
                          displayName="Price comparison without NormalizeDouble()"
                          implementationClass="com.limemojito.oss.mql.inspection.DataConsistencyInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
+        <!-- Retired to default-OFF: not calling ArraySetAsSeries() is not an error per the spec
+             (series/copyrates.html, bufferdirection.html — direction is caller's choice), and the
+             suggested fix is sometimes impossible: arraysetasseries.html states AS_SERIES cannot be
+             set on a static array. FP at PositionManagement.mqh:219. -->
+        <localInspection language="MQL4" groupName="Advanced Patterns" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
                          displayName="Missing ArraySetAsSeries() for timeseries"
                          implementationClass="com.limemojito.oss.mql.inspection.TimeseriesDirectionInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -466,7 +475,13 @@
                          displayName="Empty loop body"
                          implementationClass="com.limemojito.oss.mql.inspection.EmptyLoopBodyInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Control Flow" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <!-- Downgraded to WEAK WARNING (Fable FP): a fully-covered enum switch with no unhandled
+             values genuinely needs no default (RIGGWIRE_FINAL.mq5:1481 switches on the 4-value
+             FTMO_Phase_Type enum; :1894 switches on the 4-value FTMOPhase enum — both list every
+             case). The inspection has no enum-type resolution to confirm full coverage, so it
+             cannot tell that apart from a real missing-case bug; softened to a low-severity nudge
+             rather than removed, since a genuinely incomplete switch is still worth flagging. -->
+        <localInspection language="MQL4" groupName="Control Flow" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
                          displayName="Switch without default case"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingDefaultCaseInspection"/>
         <!--suppress PluginXmlI18n -->
