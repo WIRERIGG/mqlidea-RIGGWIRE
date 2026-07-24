@@ -7,6 +7,7 @@ package com.limemojito.oss.mql.structure;
 
 import com.intellij.ide.structureView.StructureViewTreeElement;
 import com.intellij.ide.structureView.TextEditorBasedStructureViewModel;
+import com.intellij.ide.util.treeView.smartTree.Sorter;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.psi.MQL4File;
 
@@ -21,5 +22,11 @@ public class MQL4FileStructureViewModel extends TextEditorBasedStructureViewMode
     @NotNull
     public StructureViewTreeElement getRoot() {
         return new MQL4FileStructureViewElement(file);
+    }
+
+    @Override
+    public Sorter @NotNull [] getSorters() {
+        // Enables the "Sort Alphabetically" toggle in the Structure tool window (was source-order only).
+        return new Sorter[]{Sorter.ALPHA_SORTER};
     }
 }
