@@ -1,0 +1,4699 @@
+[
+  {
+    "name": "AccountBalance",
+    "returnType": "double",
+    "params": [],
+    "signature": "double AccountBalance()"
+  },
+  {
+    "name": "AccountCompany",
+    "returnType": "string",
+    "params": [],
+    "signature": "string AccountCompany()"
+  },
+  {
+    "name": "AccountCredit",
+    "returnType": "double",
+    "params": [],
+    "signature": "double AccountCredit()"
+  },
+  {
+    "name": "AccountCurrency",
+    "returnType": "string",
+    "params": [],
+    "signature": "string AccountCurrency()"
+  },
+  {
+    "name": "AccountEquity",
+    "returnType": "double",
+    "params": [],
+    "signature": "double AccountEquity()"
+  },
+  {
+    "name": "AccountFreeMargin",
+    "returnType": "double",
+    "params": [],
+    "signature": "double AccountFreeMargin()"
+  },
+  {
+    "name": "AccountFreeMarginCheck",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int cmd",
+      "double volume"
+    ],
+    "signature": "double AccountFreeMarginCheck(string symbol, int cmd, double volume)"
+  },
+  {
+    "name": "AccountFreeMarginMode",
+    "returnType": "double",
+    "params": [],
+    "signature": "double AccountFreeMarginMode()"
+  },
+  {
+    "name": "AccountInfoDouble",
+    "returnType": "double",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "double AccountInfoDouble(int property_id)"
+  },
+  {
+    "name": "AccountInfoInteger",
+    "returnType": "long",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "long AccountInfoInteger(int property_id)"
+  },
+  {
+    "name": "AccountInfoString",
+    "returnType": "string",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "string AccountInfoString(int property_id)"
+  },
+  {
+    "name": "AccountLeverage",
+    "returnType": "int",
+    "params": [],
+    "signature": "int AccountLeverage()"
+  },
+  {
+    "name": "AccountMargin",
+    "returnType": "double",
+    "params": [],
+    "signature": "double AccountMargin()"
+  },
+  {
+    "name": "AccountName",
+    "returnType": "string",
+    "params": [],
+    "signature": "string AccountName()"
+  },
+  {
+    "name": "AccountNumber",
+    "returnType": "int",
+    "params": [],
+    "signature": "int AccountNumber()"
+  },
+  {
+    "name": "AccountProfit",
+    "returnType": "double",
+    "params": [],
+    "signature": "double AccountProfit()"
+  },
+  {
+    "name": "AccountServer",
+    "returnType": "string",
+    "params": [],
+    "signature": "string AccountServer()"
+  },
+  {
+    "name": "AccountStopoutLevel",
+    "returnType": "int",
+    "params": [],
+    "signature": "int AccountStopoutLevel()"
+  },
+  {
+    "name": "AccountStopoutMode",
+    "returnType": "int",
+    "params": [],
+    "signature": "int AccountStopoutMode()"
+  },
+  {
+    "name": "Alert",
+    "returnType": "void",
+    "params": [
+      "argument",
+      "..."
+    ],
+    "signature": "void Alert(argument, ...)"
+  },
+  {
+    "name": "ArrayBsearch",
+    "returnType": "int",
+    "params": [
+      "const double& array[]",
+      "double value",
+      "int count=WHOLE_ARRAY",
+      "int start=0",
+      "int direction=MODE_ASCEND"
+    ],
+    "signature": "int ArrayBsearch(const double& array[], double value, int count=WHOLE_ARRAY, int start=0, int direction=MODE_ASCEND)"
+  },
+  {
+    "name": "ArrayCompare",
+    "returnType": "int",
+    "params": [
+      "const void& array1[]",
+      "const void& array2[]",
+      "int start1=0",
+      "int start2=0",
+      "int count=WHOLE_ARRAY"
+    ],
+    "signature": "int ArrayCompare(const void& array1[], const void& array2[], int start1=0, int start2=0, int count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "ArrayCopy",
+    "returnType": "int",
+    "params": [
+      "void& dst_array[]",
+      "const void& src_array[]",
+      "int dst_start=0",
+      "int src_start=0",
+      "int count=WHOLE_ARRAY"
+    ],
+    "signature": "int ArrayCopy(void& dst_array[], const void& src_array[], int dst_start=0, int src_start=0, int count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "ArrayCopyRates",
+    "returnType": "int",
+    "params": [
+      "MqlRates& rates_array[]",
+      "string symbol=NULL",
+      "int timeframe=0"
+    ],
+    "signature": "int ArrayCopyRates(MqlRates& rates_array[], string symbol=NULL, int timeframe=0)"
+  },
+  {
+    "name": "ArrayCopySeries",
+    "returnType": "int",
+    "params": [
+      "void& array[]",
+      "int series_index",
+      "string symbol=NULL",
+      "int timeframe=0"
+    ],
+    "signature": "int ArrayCopySeries(void& array[], int series_index, string symbol=NULL, int timeframe=0)"
+  },
+  {
+    "name": "ArrayDimension",
+    "returnType": "int",
+    "params": [
+      "void& array[]"
+    ],
+    "signature": "int ArrayDimension(void& array[])"
+  },
+  {
+    "name": "ArrayFill",
+    "returnType": "void",
+    "params": [
+      "void& array[]",
+      "int start",
+      "int count",
+      "void value"
+    ],
+    "signature": "void ArrayFill(void& array[], int start, int count, void value)"
+  },
+  {
+    "name": "ArrayFree",
+    "returnType": "void",
+    "params": [
+      "void& array[]"
+    ],
+    "signature": "void ArrayFree(void& array[])"
+  },
+  {
+    "name": "ArrayGetAsSeries",
+    "returnType": "bool",
+    "params": [
+      "const void& array[]"
+    ],
+    "signature": "bool ArrayGetAsSeries(const void& array[])"
+  },
+  {
+    "name": "ArrayInitialize",
+    "returnType": "int",
+    "params": [
+      "char array[]",
+      "char value"
+    ],
+    "signature": "int ArrayInitialize(char array[], char value)"
+  },
+  {
+    "name": "ArrayInsert",
+    "returnType": "bool",
+    "params": [
+      "void& dst_array[]",
+      "const void& src_array[]",
+      "uint dst_start",
+      "uint src_start=0",
+      "uint count=WHOLE_ARRAY"
+    ],
+    "signature": "bool ArrayInsert(void& dst_array[], const void& src_array[], uint dst_start, uint src_start=0, uint count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "ArrayIsDynamic",
+    "returnType": "bool",
+    "params": [
+      "const void& array[]"
+    ],
+    "signature": "bool ArrayIsDynamic(const void& array[])"
+  },
+  {
+    "name": "ArrayIsSeries",
+    "returnType": "bool",
+    "params": [
+      "const void& array[]"
+    ],
+    "signature": "bool ArrayIsSeries(const void& array[])"
+  },
+  {
+    "name": "ArrayMaximum",
+    "returnType": "int",
+    "params": [
+      "const void& array[]",
+      "int count=WHOLE_ARRAY",
+      "int start=0"
+    ],
+    "signature": "int ArrayMaximum(const void& array[], int count=WHOLE_ARRAY, int start=0)"
+  },
+  {
+    "name": "ArrayMinimum",
+    "returnType": "int",
+    "params": [
+      "const void& array[]",
+      "int count=WHOLE_ARRAY",
+      "int start=0"
+    ],
+    "signature": "int ArrayMinimum(const void& array[], int count=WHOLE_ARRAY, int start=0)"
+  },
+  {
+    "name": "ArrayPrint",
+    "returnType": "void",
+    "params": [
+      "const void& array[]",
+      "uint digits=_Digits",
+      "string separator=NULL",
+      "ulong start=0",
+      "ulong count=WHOLE_ARRAY",
+      "ulong flags=ARRAYPRINT_HEADER|ARRAYPRINT_INDEX|ARRAYPRINT_LIMIT|ARRAYPRINT_ALIGN"
+    ],
+    "signature": "void ArrayPrint(const void& array[], uint digits=_Digits, string separator=NULL, ulong start=0, ulong count=WHOLE_ARRAY, ulong flags=ARRAYPRINT_HEADER|ARRAYPRINT_INDEX|ARRAYPRINT_LIMIT|ARRAYPRINT_ALIGN)"
+  },
+  {
+    "name": "ArrayRange",
+    "returnType": "int",
+    "params": [
+      "const void& array[]",
+      "int rank_index"
+    ],
+    "signature": "int ArrayRange(const void& array[], int rank_index)"
+  },
+  {
+    "name": "ArrayRemove",
+    "returnType": "bool",
+    "params": [
+      "void& array[]",
+      "uint start",
+      "uint count=WHOLE_ARRAY"
+    ],
+    "signature": "bool ArrayRemove(void& array[], uint start, uint count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "ArrayResize",
+    "returnType": "int",
+    "params": [
+      "void& array[]",
+      "int new_size",
+      "int reserve_size=0"
+    ],
+    "signature": "int ArrayResize(void& array[], int new_size, int reserve_size=0)"
+  },
+  {
+    "name": "ArrayReverse",
+    "returnType": "bool",
+    "params": [
+      "void& array[]",
+      "uint start=0",
+      "uint count=WHOLE_ARRAY"
+    ],
+    "signature": "bool ArrayReverse(void& array[], uint start=0, uint count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "ArraySetAsSeries",
+    "returnType": "bool",
+    "params": [
+      "const void& array[]",
+      "bool flag"
+    ],
+    "signature": "bool ArraySetAsSeries(const void& array[], bool flag)"
+  },
+  {
+    "name": "ArraySize",
+    "returnType": "int",
+    "params": [
+      "const void& array[]"
+    ],
+    "signature": "int ArraySize(const void& array[])"
+  },
+  {
+    "name": "ArraySort",
+    "returnType": "bool",
+    "params": [
+      "void& array[]",
+      "int count=WHOLE_ARRAY",
+      "int start=0",
+      "int direction=MODE_ASCEND"
+    ],
+    "signature": "bool ArraySort(void& array[], int count=WHOLE_ARRAY, int start=0, int direction=MODE_ASCEND)"
+  },
+  {
+    "name": "ArraySwap",
+    "returnType": "bool",
+    "params": [
+      "void& array1[]",
+      "void& array2[]"
+    ],
+    "signature": "bool ArraySwap(void& array1[], void& array2[])"
+  },
+  {
+    "name": "Bars",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe"
+    ],
+    "signature": "int Bars(string symbol_name, ENUM_TIMEFRAMES timeframe)"
+  },
+  {
+    "name": "BarsCalculated",
+    "returnType": "int",
+    "params": [
+      "int indicator_handle"
+    ],
+    "signature": "int BarsCalculated(int indicator_handle)"
+  },
+  {
+    "name": "CharArrayToString",
+    "returnType": "string",
+    "params": [
+      "uchar array[]",
+      "int start=0",
+      "int count=-1",
+      "uint codepage=CP_ACP"
+    ],
+    "signature": "string CharArrayToString(uchar array[], int start=0, int count=-1, uint codepage=CP_ACP)"
+  },
+  {
+    "name": "CharArrayToStruct",
+    "returnType": "bool",
+    "params": [
+      "void& struct_object",
+      "const uchar& char_array[]",
+      "uint start_pos=0"
+    ],
+    "signature": "bool CharArrayToStruct(void& struct_object, const uchar& char_array[], uint start_pos=0)"
+  },
+  {
+    "name": "CharToStr",
+    "returnType": "string",
+    "params": [
+      "uchar char_code"
+    ],
+    "signature": "string CharToStr(uchar char_code)"
+  },
+  {
+    "name": "CharToString",
+    "returnType": "string",
+    "params": [
+      "uchar char_code"
+    ],
+    "signature": "string CharToString(uchar char_code)"
+  },
+  {
+    "name": "ChartApplyTemplate",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "const string filename"
+    ],
+    "signature": "bool ChartApplyTemplate(long chart_id, const string filename)"
+  },
+  {
+    "name": "ChartClose",
+    "returnType": "bool",
+    "params": [
+      "long chart_id=0"
+    ],
+    "signature": "bool ChartClose(long chart_id=0)"
+  },
+  {
+    "name": "ChartFirst",
+    "returnType": "long",
+    "params": [],
+    "signature": "long ChartFirst()"
+  },
+  {
+    "name": "ChartGetDouble",
+    "returnType": "double",
+    "params": [
+      "long chart_id",
+      "int prop_id",
+      "int sub_window=0"
+    ],
+    "signature": "double ChartGetDouble(long chart_id, int prop_id, int sub_window=0)"
+  },
+  {
+    "name": "ChartGetInteger",
+    "returnType": "long",
+    "params": [
+      "long chart_id",
+      "int prop_id",
+      "int sub_window=0"
+    ],
+    "signature": "long ChartGetInteger(long chart_id, int prop_id, int sub_window=0)"
+  },
+  {
+    "name": "ChartGetString",
+    "returnType": "string",
+    "params": [
+      "long chart_id",
+      "int prop_id"
+    ],
+    "signature": "string ChartGetString(long chart_id, int prop_id)"
+  },
+  {
+    "name": "ChartID",
+    "returnType": "long",
+    "params": [],
+    "signature": "long ChartID()"
+  },
+  {
+    "name": "ChartIndicatorDelete",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "int sub_window",
+      "const string indicator_shortname"
+    ],
+    "signature": "bool ChartIndicatorDelete(long chart_id, int sub_window, const string indicator_shortname)"
+  },
+  {
+    "name": "ChartIndicatorName",
+    "returnType": "string",
+    "params": [
+      "long chart_id",
+      "int sub_window",
+      "int index"
+    ],
+    "signature": "string ChartIndicatorName(long chart_id, int sub_window, int index)"
+  },
+  {
+    "name": "ChartIndicatorsTotal",
+    "returnType": "int",
+    "params": [
+      "long chart_id",
+      "int sub_window"
+    ],
+    "signature": "int ChartIndicatorsTotal(long chart_id, int sub_window)"
+  },
+  {
+    "name": "ChartNavigate",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "int position",
+      "int shift=0"
+    ],
+    "signature": "bool ChartNavigate(long chart_id, int position, int shift=0)"
+  },
+  {
+    "name": "ChartNext",
+    "returnType": "long",
+    "params": [
+      "long chart_id"
+    ],
+    "signature": "long ChartNext(long chart_id)"
+  },
+  {
+    "name": "ChartOpen",
+    "returnType": "long",
+    "params": [
+      "string symbol",
+      "ENUM_TIMEFRAMES period"
+    ],
+    "signature": "long ChartOpen(string symbol, ENUM_TIMEFRAMES period)"
+  },
+  {
+    "name": "ChartPeriod",
+    "returnType": "ENUM_TIMEFRAMES",
+    "params": [
+      "long chart_id=0"
+    ],
+    "signature": "ENUM_TIMEFRAMES ChartPeriod(long chart_id=0)"
+  },
+  {
+    "name": "ChartPriceOnDropped",
+    "returnType": "double",
+    "params": [],
+    "signature": "double ChartPriceOnDropped()"
+  },
+  {
+    "name": "ChartRedraw",
+    "returnType": "void",
+    "params": [
+      "long chart_id=0"
+    ],
+    "signature": "void ChartRedraw(long chart_id=0)"
+  },
+  {
+    "name": "ChartSaveTemplate",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "const string filename"
+    ],
+    "signature": "bool ChartSaveTemplate(long chart_id, const string filename)"
+  },
+  {
+    "name": "ChartScreenShot",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "string filename",
+      "int width",
+      "int height",
+      "ENUM_ALIGN_MODE align_mode=ALIGN_RIGHT"
+    ],
+    "signature": "bool ChartScreenShot(long chart_id, string filename, int width, int height, ENUM_ALIGN_MODE align_mode=ALIGN_RIGHT)"
+  },
+  {
+    "name": "ChartSetDouble",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "int prop_id",
+      "double value"
+    ],
+    "signature": "bool ChartSetDouble(long chart_id, int prop_id, double value)"
+  },
+  {
+    "name": "ChartSetInteger",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "int prop_id",
+      "long value"
+    ],
+    "signature": "bool ChartSetInteger(long chart_id, int prop_id, long value)"
+  },
+  {
+    "name": "ChartSetString",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "int prop_id",
+      "string str_value"
+    ],
+    "signature": "bool ChartSetString(long chart_id, int prop_id, string str_value)"
+  },
+  {
+    "name": "ChartSetSymbolPeriod",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "string symbol",
+      "ENUM_TIMEFRAMES period"
+    ],
+    "signature": "bool ChartSetSymbolPeriod(long chart_id, string symbol, ENUM_TIMEFRAMES period)"
+  },
+  {
+    "name": "ChartSymbol",
+    "returnType": "string",
+    "params": [
+      "long chart_id=0"
+    ],
+    "signature": "string ChartSymbol(long chart_id=0)"
+  },
+  {
+    "name": "ChartTimeOnDropped",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime ChartTimeOnDropped()"
+  },
+  {
+    "name": "ChartTimePriceToXY",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "int sub_window",
+      "datetime time",
+      "double price",
+      "int& x",
+      "int& y"
+    ],
+    "signature": "bool ChartTimePriceToXY(long chart_id, int sub_window, datetime time, double price, int& x, int& y)"
+  },
+  {
+    "name": "ChartWindowFind",
+    "returnType": "int",
+    "params": [
+      "long chart_id",
+      "string indicator_shortname"
+    ],
+    "signature": "int ChartWindowFind(long chart_id, string indicator_shortname)"
+  },
+  {
+    "name": "ChartWindowOnDropped",
+    "returnType": "int",
+    "params": [],
+    "signature": "int ChartWindowOnDropped()"
+  },
+  {
+    "name": "ChartXOnDropped",
+    "returnType": "int",
+    "params": [],
+    "signature": "int ChartXOnDropped()"
+  },
+  {
+    "name": "ChartXYToTimePrice",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "int x",
+      "int y",
+      "int& sub_window",
+      "datetime& time",
+      "double& price"
+    ],
+    "signature": "bool ChartXYToTimePrice(long chart_id, int x, int y, int& sub_window, datetime& time, double& price)"
+  },
+  {
+    "name": "ChartYOnDropped",
+    "returnType": "int",
+    "params": [],
+    "signature": "int ChartYOnDropped()"
+  },
+  {
+    "name": "CheckPointer",
+    "returnType": "ENUM_POINTER_TYPE",
+    "params": [
+      "object* anyobject"
+    ],
+    "signature": "ENUM_POINTER_TYPE CheckPointer(object* anyobject)"
+  },
+  {
+    "name": "ColorToARGB",
+    "returnType": "uint",
+    "params": [
+      "color clr",
+      "uchar alpha=255"
+    ],
+    "signature": "uint ColorToARGB(color clr, uchar alpha=255)"
+  },
+  {
+    "name": "ColorToString",
+    "returnType": "string",
+    "params": [
+      "color color_value",
+      "bool color_name"
+    ],
+    "signature": "string ColorToString(color color_value, bool color_name)"
+  },
+  {
+    "name": "Comment",
+    "returnType": "void",
+    "params": [
+      "argument",
+      "..."
+    ],
+    "signature": "void Comment(argument, ...)"
+  },
+  {
+    "name": "CopyClose",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "double close_array[]"
+    ],
+    "signature": "int CopyClose(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, double close_array[])"
+  },
+  {
+    "name": "CopyHigh",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "double high_array[]"
+    ],
+    "signature": "int CopyHigh(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, double high_array[])"
+  },
+  {
+    "name": "CopyLow",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "double low_array[]"
+    ],
+    "signature": "int CopyLow(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, double low_array[])"
+  },
+  {
+    "name": "CopyOpen",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "double open_array[]"
+    ],
+    "signature": "int CopyOpen(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, double open_array[])"
+  },
+  {
+    "name": "CopyRates",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "MqlRates rates_array[]"
+    ],
+    "signature": "int CopyRates(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, MqlRates rates_array[])"
+  },
+  {
+    "name": "CopyRealVolume",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "long& volume_array[]"
+    ],
+    "signature": "int CopyRealVolume(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, long& volume_array[])"
+  },
+  {
+    "name": "CopySeries",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "ulong rates_mask",
+      "..."
+    ],
+    "signature": "int CopySeries(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, ulong rates_mask, ...)"
+  },
+  {
+    "name": "CopyTickVolume",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "long volume_array[]"
+    ],
+    "signature": "int CopyTickVolume(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, long volume_array[])"
+  },
+  {
+    "name": "CopyTicks",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "MqlTick& ticks_array[]",
+      "uint flags",
+      "ulong from",
+      "uint count"
+    ],
+    "signature": "int CopyTicks(string symbol_name, MqlTick& ticks_array[], uint flags, ulong from, uint count)"
+  },
+  {
+    "name": "CopyTicksRange",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "MqlTick& ticks_array[]",
+      "uint flags",
+      "ulong from",
+      "ulong to"
+    ],
+    "signature": "int CopyTicksRange(string symbol_name, MqlTick& ticks_array[], uint flags, ulong from, ulong to)"
+  },
+  {
+    "name": "CopyTime",
+    "returnType": "int",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "int start_pos",
+      "int count",
+      "datetime time_array[]"
+    ],
+    "signature": "int CopyTime(string symbol_name, ENUM_TIMEFRAMES timeframe, int start_pos, int count, datetime time_array[])"
+  },
+  {
+    "name": "CryptDecode",
+    "returnType": "int",
+    "params": [
+      "ENUM_CRYPT_METHOD method",
+      "const uchar& data[]",
+      "const uchar& key[]",
+      "uchar& result[]"
+    ],
+    "signature": "int CryptDecode(ENUM_CRYPT_METHOD method, const uchar& data[], const uchar& key[], uchar& result[])"
+  },
+  {
+    "name": "CryptEncode",
+    "returnType": "int",
+    "params": [
+      "ENUM_CRYPT_METHOD method",
+      "const uchar& data[]",
+      "const uchar& key[]",
+      "uchar& result[]"
+    ],
+    "signature": "int CryptEncode(ENUM_CRYPT_METHOD method, const uchar& data[], const uchar& key[], uchar& result[])"
+  },
+  {
+    "name": "CustomRatesUpdate",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "const MqlRates& rates[]",
+      "uint count=WHOLE_ARRAY"
+    ],
+    "signature": "int CustomRatesUpdate(string symbol, const MqlRates& rates[], uint count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "CustomSymbolCreate",
+    "returnType": "bool",
+    "params": [
+      "string symbol_name",
+      "string symbol_path=\"\"",
+      "string symbol_origin=\"\""
+    ],
+    "signature": "bool CustomSymbolCreate(string symbol_name, string symbol_path=\"\", string symbol_origin=\"\")"
+  },
+  {
+    "name": "CustomSymbolDelete",
+    "returnType": "bool",
+    "params": [
+      "string symbol_name"
+    ],
+    "signature": "bool CustomSymbolDelete(string symbol_name)"
+  },
+  {
+    "name": "CustomSymbolSetDouble",
+    "returnType": "bool",
+    "params": [
+      "string symbol_name",
+      "ENUM_SYMBOL_INFO_DOUBLE property_id",
+      "double property_value"
+    ],
+    "signature": "bool CustomSymbolSetDouble(string symbol_name, ENUM_SYMBOL_INFO_DOUBLE property_id, double property_value)"
+  },
+  {
+    "name": "CustomSymbolSetInteger",
+    "returnType": "bool",
+    "params": [
+      "string symbol_name",
+      "ENUM_SYMBOL_INFO_INTEGER property_id",
+      "long property_value"
+    ],
+    "signature": "bool CustomSymbolSetInteger(string symbol_name, ENUM_SYMBOL_INFO_INTEGER property_id, long property_value)"
+  },
+  {
+    "name": "CustomSymbolSetString",
+    "returnType": "bool",
+    "params": [
+      "string symbol_name",
+      "ENUM_SYMBOL_INFO_STRING property_id",
+      "string property_value"
+    ],
+    "signature": "bool CustomSymbolSetString(string symbol_name, ENUM_SYMBOL_INFO_STRING property_id, string property_value)"
+  },
+  {
+    "name": "CustomTicksAdd",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "const MqlTick& ticks[]",
+      "uint count=WHOLE_ARRAY"
+    ],
+    "signature": "int CustomTicksAdd(string symbol, const MqlTick& ticks[], uint count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "DatabaseClose",
+    "returnType": "void",
+    "params": [
+      "int database"
+    ],
+    "signature": "void DatabaseClose(int database)"
+  },
+  {
+    "name": "DatabaseColumnName",
+    "returnType": "bool",
+    "params": [
+      "int request",
+      "int column",
+      "string& name"
+    ],
+    "signature": "bool DatabaseColumnName(int request, int column, string& name)"
+  },
+  {
+    "name": "DatabaseColumnSize",
+    "returnType": "int",
+    "params": [
+      "int request",
+      "int column"
+    ],
+    "signature": "int DatabaseColumnSize(int request, int column)"
+  },
+  {
+    "name": "DatabaseColumnType",
+    "returnType": "ENUM_DATABASE_FIELD_TYPE",
+    "params": [
+      "int request",
+      "int column"
+    ],
+    "signature": "ENUM_DATABASE_FIELD_TYPE DatabaseColumnType(int request, int column)"
+  },
+  {
+    "name": "DatabaseColumnsCount",
+    "returnType": "int",
+    "params": [
+      "int request"
+    ],
+    "signature": "int DatabaseColumnsCount(int request)"
+  },
+  {
+    "name": "DatabaseExecute",
+    "returnType": "bool",
+    "params": [
+      "int database",
+      "string sql"
+    ],
+    "signature": "bool DatabaseExecute(int database, string sql)"
+  },
+  {
+    "name": "DatabaseFinalize",
+    "returnType": "void",
+    "params": [
+      "int request"
+    ],
+    "signature": "void DatabaseFinalize(int request)"
+  },
+  {
+    "name": "DatabaseOpen",
+    "returnType": "int",
+    "params": [
+      "string filename",
+      "uint flags"
+    ],
+    "signature": "int DatabaseOpen(string filename, uint flags)"
+  },
+  {
+    "name": "DatabasePrepare",
+    "returnType": "int",
+    "params": [
+      "int database",
+      "string sql",
+      "..."
+    ],
+    "signature": "int DatabasePrepare(int database, string sql, ...)"
+  },
+  {
+    "name": "DatabaseRead",
+    "returnType": "bool",
+    "params": [
+      "int request"
+    ],
+    "signature": "bool DatabaseRead(int request)"
+  },
+  {
+    "name": "DatabaseReadBind",
+    "returnType": "bool",
+    "params": [
+      "int request",
+      "void& struct_object"
+    ],
+    "signature": "bool DatabaseReadBind(int request, void& struct_object)"
+  },
+  {
+    "name": "DatabaseTableExists",
+    "returnType": "bool",
+    "params": [
+      "int database",
+      "string table"
+    ],
+    "signature": "bool DatabaseTableExists(int database, string table)"
+  },
+  {
+    "name": "DatabaseTransactionBegin",
+    "returnType": "bool",
+    "params": [
+      "int database"
+    ],
+    "signature": "bool DatabaseTransactionBegin(int database)"
+  },
+  {
+    "name": "DatabaseTransactionCommit",
+    "returnType": "bool",
+    "params": [
+      "int database"
+    ],
+    "signature": "bool DatabaseTransactionCommit(int database)"
+  },
+  {
+    "name": "DatabaseTransactionRollback",
+    "returnType": "bool",
+    "params": [
+      "int database"
+    ],
+    "signature": "bool DatabaseTransactionRollback(int database)"
+  },
+  {
+    "name": "Day",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Day()"
+  },
+  {
+    "name": "DayOfWeek",
+    "returnType": "int",
+    "params": [],
+    "signature": "int DayOfWeek()"
+  },
+  {
+    "name": "DayOfYear",
+    "returnType": "int",
+    "params": [],
+    "signature": "int DayOfYear()"
+  },
+  {
+    "name": "DebugBreak",
+    "returnType": "void",
+    "params": [],
+    "signature": "void DebugBreak()"
+  },
+  {
+    "name": "Digits",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Digits()"
+  },
+  {
+    "name": "DoubleToStr",
+    "returnType": "string",
+    "params": [
+      "double value",
+      "int digits"
+    ],
+    "signature": "string DoubleToStr(double value, int digits)"
+  },
+  {
+    "name": "DoubleToString",
+    "returnType": "string",
+    "params": [
+      "double value",
+      "int digits=8"
+    ],
+    "signature": "string DoubleToString(double value, int digits=8)"
+  },
+  {
+    "name": "EnumToString",
+    "returnType": "string",
+    "params": [
+      "any_enum value"
+    ],
+    "signature": "string EnumToString(any_enum value)"
+  },
+  {
+    "name": "EventChartCustom",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "ushort custom_event_id",
+      "long lparam",
+      "double dparam",
+      "string sparam"
+    ],
+    "signature": "bool EventChartCustom(long chart_id, ushort custom_event_id, long lparam, double dparam, string sparam)"
+  },
+  {
+    "name": "EventKillTimer",
+    "returnType": "void",
+    "params": [],
+    "signature": "void EventKillTimer()"
+  },
+  {
+    "name": "EventSetMillisecondTimer",
+    "returnType": "bool",
+    "params": [
+      "int milliseconds"
+    ],
+    "signature": "bool EventSetMillisecondTimer(int milliseconds)"
+  },
+  {
+    "name": "EventSetTimer",
+    "returnType": "bool",
+    "params": [
+      "int seconds"
+    ],
+    "signature": "bool EventSetTimer(int seconds)"
+  },
+  {
+    "name": "ExpertRemove",
+    "returnType": "void",
+    "params": [],
+    "signature": "void ExpertRemove()"
+  },
+  {
+    "name": "FileClose",
+    "returnType": "void",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "void FileClose(int file_handle)"
+  },
+  {
+    "name": "FileCopy",
+    "returnType": "bool",
+    "params": [
+      "const string src_file_name",
+      "int common_flag",
+      "const string dst_file_name",
+      "int mode_flags"
+    ],
+    "signature": "bool FileCopy(const string src_file_name, int common_flag, const string dst_file_name, int mode_flags)"
+  },
+  {
+    "name": "FileDelete",
+    "returnType": "bool",
+    "params": [
+      "const string file_name",
+      "int common_flag=0"
+    ],
+    "signature": "bool FileDelete(const string file_name, int common_flag=0)"
+  },
+  {
+    "name": "FileFindClose",
+    "returnType": "void",
+    "params": [
+      "long search_handle"
+    ],
+    "signature": "void FileFindClose(long search_handle)"
+  },
+  {
+    "name": "FileFindFirst",
+    "returnType": "long",
+    "params": [
+      "const string file_filter",
+      "string& returned_filename",
+      "int common_flag=0"
+    ],
+    "signature": "long FileFindFirst(const string file_filter, string& returned_filename, int common_flag=0)"
+  },
+  {
+    "name": "FileFindNext",
+    "returnType": "bool",
+    "params": [
+      "long search_handle",
+      "string& returned_filename"
+    ],
+    "signature": "bool FileFindNext(long search_handle, string& returned_filename)"
+  },
+  {
+    "name": "FileFlush",
+    "returnType": "void",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "void FileFlush(int file_handle)"
+  },
+  {
+    "name": "FileGetInteger",
+    "returnType": "long",
+    "params": [
+      "int file_handle",
+      "ENUM_FILE_PROPERTY_INTEGER property_id"
+    ],
+    "signature": "long FileGetInteger(int file_handle, ENUM_FILE_PROPERTY_INTEGER property_id)"
+  },
+  {
+    "name": "FileIsEnding",
+    "returnType": "bool",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "bool FileIsEnding(int file_handle)"
+  },
+  {
+    "name": "FileIsExist",
+    "returnType": "bool",
+    "params": [
+      "const string file_name",
+      "int common_flag=0"
+    ],
+    "signature": "bool FileIsExist(const string file_name, int common_flag=0)"
+  },
+  {
+    "name": "FileIsLineEnding",
+    "returnType": "bool",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "bool FileIsLineEnding(int file_handle)"
+  },
+  {
+    "name": "FileMove",
+    "returnType": "bool",
+    "params": [
+      "const string src_file_name",
+      "int common_flag",
+      "const string dst_file_name",
+      "int mode_flags"
+    ],
+    "signature": "bool FileMove(const string src_file_name, int common_flag, const string dst_file_name, int mode_flags)"
+  },
+  {
+    "name": "FileOpen",
+    "returnType": "int",
+    "params": [
+      "string file_name",
+      "int open_flags",
+      "short delimiter=';'",
+      "uint codepage=CP_ACP"
+    ],
+    "signature": "int FileOpen(string file_name, int open_flags, short delimiter=';', uint codepage=CP_ACP)"
+  },
+  {
+    "name": "FileOpenHistory",
+    "returnType": "int",
+    "params": [
+      "int filename",
+      "int mode",
+      "int delimiter=';'"
+    ],
+    "signature": "int FileOpenHistory(int filename, int mode, int delimiter=';')"
+  },
+  {
+    "name": "FileReadArray",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "void& array[]",
+      "int start=0",
+      "int count=WHOLE_ARRAY"
+    ],
+    "signature": "uint FileReadArray(int file_handle, void& array[], int start=0, int count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "FileReadBool",
+    "returnType": "bool",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "bool FileReadBool(int file_handle)"
+  },
+  {
+    "name": "FileReadDatetime",
+    "returnType": "datetime",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "datetime FileReadDatetime(int file_handle)"
+  },
+  {
+    "name": "FileReadDouble",
+    "returnType": "double",
+    "params": [
+      "int file_handle",
+      "int size=DOUBLE_VALUE"
+    ],
+    "signature": "double FileReadDouble(int file_handle, int size=DOUBLE_VALUE)"
+  },
+  {
+    "name": "FileReadFloat",
+    "returnType": "float",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "float FileReadFloat(int file_handle)"
+  },
+  {
+    "name": "FileReadInteger",
+    "returnType": "int",
+    "params": [
+      "int file_handle",
+      "int size=INT_VALUE"
+    ],
+    "signature": "int FileReadInteger(int file_handle, int size=INT_VALUE)"
+  },
+  {
+    "name": "FileReadLong",
+    "returnType": "long",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "long FileReadLong(int file_handle)"
+  },
+  {
+    "name": "FileReadNumber",
+    "returnType": "double",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "double FileReadNumber(int file_handle)"
+  },
+  {
+    "name": "FileReadString",
+    "returnType": "string",
+    "params": [
+      "int file_handle",
+      "int length=0"
+    ],
+    "signature": "string FileReadString(int file_handle, int length=0)"
+  },
+  {
+    "name": "FileReadStruct",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "const void& struct_object",
+      "int size=-1"
+    ],
+    "signature": "uint FileReadStruct(int file_handle, const void& struct_object, int size=-1)"
+  },
+  {
+    "name": "FileSeek",
+    "returnType": "bool",
+    "params": [
+      "int file_handle",
+      "long offset",
+      "ENUM_FILE_POSITION origin"
+    ],
+    "signature": "bool FileSeek(int file_handle, long offset, ENUM_FILE_POSITION origin)"
+  },
+  {
+    "name": "FileSize",
+    "returnType": "ulong",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "ulong FileSize(int file_handle)"
+  },
+  {
+    "name": "FileTell",
+    "returnType": "ulong",
+    "params": [
+      "int file_handle"
+    ],
+    "signature": "ulong FileTell(int file_handle)"
+  },
+  {
+    "name": "FileWrite",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "..."
+    ],
+    "signature": "uint FileWrite(int file_handle, ...)"
+  },
+  {
+    "name": "FileWriteArray",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "const void& array[]",
+      "int start=0",
+      "int count=WHOLE_ARRAY"
+    ],
+    "signature": "uint FileWriteArray(int file_handle, const void& array[], int start=0, int count=WHOLE_ARRAY)"
+  },
+  {
+    "name": "FileWriteDouble",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "double value"
+    ],
+    "signature": "uint FileWriteDouble(int file_handle, double value)"
+  },
+  {
+    "name": "FileWriteFloat",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "float value"
+    ],
+    "signature": "uint FileWriteFloat(int file_handle, float value)"
+  },
+  {
+    "name": "FileWriteInteger",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "int value",
+      "int size=INT_VALUE"
+    ],
+    "signature": "uint FileWriteInteger(int file_handle, int value, int size=INT_VALUE)"
+  },
+  {
+    "name": "FileWriteLong",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "long value"
+    ],
+    "signature": "uint FileWriteLong(int file_handle, long value)"
+  },
+  {
+    "name": "FileWriteString",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "const string text_string",
+      "int length=0"
+    ],
+    "signature": "uint FileWriteString(int file_handle, const string text_string, int length=0)"
+  },
+  {
+    "name": "FileWriteStruct",
+    "returnType": "uint",
+    "params": [
+      "int file_handle",
+      "const void& struct_object",
+      "int size=-1"
+    ],
+    "signature": "uint FileWriteStruct(int file_handle, const void& struct_object, int size=-1)"
+  },
+  {
+    "name": "FolderClean",
+    "returnType": "bool",
+    "params": [
+      "string folder_name",
+      "int common_flag=0"
+    ],
+    "signature": "bool FolderClean(string folder_name, int common_flag=0)"
+  },
+  {
+    "name": "FolderCreate",
+    "returnType": "bool",
+    "params": [
+      "string folder_name",
+      "int common_flag=0"
+    ],
+    "signature": "bool FolderCreate(string folder_name, int common_flag=0)"
+  },
+  {
+    "name": "FolderDelete",
+    "returnType": "bool",
+    "params": [
+      "string folder_name",
+      "int common_flag=0"
+    ],
+    "signature": "bool FolderDelete(string folder_name, int common_flag=0)"
+  },
+  {
+    "name": "FrameAdd",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "long id",
+      "double value",
+      "string filename"
+    ],
+    "signature": "bool FrameAdd(string name, long id, double value, string filename)"
+  },
+  {
+    "name": "FrameFilter",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "long id"
+    ],
+    "signature": "bool FrameFilter(string name, long id)"
+  },
+  {
+    "name": "FrameFirst",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool FrameFirst()"
+  },
+  {
+    "name": "FrameInputs",
+    "returnType": "bool",
+    "params": [
+      "ulong pass",
+      "string& parameters[]",
+      "uint& count"
+    ],
+    "signature": "bool FrameInputs(ulong pass, string& parameters[], uint& count)"
+  },
+  {
+    "name": "FrameNext",
+    "returnType": "bool",
+    "params": [
+      "ulong& pass",
+      "string& name",
+      "long& id",
+      "double& value",
+      "uchar& data[]"
+    ],
+    "signature": "bool FrameNext(ulong& pass, string& name, long& id, double& value, uchar& data[])"
+  },
+  {
+    "name": "GetLastError",
+    "returnType": "int",
+    "params": [],
+    "signature": "int GetLastError()"
+  },
+  {
+    "name": "GetMicrosecondCount",
+    "returnType": "ulong",
+    "params": [],
+    "signature": "ulong GetMicrosecondCount()"
+  },
+  {
+    "name": "GetPointer",
+    "returnType": "void*",
+    "params": [
+      "any_class anyobject"
+    ],
+    "signature": "void* GetPointer(any_class anyobject)"
+  },
+  {
+    "name": "GetTickCount",
+    "returnType": "uint",
+    "params": [],
+    "signature": "uint GetTickCount()"
+  },
+  {
+    "name": "GetTickCount64",
+    "returnType": "ulong",
+    "params": [],
+    "signature": "ulong GetTickCount64()"
+  },
+  {
+    "name": "GlobalVariableCheck",
+    "returnType": "bool",
+    "params": [
+      "string name"
+    ],
+    "signature": "bool GlobalVariableCheck(string name)"
+  },
+  {
+    "name": "GlobalVariableDel",
+    "returnType": "bool",
+    "params": [
+      "string name"
+    ],
+    "signature": "bool GlobalVariableDel(string name)"
+  },
+  {
+    "name": "GlobalVariableGet",
+    "returnType": "double",
+    "params": [
+      "string name"
+    ],
+    "signature": "double GlobalVariableGet(string name)"
+  },
+  {
+    "name": "GlobalVariableName",
+    "returnType": "string",
+    "params": [
+      "int index"
+    ],
+    "signature": "string GlobalVariableName(int index)"
+  },
+  {
+    "name": "GlobalVariableSet",
+    "returnType": "datetime",
+    "params": [
+      "string name",
+      "double value"
+    ],
+    "signature": "datetime GlobalVariableSet(string name, double value)"
+  },
+  {
+    "name": "GlobalVariableSetOnCondition",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "double value",
+      "double check_value"
+    ],
+    "signature": "bool GlobalVariableSetOnCondition(string name, double value, double check_value)"
+  },
+  {
+    "name": "GlobalVariableTemp",
+    "returnType": "bool",
+    "params": [
+      "string name"
+    ],
+    "signature": "bool GlobalVariableTemp(string name)"
+  },
+  {
+    "name": "GlobalVariableTime",
+    "returnType": "datetime",
+    "params": [
+      "string name"
+    ],
+    "signature": "datetime GlobalVariableTime(string name)"
+  },
+  {
+    "name": "GlobalVariablesDeleteAll",
+    "returnType": "int",
+    "params": [
+      "string prefix_name=NULL",
+      "datetime limit_data=0"
+    ],
+    "signature": "int GlobalVariablesDeleteAll(string prefix_name=NULL, datetime limit_data=0)"
+  },
+  {
+    "name": "GlobalVariablesFlush",
+    "returnType": "void",
+    "params": [],
+    "signature": "void GlobalVariablesFlush()"
+  },
+  {
+    "name": "GlobalVariablesTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int GlobalVariablesTotal()"
+  },
+  {
+    "name": "HideTestIndicators",
+    "returnType": "void",
+    "params": [
+      "bool hide"
+    ],
+    "signature": "void HideTestIndicators(bool hide)"
+  },
+  {
+    "name": "HistoryDealGetDouble",
+    "returnType": "double",
+    "params": [
+      "ulong ticket_number",
+      "ENUM_DEAL_PROPERTY_DOUBLE property_id"
+    ],
+    "signature": "double HistoryDealGetDouble(ulong ticket_number, ENUM_DEAL_PROPERTY_DOUBLE property_id)"
+  },
+  {
+    "name": "HistoryDealGetInteger",
+    "returnType": "long",
+    "params": [
+      "ulong ticket_number",
+      "ENUM_DEAL_PROPERTY_INTEGER property_id"
+    ],
+    "signature": "long HistoryDealGetInteger(ulong ticket_number, ENUM_DEAL_PROPERTY_INTEGER property_id)"
+  },
+  {
+    "name": "HistoryDealGetString",
+    "returnType": "string",
+    "params": [
+      "ulong ticket_number",
+      "ENUM_DEAL_PROPERTY_STRING property_id"
+    ],
+    "signature": "string HistoryDealGetString(ulong ticket_number, ENUM_DEAL_PROPERTY_STRING property_id)"
+  },
+  {
+    "name": "HistoryDealGetTicket",
+    "returnType": "ulong",
+    "params": [
+      "int index"
+    ],
+    "signature": "ulong HistoryDealGetTicket(int index)"
+  },
+  {
+    "name": "HistoryDealSelect",
+    "returnType": "bool",
+    "params": [
+      "ulong ticket"
+    ],
+    "signature": "bool HistoryDealSelect(ulong ticket)"
+  },
+  {
+    "name": "HistoryDealsTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int HistoryDealsTotal()"
+  },
+  {
+    "name": "HistoryOrderGetDouble",
+    "returnType": "double",
+    "params": [
+      "ulong ticket_number",
+      "ENUM_ORDER_PROPERTY_DOUBLE property_id"
+    ],
+    "signature": "double HistoryOrderGetDouble(ulong ticket_number, ENUM_ORDER_PROPERTY_DOUBLE property_id)"
+  },
+  {
+    "name": "HistoryOrderGetInteger",
+    "returnType": "long",
+    "params": [
+      "ulong ticket_number",
+      "ENUM_ORDER_PROPERTY_INTEGER property_id"
+    ],
+    "signature": "long HistoryOrderGetInteger(ulong ticket_number, ENUM_ORDER_PROPERTY_INTEGER property_id)"
+  },
+  {
+    "name": "HistoryOrderGetString",
+    "returnType": "string",
+    "params": [
+      "ulong ticket_number",
+      "ENUM_ORDER_PROPERTY_STRING property_id"
+    ],
+    "signature": "string HistoryOrderGetString(ulong ticket_number, ENUM_ORDER_PROPERTY_STRING property_id)"
+  },
+  {
+    "name": "HistoryOrderGetTicket",
+    "returnType": "ulong",
+    "params": [
+      "int index"
+    ],
+    "signature": "ulong HistoryOrderGetTicket(int index)"
+  },
+  {
+    "name": "HistoryOrderSelect",
+    "returnType": "bool",
+    "params": [
+      "ulong ticket"
+    ],
+    "signature": "bool HistoryOrderSelect(ulong ticket)"
+  },
+  {
+    "name": "HistoryOrdersTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int HistoryOrdersTotal()"
+  },
+  {
+    "name": "HistorySelect",
+    "returnType": "bool",
+    "params": [
+      "datetime from_date",
+      "datetime to_date"
+    ],
+    "signature": "bool HistorySelect(datetime from_date, datetime to_date)"
+  },
+  {
+    "name": "HistorySelectByPosition",
+    "returnType": "bool",
+    "params": [
+      "long position_id"
+    ],
+    "signature": "bool HistorySelectByPosition(long position_id)"
+  },
+  {
+    "name": "Hour",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Hour()"
+  },
+  {
+    "name": "IndicatorBuffers",
+    "returnType": "bool",
+    "params": [
+      "int count"
+    ],
+    "signature": "bool IndicatorBuffers(int count)"
+  },
+  {
+    "name": "IndicatorCounted",
+    "returnType": "int",
+    "params": [],
+    "signature": "int IndicatorCounted()"
+  },
+  {
+    "name": "IndicatorCreate",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "ENUM_TIMEFRAMES period",
+      "ENUM_INDICATOR indicator_type",
+      "int parameters_cnt=0",
+      "const MqlParam& parameters_array[]=NULL"
+    ],
+    "signature": "int IndicatorCreate(string symbol, ENUM_TIMEFRAMES period, ENUM_INDICATOR indicator_type, int parameters_cnt=0, const MqlParam& parameters_array[]=NULL)"
+  },
+  {
+    "name": "IndicatorDigits",
+    "returnType": "void",
+    "params": [
+      "int digits"
+    ],
+    "signature": "void IndicatorDigits(int digits)"
+  },
+  {
+    "name": "IndicatorParameters",
+    "returnType": "int",
+    "params": [
+      "int indicator_handle",
+      "ENUM_INDICATOR& indicator_type",
+      "MqlParam& parameters[]"
+    ],
+    "signature": "int IndicatorParameters(int indicator_handle, ENUM_INDICATOR& indicator_type, MqlParam& parameters[])"
+  },
+  {
+    "name": "IndicatorRelease",
+    "returnType": "bool",
+    "params": [
+      "int indicator_handle"
+    ],
+    "signature": "bool IndicatorRelease(int indicator_handle)"
+  },
+  {
+    "name": "IndicatorSetDouble",
+    "returnType": "bool",
+    "params": [
+      "int prop_id",
+      "double prop_value"
+    ],
+    "signature": "bool IndicatorSetDouble(int prop_id, double prop_value)"
+  },
+  {
+    "name": "IndicatorSetInteger",
+    "returnType": "bool",
+    "params": [
+      "int prop_id",
+      "int prop_value"
+    ],
+    "signature": "bool IndicatorSetInteger(int prop_id, int prop_value)"
+  },
+  {
+    "name": "IndicatorSetString",
+    "returnType": "bool",
+    "params": [
+      "int prop_id",
+      "string prop_value"
+    ],
+    "signature": "bool IndicatorSetString(int prop_id, string prop_value)"
+  },
+  {
+    "name": "IndicatorShortName",
+    "returnType": "void",
+    "params": [
+      "string name"
+    ],
+    "signature": "void IndicatorShortName(string name)"
+  },
+  {
+    "name": "IntegerToString",
+    "returnType": "string",
+    "params": [
+      "long number",
+      "int str_len=0",
+      "ushort fill_symbol=' '"
+    ],
+    "signature": "string IntegerToString(long number, int str_len=0, ushort fill_symbol=' ')"
+  },
+  {
+    "name": "IsConnected",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsConnected()"
+  },
+  {
+    "name": "IsDemo",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsDemo()"
+  },
+  {
+    "name": "IsDllsAllowed",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsDllsAllowed()"
+  },
+  {
+    "name": "IsExpertEnabled",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsExpertEnabled()"
+  },
+  {
+    "name": "IsLibrariesAllowed",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsLibrariesAllowed()"
+  },
+  {
+    "name": "IsOptimization",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsOptimization()"
+  },
+  {
+    "name": "IsStopped",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsStopped()"
+  },
+  {
+    "name": "IsTesting",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsTesting()"
+  },
+  {
+    "name": "IsTradeAllowed",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsTradeAllowed()"
+  },
+  {
+    "name": "IsTradeContextBusy",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsTradeContextBusy()"
+  },
+  {
+    "name": "IsVisualMode",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool IsVisualMode()"
+  },
+  {
+    "name": "MQLInfoInteger",
+    "returnType": "int",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "int MQLInfoInteger(int property_id)"
+  },
+  {
+    "name": "MQLInfoString",
+    "returnType": "string",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "string MQLInfoString(int property_id)"
+  },
+  {
+    "name": "MQLSetInteger",
+    "returnType": "void",
+    "params": [
+      "int property_id int property_value"
+    ],
+    "signature": "void MQLSetInteger(int property_id int property_value)"
+  },
+  {
+    "name": "MarketBookAdd",
+    "returnType": "bool",
+    "params": [
+      "string symbol"
+    ],
+    "signature": "bool MarketBookAdd(string symbol)"
+  },
+  {
+    "name": "MarketBookGet",
+    "returnType": "bool",
+    "params": [
+      "string symbol",
+      "MqlBookInfo& book[]"
+    ],
+    "signature": "bool MarketBookGet(string symbol, MqlBookInfo& book[])"
+  },
+  {
+    "name": "MarketBookRelease",
+    "returnType": "bool",
+    "params": [
+      "string symbol"
+    ],
+    "signature": "bool MarketBookRelease(string symbol)"
+  },
+  {
+    "name": "MarketInfo",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int type"
+    ],
+    "signature": "double MarketInfo(string symbol, int type)"
+  },
+  {
+    "name": "MathAbs",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double MathAbs(double value)"
+  },
+  {
+    "name": "MathArccos",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double MathArccos(double val)"
+  },
+  {
+    "name": "MathArcsin",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double MathArcsin(double val)"
+  },
+  {
+    "name": "MathArctan",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double MathArctan(double value)"
+  },
+  {
+    "name": "MathCeil",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double MathCeil(double val)"
+  },
+  {
+    "name": "MathCos",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double MathCos(double value)"
+  },
+  {
+    "name": "MathExp",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double MathExp(double value)"
+  },
+  {
+    "name": "MathFloor",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double MathFloor(double val)"
+  },
+  {
+    "name": "MathIsValidNumber",
+    "returnType": "bool",
+    "params": [
+      "double number"
+    ],
+    "signature": "bool MathIsValidNumber(double number)"
+  },
+  {
+    "name": "MathLog",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double MathLog(double val)"
+  },
+  {
+    "name": "MathLog10",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double MathLog10(double val)"
+  },
+  {
+    "name": "MathMax",
+    "returnType": "double",
+    "params": [
+      "double value1",
+      "double value2"
+    ],
+    "signature": "double MathMax(double value1, double value2)"
+  },
+  {
+    "name": "MathMin",
+    "returnType": "double",
+    "params": [
+      "double value1",
+      "double value2"
+    ],
+    "signature": "double MathMin(double value1, double value2)"
+  },
+  {
+    "name": "MathMod",
+    "returnType": "double",
+    "params": [
+      "double value",
+      "double value2"
+    ],
+    "signature": "double MathMod(double value, double value2)"
+  },
+  {
+    "name": "MathPow",
+    "returnType": "double",
+    "params": [
+      "double base",
+      "double exponent"
+    ],
+    "signature": "double MathPow(double base, double exponent)"
+  },
+  {
+    "name": "MathRand",
+    "returnType": "int",
+    "params": [],
+    "signature": "int MathRand()"
+  },
+  {
+    "name": "MathRound",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double MathRound(double value)"
+  },
+  {
+    "name": "MathSin",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double MathSin(double value)"
+  },
+  {
+    "name": "MathSqrt",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double MathSqrt(double value)"
+  },
+  {
+    "name": "MathSrand",
+    "returnType": "void",
+    "params": [
+      "int seed"
+    ],
+    "signature": "void MathSrand(int seed)"
+  },
+  {
+    "name": "MathSwap",
+    "returnType": "ushort",
+    "params": [
+      "ushort value"
+    ],
+    "signature": "ushort MathSwap(ushort value)"
+  },
+  {
+    "name": "MathTan",
+    "returnType": "double",
+    "params": [
+      "double rad"
+    ],
+    "signature": "double MathTan(double rad)"
+  },
+  {
+    "name": "MessageBox",
+    "returnType": "int",
+    "params": [
+      "string text",
+      "string caption=NULL",
+      "int flags=0"
+    ],
+    "signature": "int MessageBox(string text, string caption=NULL, int flags=0)"
+  },
+  {
+    "name": "Minute",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Minute()"
+  },
+  {
+    "name": "Month",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Month()"
+  },
+  {
+    "name": "NormalizeDouble",
+    "returnType": "double",
+    "params": [
+      "double value",
+      "int digits"
+    ],
+    "signature": "double NormalizeDouble(double value, int digits)"
+  },
+  {
+    "name": "ObjectCreate",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "ENUM_OBJECT object_type",
+      "int sub_window",
+      "datetime time1",
+      "double price1",
+      "... datetime timeN=0",
+      "double priceN=0"
+    ],
+    "signature": "bool ObjectCreate(long chart_id, string object_name, ENUM_OBJECT object_type, int sub_window, datetime time1, double price1, ... datetime timeN=0, double priceN=0)"
+  },
+  {
+    "name": "ObjectDelete",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "string object_name"
+    ],
+    "signature": "bool ObjectDelete(long chart_id, string object_name)"
+  },
+  {
+    "name": "ObjectDescription",
+    "returnType": "string",
+    "params": [
+      "string object_name"
+    ],
+    "signature": "string ObjectDescription(string object_name)"
+  },
+  {
+    "name": "ObjectFind",
+    "returnType": "int",
+    "params": [
+      "long chart_id",
+      "string object_name"
+    ],
+    "signature": "int ObjectFind(long chart_id, string object_name)"
+  },
+  {
+    "name": "ObjectGet",
+    "returnType": "double",
+    "params": [
+      "string object_name",
+      "int index"
+    ],
+    "signature": "double ObjectGet(string object_name, int index)"
+  },
+  {
+    "name": "ObjectGetDouble",
+    "returnType": "double",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "int prop_id",
+      "int prop_modifier=0"
+    ],
+    "signature": "double ObjectGetDouble(long chart_id, string object_name, int prop_id, int prop_modifier=0)"
+  },
+  {
+    "name": "ObjectGetFiboDescription",
+    "returnType": "string",
+    "params": [
+      "string object_name",
+      "int index"
+    ],
+    "signature": "string ObjectGetFiboDescription(string object_name, int index)"
+  },
+  {
+    "name": "ObjectGetInteger",
+    "returnType": "long",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "int prop_id",
+      "int prop_modifier=0"
+    ],
+    "signature": "long ObjectGetInteger(long chart_id, string object_name, int prop_id, int prop_modifier=0)"
+  },
+  {
+    "name": "ObjectGetShiftByValue",
+    "returnType": "int",
+    "params": [
+      "string object_name",
+      "double value"
+    ],
+    "signature": "int ObjectGetShiftByValue(string object_name, double value)"
+  },
+  {
+    "name": "ObjectGetString",
+    "returnType": "string",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "int prop_id",
+      "int prop_modifier=0"
+    ],
+    "signature": "string ObjectGetString(long chart_id, string object_name, int prop_id, int prop_modifier=0)"
+  },
+  {
+    "name": "ObjectGetTimeByValue",
+    "returnType": "datetime",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "double value",
+      "int line_id=0"
+    ],
+    "signature": "datetime ObjectGetTimeByValue(long chart_id, string object_name, double value, int line_id=0)"
+  },
+  {
+    "name": "ObjectGetValueByShift",
+    "returnType": "double",
+    "params": [
+      "string object_name",
+      "int shift"
+    ],
+    "signature": "double ObjectGetValueByShift(string object_name, int shift)"
+  },
+  {
+    "name": "ObjectGetValueByTime",
+    "returnType": "double",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "datetime time",
+      "int line_id=0"
+    ],
+    "signature": "double ObjectGetValueByTime(long chart_id, string object_name, datetime time, int line_id=0)"
+  },
+  {
+    "name": "ObjectMove",
+    "returnType": "bool",
+    "params": [
+      "string object_name",
+      "int point_index",
+      "datetime time",
+      "double price"
+    ],
+    "signature": "bool ObjectMove(string object_name, int point_index, datetime time, double price)"
+  },
+  {
+    "name": "ObjectName",
+    "returnType": "string",
+    "params": [
+      "int object_index"
+    ],
+    "signature": "string ObjectName(int object_index)"
+  },
+  {
+    "name": "ObjectSet",
+    "returnType": "bool",
+    "params": [
+      "string object_name",
+      "int index",
+      "double value"
+    ],
+    "signature": "bool ObjectSet(string object_name, int index, double value)"
+  },
+  {
+    "name": "ObjectSetDouble",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "int prop_id",
+      "double prop_value"
+    ],
+    "signature": "bool ObjectSetDouble(long chart_id, string object_name, int prop_id, double prop_value)"
+  },
+  {
+    "name": "ObjectSetFiboDescription",
+    "returnType": "bool",
+    "params": [
+      "string object_name",
+      "int index",
+      "string text"
+    ],
+    "signature": "bool ObjectSetFiboDescription(string object_name, int index, string text)"
+  },
+  {
+    "name": "ObjectSetInteger",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "int prop_id",
+      "long prop_value"
+    ],
+    "signature": "bool ObjectSetInteger(long chart_id, string object_name, int prop_id, long prop_value)"
+  },
+  {
+    "name": "ObjectSetString",
+    "returnType": "bool",
+    "params": [
+      "long chart_id",
+      "string object_name",
+      "int prop_id",
+      "string prop_value"
+    ],
+    "signature": "bool ObjectSetString(long chart_id, string object_name, int prop_id, string prop_value)"
+  },
+  {
+    "name": "ObjectSetText",
+    "returnType": "bool",
+    "params": [
+      "string object_name",
+      "string text",
+      "int font_size=0",
+      "string font_name=NULL",
+      "color text_color=clrNONE"
+    ],
+    "signature": "bool ObjectSetText(string object_name, string text, int font_size=0, string font_name=NULL, color text_color=clrNONE)"
+  },
+  {
+    "name": "ObjectType",
+    "returnType": "int",
+    "params": [
+      "string object_name"
+    ],
+    "signature": "int ObjectType(string object_name)"
+  },
+  {
+    "name": "ObjectsDeleteAll",
+    "returnType": "int",
+    "params": [
+      "long chart_id",
+      "int sub_window=EMPTY",
+      "int object_type=EMPTY"
+    ],
+    "signature": "int ObjectsDeleteAll(long chart_id, int sub_window=EMPTY, int object_type=EMPTY)"
+  },
+  {
+    "name": "ObjectsTotal",
+    "returnType": "int",
+    "params": [
+      "long chart_id",
+      "int sub_window=-1",
+      "int type=-1"
+    ],
+    "signature": "int ObjectsTotal(long chart_id, int sub_window=-1, int type=-1)"
+  },
+  {
+    "name": "OrderCalcMargin",
+    "returnType": "bool",
+    "params": [
+      "ENUM_ORDER_TYPE action",
+      "string symbol",
+      "double volume",
+      "double price",
+      "double& margin"
+    ],
+    "signature": "bool OrderCalcMargin(ENUM_ORDER_TYPE action, string symbol, double volume, double price, double& margin)"
+  },
+  {
+    "name": "OrderCalcProfit",
+    "returnType": "bool",
+    "params": [
+      "ENUM_ORDER_TYPE action",
+      "string symbol",
+      "double volume",
+      "double price_open",
+      "double price_close",
+      "double& profit"
+    ],
+    "signature": "bool OrderCalcProfit(ENUM_ORDER_TYPE action, string symbol, double volume, double price_open, double price_close, double& profit)"
+  },
+  {
+    "name": "OrderCheck",
+    "returnType": "bool",
+    "params": [
+      "MqlTradeRequest& request",
+      "MqlTradeCheckResult& result"
+    ],
+    "signature": "bool OrderCheck(MqlTradeRequest& request, MqlTradeCheckResult& result)"
+  },
+  {
+    "name": "OrderClose",
+    "returnType": "bool",
+    "params": [
+      "int ticket",
+      "double lots",
+      "double price",
+      "int slippage",
+      "color arrow_color"
+    ],
+    "signature": "bool OrderClose(int ticket, double lots, double price, int slippage, color arrow_color)"
+  },
+  {
+    "name": "OrderCloseBy",
+    "returnType": "bool",
+    "params": [
+      "int ticket",
+      "int opposite",
+      "color arrow_color"
+    ],
+    "signature": "bool OrderCloseBy(int ticket, int opposite, color arrow_color)"
+  },
+  {
+    "name": "OrderClosePrice",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderClosePrice()"
+  },
+  {
+    "name": "OrderCloseTime",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime OrderCloseTime()"
+  },
+  {
+    "name": "OrderComment",
+    "returnType": "string",
+    "params": [],
+    "signature": "string OrderComment()"
+  },
+  {
+    "name": "OrderCommission",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderCommission()"
+  },
+  {
+    "name": "OrderDelete",
+    "returnType": "bool",
+    "params": [
+      "int ticket",
+      "color arrow_color"
+    ],
+    "signature": "bool OrderDelete(int ticket, color arrow_color)"
+  },
+  {
+    "name": "OrderExpiration",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime OrderExpiration()"
+  },
+  {
+    "name": "OrderGetDouble",
+    "returnType": "double",
+    "params": [
+      "ENUM_ORDER_PROPERTY_DOUBLE property_id"
+    ],
+    "signature": "double OrderGetDouble(ENUM_ORDER_PROPERTY_DOUBLE property_id)"
+  },
+  {
+    "name": "OrderGetInteger",
+    "returnType": "long",
+    "params": [
+      "ENUM_ORDER_PROPERTY_INTEGER property_id"
+    ],
+    "signature": "long OrderGetInteger(ENUM_ORDER_PROPERTY_INTEGER property_id)"
+  },
+  {
+    "name": "OrderGetString",
+    "returnType": "string",
+    "params": [
+      "ENUM_ORDER_PROPERTY_STRING property_id"
+    ],
+    "signature": "string OrderGetString(ENUM_ORDER_PROPERTY_STRING property_id)"
+  },
+  {
+    "name": "OrderGetTicket",
+    "returnType": "ulong",
+    "params": [
+      "int index"
+    ],
+    "signature": "ulong OrderGetTicket(int index)"
+  },
+  {
+    "name": "OrderLots",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderLots()"
+  },
+  {
+    "name": "OrderMagicNumber",
+    "returnType": "int",
+    "params": [],
+    "signature": "int OrderMagicNumber()"
+  },
+  {
+    "name": "OrderModify",
+    "returnType": "bool",
+    "params": [
+      "int ticket",
+      "double price",
+      "double stoploss",
+      "double takeprofit",
+      "datetime expiration",
+      "color arrow_color"
+    ],
+    "signature": "bool OrderModify(int ticket, double price, double stoploss, double takeprofit, datetime expiration, color arrow_color)"
+  },
+  {
+    "name": "OrderOpenPrice",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderOpenPrice()"
+  },
+  {
+    "name": "OrderOpenTime",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime OrderOpenTime()"
+  },
+  {
+    "name": "OrderPrint",
+    "returnType": "void",
+    "params": [],
+    "signature": "void OrderPrint()"
+  },
+  {
+    "name": "OrderProfit",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderProfit()"
+  },
+  {
+    "name": "OrderSelect",
+    "returnType": "bool",
+    "params": [
+      "int index",
+      "int select",
+      "int pool=MODE_TRADES"
+    ],
+    "signature": "bool OrderSelect(int index, int select, int pool=MODE_TRADES)"
+  },
+  {
+    "name": "OrderSend",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "int cmd",
+      "double volume",
+      "double price",
+      "int slippage",
+      "double stoploss",
+      "double takeprofit",
+      "string comment=NULL",
+      "int magic=0",
+      "datetime expiration=0",
+      "color arrow_color=clrNONE"
+    ],
+    "signature": "int OrderSend(string symbol, int cmd, double volume, double price, int slippage, double stoploss, double takeprofit, string comment=NULL, int magic=0, datetime expiration=0, color arrow_color=clrNONE)"
+  },
+  {
+    "name": "OrderSendAsync",
+    "returnType": "bool",
+    "params": [
+      "MqlTradeRequest& request",
+      "MqlTradeResult& result"
+    ],
+    "signature": "bool OrderSendAsync(MqlTradeRequest& request, MqlTradeResult& result)"
+  },
+  {
+    "name": "OrderStopLoss",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderStopLoss()"
+  },
+  {
+    "name": "OrderSwap",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderSwap()"
+  },
+  {
+    "name": "OrderSymbol",
+    "returnType": "string",
+    "params": [],
+    "signature": "string OrderSymbol()"
+  },
+  {
+    "name": "OrderTakeProfit",
+    "returnType": "double",
+    "params": [],
+    "signature": "double OrderTakeProfit()"
+  },
+  {
+    "name": "OrderTicket",
+    "returnType": "int",
+    "params": [],
+    "signature": "int OrderTicket()"
+  },
+  {
+    "name": "OrderType",
+    "returnType": "int",
+    "params": [],
+    "signature": "int OrderType()"
+  },
+  {
+    "name": "OrdersHistoryTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int OrdersHistoryTotal()"
+  },
+  {
+    "name": "OrdersTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int OrdersTotal()"
+  },
+  {
+    "name": "Period",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Period()"
+  },
+  {
+    "name": "PeriodSeconds",
+    "returnType": "int",
+    "params": [
+      "ENUM_TIMEFRAMES period=PERIOD_CURRENT"
+    ],
+    "signature": "int PeriodSeconds(ENUM_TIMEFRAMES period=PERIOD_CURRENT)"
+  },
+  {
+    "name": "PlaySound",
+    "returnType": "bool",
+    "params": [
+      "string filename"
+    ],
+    "signature": "bool PlaySound(string filename)"
+  },
+  {
+    "name": "Point",
+    "returnType": "double",
+    "params": [],
+    "signature": "double Point()"
+  },
+  {
+    "name": "PositionGetDouble",
+    "returnType": "double",
+    "params": [
+      "ENUM_POSITION_PROPERTY_DOUBLE property_id"
+    ],
+    "signature": "double PositionGetDouble(ENUM_POSITION_PROPERTY_DOUBLE property_id)"
+  },
+  {
+    "name": "PositionGetInteger",
+    "returnType": "long",
+    "params": [
+      "ENUM_POSITION_PROPERTY_INTEGER property_id"
+    ],
+    "signature": "long PositionGetInteger(ENUM_POSITION_PROPERTY_INTEGER property_id)"
+  },
+  {
+    "name": "PositionGetString",
+    "returnType": "string",
+    "params": [
+      "ENUM_POSITION_PROPERTY_STRING property_id"
+    ],
+    "signature": "string PositionGetString(ENUM_POSITION_PROPERTY_STRING property_id)"
+  },
+  {
+    "name": "PositionGetSymbol",
+    "returnType": "string",
+    "params": [
+      "int index"
+    ],
+    "signature": "string PositionGetSymbol(int index)"
+  },
+  {
+    "name": "PositionGetTicket",
+    "returnType": "ulong",
+    "params": [
+      "int index"
+    ],
+    "signature": "ulong PositionGetTicket(int index)"
+  },
+  {
+    "name": "PositionSelect",
+    "returnType": "bool",
+    "params": [
+      "string symbol"
+    ],
+    "signature": "bool PositionSelect(string symbol)"
+  },
+  {
+    "name": "PositionSelectByTicket",
+    "returnType": "bool",
+    "params": [
+      "ulong ticket"
+    ],
+    "signature": "bool PositionSelectByTicket(ulong ticket)"
+  },
+  {
+    "name": "PositionsTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int PositionsTotal()"
+  },
+  {
+    "name": "Print",
+    "returnType": "void",
+    "params": [
+      "argument",
+      "..."
+    ],
+    "signature": "void Print(argument, ...)"
+  },
+  {
+    "name": "PrintFormat",
+    "returnType": "void",
+    "params": [
+      "string format_string",
+      "..."
+    ],
+    "signature": "void PrintFormat(string format_string, ...)"
+  },
+  {
+    "name": "RefreshRates",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool RefreshRates()"
+  },
+  {
+    "name": "ResetLastError",
+    "returnType": "void",
+    "params": [],
+    "signature": "void ResetLastError()"
+  },
+  {
+    "name": "ResourceCreate",
+    "returnType": "bool",
+    "params": [
+      "const string resource_name",
+      "const string path"
+    ],
+    "signature": "bool ResourceCreate(const string resource_name, const string path)"
+  },
+  {
+    "name": "ResourceFree",
+    "returnType": "bool",
+    "params": [
+      "const string resource_name"
+    ],
+    "signature": "bool ResourceFree(const string resource_name)"
+  },
+  {
+    "name": "ResourceReadImage",
+    "returnType": "bool",
+    "params": [
+      "const string resource_name",
+      "uint& data[]",
+      "uint& width",
+      "uint& height"
+    ],
+    "signature": "bool ResourceReadImage(const string resource_name, uint& data[], uint& width, uint& height)"
+  },
+  {
+    "name": "ResourceSave",
+    "returnType": "bool",
+    "params": [
+      "const string resource_name",
+      "const string file_name"
+    ],
+    "signature": "bool ResourceSave(const string resource_name, const string file_name)"
+  },
+  {
+    "name": "Seconds",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Seconds()"
+  },
+  {
+    "name": "SendFTP",
+    "returnType": "bool",
+    "params": [
+      "string filename",
+      "string ftp_path=NULL"
+    ],
+    "signature": "bool SendFTP(string filename, string ftp_path=NULL)"
+  },
+  {
+    "name": "SendMail",
+    "returnType": "bool",
+    "params": [
+      "string subject",
+      "string some_text"
+    ],
+    "signature": "bool SendMail(string subject, string some_text)"
+  },
+  {
+    "name": "SendNotification",
+    "returnType": "bool",
+    "params": [
+      "string text"
+    ],
+    "signature": "bool SendNotification(string text)"
+  },
+  {
+    "name": "SeriesInfoInteger",
+    "returnType": "long",
+    "params": [
+      "string symbol_name",
+      "ENUM_TIMEFRAMES timeframe",
+      "ENUM_SERIES_INFO_INTEGER prop_id"
+    ],
+    "signature": "long SeriesInfoInteger(string symbol_name, ENUM_TIMEFRAMES timeframe, ENUM_SERIES_INFO_INTEGER prop_id)"
+  },
+  {
+    "name": "SetIndexArrow",
+    "returnType": "void",
+    "params": [
+      "int index",
+      "int code"
+    ],
+    "signature": "void SetIndexArrow(int index, int code)"
+  },
+  {
+    "name": "SetIndexBuffer",
+    "returnType": "bool",
+    "params": [
+      "int index",
+      "double buffer[]",
+      "ENUM_INDEXBUFFER_TYPE data_type"
+    ],
+    "signature": "bool SetIndexBuffer(int index, double buffer[], ENUM_INDEXBUFFER_TYPE data_type)"
+  },
+  {
+    "name": "SetIndexDrawBegin",
+    "returnType": "void",
+    "params": [
+      "int index",
+      "int begin"
+    ],
+    "signature": "void SetIndexDrawBegin(int index, int begin)"
+  },
+  {
+    "name": "SetIndexEmptyValue",
+    "returnType": "void",
+    "params": [
+      "int index",
+      "double value"
+    ],
+    "signature": "void SetIndexEmptyValue(int index, double value)"
+  },
+  {
+    "name": "SetIndexLabel",
+    "returnType": "void",
+    "params": [
+      "int index",
+      "string text"
+    ],
+    "signature": "void SetIndexLabel(int index, string text)"
+  },
+  {
+    "name": "SetIndexShift",
+    "returnType": "void",
+    "params": [
+      "int index",
+      "int shift"
+    ],
+    "signature": "void SetIndexShift(int index, int shift)"
+  },
+  {
+    "name": "SetIndexStyle",
+    "returnType": "void",
+    "params": [
+      "int index",
+      "int type",
+      "int style=EMPTY",
+      "int width=EMPTY",
+      "color clr=clrNONE"
+    ],
+    "signature": "void SetIndexStyle(int index, int type, int style=EMPTY, int width=EMPTY, color clr=clrNONE)"
+  },
+  {
+    "name": "SetLevelStyle",
+    "returnType": "void",
+    "params": [
+      "int draw_style",
+      "int line_width",
+      "color clr"
+    ],
+    "signature": "void SetLevelStyle(int draw_style, int line_width, color clr)"
+  },
+  {
+    "name": "SetLevelValue",
+    "returnType": "void",
+    "params": [
+      "int level",
+      "double value"
+    ],
+    "signature": "void SetLevelValue(int level, double value)"
+  },
+  {
+    "name": "ShortArrayToString",
+    "returnType": "string",
+    "params": [
+      "ushort array[]",
+      "int start=0",
+      "int count=-1"
+    ],
+    "signature": "string ShortArrayToString(ushort array[], int start=0, int count=-1)"
+  },
+  {
+    "name": "ShortToString",
+    "returnType": "string",
+    "params": [
+      "ushort symbol_code"
+    ],
+    "signature": "string ShortToString(ushort symbol_code)"
+  },
+  {
+    "name": "SignalBaseGetDouble",
+    "returnType": "double",
+    "params": [
+      "ENUM_SIGNAL_BASE_DOUBLE property_id"
+    ],
+    "signature": "double SignalBaseGetDouble(ENUM_SIGNAL_BASE_DOUBLE property_id)"
+  },
+  {
+    "name": "SignalBaseGetInteger",
+    "returnType": "long",
+    "params": [
+      "ENUM_SIGNAL_BASE_INTEGER property_id"
+    ],
+    "signature": "long SignalBaseGetInteger(ENUM_SIGNAL_BASE_INTEGER property_id)"
+  },
+  {
+    "name": "SignalBaseGetString",
+    "returnType": "string",
+    "params": [
+      "ENUM_SIGNAL_BASE_STRING property_id"
+    ],
+    "signature": "string SignalBaseGetString(ENUM_SIGNAL_BASE_STRING property_id)"
+  },
+  {
+    "name": "SignalBaseSelect",
+    "returnType": "bool",
+    "params": [
+      "int index"
+    ],
+    "signature": "bool SignalBaseSelect(int index)"
+  },
+  {
+    "name": "SignalBaseTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int SignalBaseTotal()"
+  },
+  {
+    "name": "SignalInfoGetDouble",
+    "returnType": "double",
+    "params": [
+      "ENUM_SIGNAL_INFO_DOUBLE property_id"
+    ],
+    "signature": "double SignalInfoGetDouble(ENUM_SIGNAL_INFO_DOUBLE property_id)"
+  },
+  {
+    "name": "SignalInfoGetInteger",
+    "returnType": "long",
+    "params": [
+      "ENUM_SIGNAL_INFO_INTEGER property_id"
+    ],
+    "signature": "long SignalInfoGetInteger(ENUM_SIGNAL_INFO_INTEGER property_id)"
+  },
+  {
+    "name": "SignalInfoGetString",
+    "returnType": "string",
+    "params": [
+      "ENUM_SIGNAL_INFO_STRING property_id"
+    ],
+    "signature": "string SignalInfoGetString(ENUM_SIGNAL_INFO_STRING property_id)"
+  },
+  {
+    "name": "SignalInfoSetDouble",
+    "returnType": "bool",
+    "params": [
+      "ENUM_SIGNAL_INFO_DOUBLE property_id",
+      "double value"
+    ],
+    "signature": "bool SignalInfoSetDouble(ENUM_SIGNAL_INFO_DOUBLE property_id, double value)"
+  },
+  {
+    "name": "SignalInfoSetInteger",
+    "returnType": "bool",
+    "params": [
+      "ENUM_SIGNAL_INFO_INTEGER property_id",
+      "long value"
+    ],
+    "signature": "bool SignalInfoSetInteger(ENUM_SIGNAL_INFO_INTEGER property_id, long value)"
+  },
+  {
+    "name": "SignalSubscribe",
+    "returnType": "bool",
+    "params": [
+      "long signal_id"
+    ],
+    "signature": "bool SignalSubscribe(long signal_id)"
+  },
+  {
+    "name": "SignalUnsubscribe",
+    "returnType": "bool",
+    "params": [],
+    "signature": "bool SignalUnsubscribe()"
+  },
+  {
+    "name": "Sleep",
+    "returnType": "void",
+    "params": [
+      "int milliseconds"
+    ],
+    "signature": "void Sleep(int milliseconds)"
+  },
+  {
+    "name": "StrToDouble",
+    "returnType": "double",
+    "params": [
+      "string value"
+    ],
+    "signature": "double StrToDouble(string value)"
+  },
+  {
+    "name": "StrToInteger",
+    "returnType": "int",
+    "params": [
+      "string value"
+    ],
+    "signature": "int StrToInteger(string value)"
+  },
+  {
+    "name": "StrToTime",
+    "returnType": "datetime",
+    "params": [
+      "string value"
+    ],
+    "signature": "datetime StrToTime(string value)"
+  },
+  {
+    "name": "StringAdd",
+    "returnType": "bool",
+    "params": [
+      "string& string_var",
+      "string add_substring"
+    ],
+    "signature": "bool StringAdd(string& string_var, string add_substring)"
+  },
+  {
+    "name": "StringBufferLen",
+    "returnType": "int",
+    "params": [
+      "string string_var"
+    ],
+    "signature": "int StringBufferLen(string string_var)"
+  },
+  {
+    "name": "StringCompare",
+    "returnType": "int",
+    "params": [
+      "const string& string1",
+      "const string& string2",
+      "bool case_sensitive=true"
+    ],
+    "signature": "int StringCompare(const string& string1, const string& string2, bool case_sensitive=true)"
+  },
+  {
+    "name": "StringConcatenate",
+    "returnType": "string",
+    "params": [
+      "void argument1",
+      "void argument2",
+      "..."
+    ],
+    "signature": "string StringConcatenate(void argument1, void argument2, ...)"
+  },
+  {
+    "name": "StringFill",
+    "returnType": "bool",
+    "params": [
+      "string& string_var",
+      "ushort character"
+    ],
+    "signature": "bool StringFill(string& string_var, ushort character)"
+  },
+  {
+    "name": "StringFind",
+    "returnType": "int",
+    "params": [
+      "string string_value",
+      "string match_substring",
+      "int start_pos=0"
+    ],
+    "signature": "int StringFind(string string_value, string match_substring, int start_pos=0)"
+  },
+  {
+    "name": "StringFormat",
+    "returnType": "string",
+    "params": [
+      "string format",
+      "... ..."
+    ],
+    "signature": "string StringFormat(string format, ... ...)"
+  },
+  {
+    "name": "StringGetChar",
+    "returnType": "ushort",
+    "params": [
+      "string string_value",
+      "int pos"
+    ],
+    "signature": "ushort StringGetChar(string string_value, int pos)"
+  },
+  {
+    "name": "StringGetCharacter",
+    "returnType": "ushort",
+    "params": [
+      "string string_value",
+      "int pos"
+    ],
+    "signature": "ushort StringGetCharacter(string string_value, int pos)"
+  },
+  {
+    "name": "StringInit",
+    "returnType": "bool",
+    "params": [
+      "string& string_var",
+      "int new_len=0",
+      "ushort character=0"
+    ],
+    "signature": "bool StringInit(string& string_var, int new_len=0, ushort character=0)"
+  },
+  {
+    "name": "StringLen",
+    "returnType": "int",
+    "params": [
+      "string string_value"
+    ],
+    "signature": "int StringLen(string string_value)"
+  },
+  {
+    "name": "StringReplace",
+    "returnType": "int",
+    "params": [
+      "string& str",
+      "const string find",
+      "const string replacement"
+    ],
+    "signature": "int StringReplace(string& str, const string find, const string replacement)"
+  },
+  {
+    "name": "StringSetChar",
+    "returnType": "string",
+    "params": [
+      "string string_var",
+      "int pos",
+      "ushort value"
+    ],
+    "signature": "string StringSetChar(string string_var, int pos, ushort value)"
+  },
+  {
+    "name": "StringSetCharacter",
+    "returnType": "bool",
+    "params": [
+      "string& string_var",
+      "int pos",
+      "ushort character"
+    ],
+    "signature": "bool StringSetCharacter(string& string_var, int pos, ushort character)"
+  },
+  {
+    "name": "StringSplit",
+    "returnType": "int",
+    "params": [
+      "const string string_value",
+      "const ushort separator",
+      "string & result[]"
+    ],
+    "signature": "int StringSplit(const string string_value, const ushort separator, string & result[])"
+  },
+  {
+    "name": "StringSubstr",
+    "returnType": "string",
+    "params": [
+      "string string_value",
+      "int start_pos",
+      "int length=0"
+    ],
+    "signature": "string StringSubstr(string string_value, int start_pos, int length=0)"
+  },
+  {
+    "name": "StringToCharArray",
+    "returnType": "int",
+    "params": [
+      "string text_string",
+      "uchar& array[]",
+      "int start=0",
+      "int count=-1",
+      "uint codepage=CP_ACP"
+    ],
+    "signature": "int StringToCharArray(string text_string, uchar& array[], int start=0, int count=-1, uint codepage=CP_ACP)"
+  },
+  {
+    "name": "StringToColor",
+    "returnType": "color",
+    "params": [
+      "string color_string"
+    ],
+    "signature": "color StringToColor(string color_string)"
+  },
+  {
+    "name": "StringToDouble",
+    "returnType": "double",
+    "params": [
+      "string value"
+    ],
+    "signature": "double StringToDouble(string value)"
+  },
+  {
+    "name": "StringToInteger",
+    "returnType": "long",
+    "params": [
+      "string value"
+    ],
+    "signature": "long StringToInteger(string value)"
+  },
+  {
+    "name": "StringToLower",
+    "returnType": "bool",
+    "params": [
+      "string& string_var"
+    ],
+    "signature": "bool StringToLower(string& string_var)"
+  },
+  {
+    "name": "StringToShortArray",
+    "returnType": "int",
+    "params": [
+      "string text_string",
+      "ushort& array[]",
+      "int start=0",
+      "int count=-1"
+    ],
+    "signature": "int StringToShortArray(string text_string, ushort& array[], int start=0, int count=-1)"
+  },
+  {
+    "name": "StringToTime",
+    "returnType": "datetime",
+    "params": [
+      "string value"
+    ],
+    "signature": "datetime StringToTime(string value)"
+  },
+  {
+    "name": "StringToUpper",
+    "returnType": "bool",
+    "params": [
+      "string& string_var"
+    ],
+    "signature": "bool StringToUpper(string& string_var)"
+  },
+  {
+    "name": "StringTrimLeft",
+    "returnType": "string",
+    "params": [
+      "const string text"
+    ],
+    "signature": "string StringTrimLeft(const string text)"
+  },
+  {
+    "name": "StringTrimRight",
+    "returnType": "string",
+    "params": [
+      "const string text"
+    ],
+    "signature": "string StringTrimRight(const string text)"
+  },
+  {
+    "name": "StructToCharArray",
+    "returnType": "bool",
+    "params": [
+      "const void& struct_object",
+      "uchar& char_array[]",
+      "uint start_pos=0"
+    ],
+    "signature": "bool StructToCharArray(const void& struct_object, uchar& char_array[], uint start_pos=0)"
+  },
+  {
+    "name": "StructToTime",
+    "returnType": "datetime",
+    "params": [
+      "MqlDateTime$ dt_struct"
+    ],
+    "signature": "datetime StructToTime(MqlDateTime$ dt_struct)"
+  },
+  {
+    "name": "Symbol",
+    "returnType": "string",
+    "params": [],
+    "signature": "string Symbol()"
+  },
+  {
+    "name": "SymbolExist",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "bool& is_custom"
+    ],
+    "signature": "bool SymbolExist(string name, bool& is_custom)"
+  },
+  {
+    "name": "SymbolInfoDouble",
+    "returnType": "double",
+    "params": [
+      "string name",
+      "ENUM_SYMBOL_INFO_DOUBLE prop_id"
+    ],
+    "signature": "double SymbolInfoDouble(string name, ENUM_SYMBOL_INFO_DOUBLE prop_id)"
+  },
+  {
+    "name": "SymbolInfoInteger",
+    "returnType": "long",
+    "params": [
+      "string name",
+      "ENUM_SYMBOL_INFO_INTEGER prop_id"
+    ],
+    "signature": "long SymbolInfoInteger(string name, ENUM_SYMBOL_INFO_INTEGER prop_id)"
+  },
+  {
+    "name": "SymbolInfoMarginRate",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "ENUM_ORDER_TYPE order_type",
+      "double& initial_margin_rate",
+      "double& maintenance_margin_rate"
+    ],
+    "signature": "bool SymbolInfoMarginRate(string name, ENUM_ORDER_TYPE order_type, double& initial_margin_rate, double& maintenance_margin_rate)"
+  },
+  {
+    "name": "SymbolInfoSessionQuote",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "ENUM_DAY_OF_WEEK day_of_week",
+      "uint session_index",
+      "datetime& from",
+      "datetime& to"
+    ],
+    "signature": "bool SymbolInfoSessionQuote(string name, ENUM_DAY_OF_WEEK day_of_week, uint session_index, datetime& from, datetime& to)"
+  },
+  {
+    "name": "SymbolInfoSessionTrade",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "ENUM_DAY_OF_WEEK day_of_week",
+      "uint session_index",
+      "datetime& from",
+      "datetime& to"
+    ],
+    "signature": "bool SymbolInfoSessionTrade(string name, ENUM_DAY_OF_WEEK day_of_week, uint session_index, datetime& from, datetime& to)"
+  },
+  {
+    "name": "SymbolInfoString",
+    "returnType": "string",
+    "params": [
+      "string name",
+      "ENUM_SYMBOL_INFO_STRING prop_id"
+    ],
+    "signature": "string SymbolInfoString(string name, ENUM_SYMBOL_INFO_STRING prop_id)"
+  },
+  {
+    "name": "SymbolInfoTick",
+    "returnType": "bool",
+    "params": [
+      "string symbol",
+      "MqlTick& tick"
+    ],
+    "signature": "bool SymbolInfoTick(string symbol, MqlTick& tick)"
+  },
+  {
+    "name": "SymbolIsSynchronized",
+    "returnType": "bool",
+    "params": [
+      "string name"
+    ],
+    "signature": "bool SymbolIsSynchronized(string name)"
+  },
+  {
+    "name": "SymbolName",
+    "returnType": "string",
+    "params": [
+      "int pos",
+      "bool selected"
+    ],
+    "signature": "string SymbolName(int pos, bool selected)"
+  },
+  {
+    "name": "SymbolSelect",
+    "returnType": "bool",
+    "params": [
+      "string name",
+      "bool select"
+    ],
+    "signature": "bool SymbolSelect(string name, bool select)"
+  },
+  {
+    "name": "SymbolsTotal",
+    "returnType": "int",
+    "params": [
+      "bool selected"
+    ],
+    "signature": "int SymbolsTotal(bool selected)"
+  },
+  {
+    "name": "TerminalClose",
+    "returnType": "bool",
+    "params": [
+      "int ret_code"
+    ],
+    "signature": "bool TerminalClose(int ret_code)"
+  },
+  {
+    "name": "TerminalCompany",
+    "returnType": "string",
+    "params": [],
+    "signature": "string TerminalCompany()"
+  },
+  {
+    "name": "TerminalInfoDouble",
+    "returnType": "double",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "double TerminalInfoDouble(int property_id)"
+  },
+  {
+    "name": "TerminalInfoInteger",
+    "returnType": "int",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "int TerminalInfoInteger(int property_id)"
+  },
+  {
+    "name": "TerminalInfoString",
+    "returnType": "string",
+    "params": [
+      "int property_id"
+    ],
+    "signature": "string TerminalInfoString(int property_id)"
+  },
+  {
+    "name": "TerminalName",
+    "returnType": "string",
+    "params": [],
+    "signature": "string TerminalName()"
+  },
+  {
+    "name": "TerminalPath",
+    "returnType": "string",
+    "params": [],
+    "signature": "string TerminalPath()"
+  },
+  {
+    "name": "TesterDeposit",
+    "returnType": "bool",
+    "params": [
+      "double money"
+    ],
+    "signature": "bool TesterDeposit(double money)"
+  },
+  {
+    "name": "TesterHideIndicators",
+    "returnType": "void",
+    "params": [
+      "bool hide"
+    ],
+    "signature": "void TesterHideIndicators(bool hide)"
+  },
+  {
+    "name": "TesterPass",
+    "returnType": "int",
+    "params": [],
+    "signature": "int TesterPass()"
+  },
+  {
+    "name": "TesterStatistics",
+    "returnType": "double",
+    "params": [
+      "ENUM_STATISTICS statistic_id"
+    ],
+    "signature": "double TesterStatistics(ENUM_STATISTICS statistic_id)"
+  },
+  {
+    "name": "TesterStop",
+    "returnType": "void",
+    "params": [],
+    "signature": "void TesterStop()"
+  },
+  {
+    "name": "TesterWithdrawal",
+    "returnType": "bool",
+    "params": [
+      "double money"
+    ],
+    "signature": "bool TesterWithdrawal(double money)"
+  },
+  {
+    "name": "TextGetSize",
+    "returnType": "bool",
+    "params": [
+      "const string text",
+      "uint& width",
+      "uint& height"
+    ],
+    "signature": "bool TextGetSize(const string text, uint& width, uint& height)"
+  },
+  {
+    "name": "TextOut",
+    "returnType": "bool",
+    "params": [
+      "const string text",
+      "int x",
+      "int y",
+      "uint anchor",
+      "uint &data[]",
+      "uint width",
+      "uint height",
+      "uint color",
+      "ENUM_COLOR_FORMAT color_format"
+    ],
+    "signature": "bool TextOut(const string text, int x, int y, uint anchor, uint &data[], uint width, uint height, uint color, ENUM_COLOR_FORMAT color_format)"
+  },
+  {
+    "name": "TextSetFont",
+    "returnType": "bool",
+    "params": [
+      "const string name",
+      "int size",
+      "uint flags=0",
+      "int orientation=0"
+    ],
+    "signature": "bool TextSetFont(const string name, int size, uint flags=0, int orientation=0)"
+  },
+  {
+    "name": "TimeCurrent",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime TimeCurrent()"
+  },
+  {
+    "name": "TimeDay",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeDay(datetime date)"
+  },
+  {
+    "name": "TimeDayOfWeek",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeDayOfWeek(datetime date)"
+  },
+  {
+    "name": "TimeDayOfYear",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeDayOfYear(datetime date)"
+  },
+  {
+    "name": "TimeDaylightSavings",
+    "returnType": "int",
+    "params": [],
+    "signature": "int TimeDaylightSavings()"
+  },
+  {
+    "name": "TimeGMT",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime TimeGMT()"
+  },
+  {
+    "name": "TimeGMTOffset",
+    "returnType": "int",
+    "params": [],
+    "signature": "int TimeGMTOffset()"
+  },
+  {
+    "name": "TimeHour",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeHour(datetime date)"
+  },
+  {
+    "name": "TimeLocal",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime TimeLocal()"
+  },
+  {
+    "name": "TimeMinute",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeMinute(datetime date)"
+  },
+  {
+    "name": "TimeMonth",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeMonth(datetime date)"
+  },
+  {
+    "name": "TimeSeconds",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeSeconds(datetime date)"
+  },
+  {
+    "name": "TimeToStr",
+    "returnType": "string",
+    "params": [
+      "datetime value",
+      "int mode=TIME_DATE|TIME_MINUTES"
+    ],
+    "signature": "string TimeToStr(datetime value, int mode=TIME_DATE|TIME_MINUTES)"
+  },
+  {
+    "name": "TimeToString",
+    "returnType": "string",
+    "params": [
+      "datetime value",
+      "int mode=TIME_DATE|TIME_MINUTES"
+    ],
+    "signature": "string TimeToString(datetime value, int mode=TIME_DATE|TIME_MINUTES)"
+  },
+  {
+    "name": "TimeToStruct",
+    "returnType": "void",
+    "params": [
+      "datetime dt",
+      "MqlDateTime& dt_struct"
+    ],
+    "signature": "void TimeToStruct(datetime dt, MqlDateTime& dt_struct)"
+  },
+  {
+    "name": "TimeYear",
+    "returnType": "int",
+    "params": [
+      "datetime date"
+    ],
+    "signature": "int TimeYear(datetime date)"
+  },
+  {
+    "name": "UninitializeReason",
+    "returnType": "int",
+    "params": [],
+    "signature": "int UninitializeReason()"
+  },
+  {
+    "name": "WebRequest",
+    "returnType": "int",
+    "params": [
+      "const string method",
+      "const string url",
+      "const string cookie",
+      "const string referer",
+      "int timeout",
+      "const char &data[]",
+      "int data_size",
+      "char &result[]",
+      "string &result_headers"
+    ],
+    "signature": "int WebRequest(const string method, const string url, const string cookie, const string referer, int timeout, const char &data[], int data_size, char &result[], string &result_headers)"
+  },
+  {
+    "name": "WindowBarsPerChart",
+    "returnType": "int",
+    "params": [],
+    "signature": "int WindowBarsPerChart()"
+  },
+  {
+    "name": "WindowExpertName",
+    "returnType": "string",
+    "params": [],
+    "signature": "string WindowExpertName()"
+  },
+  {
+    "name": "WindowFind",
+    "returnType": "int",
+    "params": [
+      "string name"
+    ],
+    "signature": "int WindowFind(string name)"
+  },
+  {
+    "name": "WindowFirstVisibleBar",
+    "returnType": "int",
+    "params": [],
+    "signature": "int WindowFirstVisibleBar()"
+  },
+  {
+    "name": "WindowHandle",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "int timeframe"
+    ],
+    "signature": "int WindowHandle(string symbol, int timeframe)"
+  },
+  {
+    "name": "WindowIsVisible",
+    "returnType": "int",
+    "params": [
+      "int index"
+    ],
+    "signature": "int WindowIsVisible(int index)"
+  },
+  {
+    "name": "WindowOnDropped",
+    "returnType": "int",
+    "params": [],
+    "signature": "int WindowOnDropped()"
+  },
+  {
+    "name": "WindowPriceMax",
+    "returnType": "int",
+    "params": [
+      "int index=0"
+    ],
+    "signature": "int WindowPriceMax(int index=0)"
+  },
+  {
+    "name": "WindowPriceMin",
+    "returnType": "int",
+    "params": [
+      "int index=0"
+    ],
+    "signature": "int WindowPriceMin(int index=0)"
+  },
+  {
+    "name": "WindowPriceOnDropped",
+    "returnType": "double",
+    "params": [],
+    "signature": "double WindowPriceOnDropped()"
+  },
+  {
+    "name": "WindowRedraw",
+    "returnType": "void",
+    "params": [],
+    "signature": "void WindowRedraw()"
+  },
+  {
+    "name": "WindowScreenShot",
+    "returnType": "bool",
+    "params": [
+      "string filename",
+      "int size_x",
+      "int size_y",
+      "int start_bar=-1",
+      "int chart_scale=-1",
+      "int chart_mode=-1"
+    ],
+    "signature": "bool WindowScreenShot(string filename, int size_x, int size_y, int start_bar=-1, int chart_scale=-1, int chart_mode=-1)"
+  },
+  {
+    "name": "WindowTimeOnDropped",
+    "returnType": "datetime",
+    "params": [],
+    "signature": "datetime WindowTimeOnDropped()"
+  },
+  {
+    "name": "WindowXOnDropped",
+    "returnType": "int",
+    "params": [],
+    "signature": "int WindowXOnDropped()"
+  },
+  {
+    "name": "WindowYOnDropped",
+    "returnType": "int",
+    "params": [],
+    "signature": "int WindowYOnDropped()"
+  },
+  {
+    "name": "WindowsTotal",
+    "returnType": "int",
+    "params": [],
+    "signature": "int WindowsTotal()"
+  },
+  {
+    "name": "Year",
+    "returnType": "int",
+    "params": [],
+    "signature": "int Year()"
+  },
+  {
+    "name": "ZeroMemory",
+    "returnType": "void",
+    "params": [
+      "void & variable"
+    ],
+    "signature": "void ZeroMemory(void & variable)"
+  },
+  {
+    "name": "acos",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double acos(double val)"
+  },
+  {
+    "name": "asin",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double asin(double val)"
+  },
+  {
+    "name": "atan",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double atan(double value)"
+  },
+  {
+    "name": "ceil",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double ceil(double val)"
+  },
+  {
+    "name": "cos",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double cos(double value)"
+  },
+  {
+    "name": "exp",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double exp(double value)"
+  },
+  {
+    "name": "fabs",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double fabs(double value)"
+  },
+  {
+    "name": "floor",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double floor(double val)"
+  },
+  {
+    "name": "fmax",
+    "returnType": "double",
+    "params": [
+      "double value1",
+      "double value2"
+    ],
+    "signature": "double fmax(double value1, double value2)"
+  },
+  {
+    "name": "fmin",
+    "returnType": "double",
+    "params": [
+      "double value1",
+      "double value2"
+    ],
+    "signature": "double fmin(double value1, double value2)"
+  },
+  {
+    "name": "fmod",
+    "returnType": "double",
+    "params": [
+      "double value",
+      "double value2"
+    ],
+    "signature": "double fmod(double value, double value2)"
+  },
+  {
+    "name": "iAC",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iAC(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iAD",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iAD(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iADX",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int applied_price",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iADX(string symbol, int timeframe, int period, int applied_price, int mode, int shift)"
+  },
+  {
+    "name": "iAO",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iAO(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iATR",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int shift"
+    ],
+    "signature": "double iATR(string symbol, int timeframe, int period, int shift)"
+  },
+  {
+    "name": "iAlligator",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int jaw_period",
+      "int jaw_shift",
+      "int teeth_period",
+      "int teeth_shift",
+      "int lips_period",
+      "int lips_shift",
+      "int ma_method",
+      "int applied_price",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iAlligator(string symbol, int timeframe, int jaw_period, int jaw_shift, int teeth_period, int teeth_shift, int lips_period, int lips_shift, int ma_method, int applied_price, int mode, int shift)"
+  },
+  {
+    "name": "iBWMFI",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iBWMFI(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iBands",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "double deviation",
+      "int bands_shift",
+      "int applied_price",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iBands(string symbol, int timeframe, int period, double deviation, int bands_shift, int applied_price, int mode, int shift)"
+  },
+  {
+    "name": "iBandsOnArray",
+    "returnType": "double",
+    "params": [
+      "double array[]",
+      "int total",
+      "int period",
+      "double deviation",
+      "int bands_shift",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iBandsOnArray(double array[], int total, int period, double deviation, int bands_shift, int mode, int shift)"
+  },
+  {
+    "name": "iBarShift",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "datetime time",
+      "bool exact=false"
+    ],
+    "signature": "int iBarShift(string symbol, int timeframe, datetime time, bool exact=false)"
+  },
+  {
+    "name": "iBars",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "int timeframe"
+    ],
+    "signature": "int iBars(string symbol, int timeframe)"
+  },
+  {
+    "name": "iBearsPower",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iBearsPower(string symbol, int timeframe, int period, int applied_price, int shift)"
+  },
+  {
+    "name": "iBullsPower",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iBullsPower(string symbol, int timeframe, int period, int applied_price, int shift)"
+  },
+  {
+    "name": "iCCI",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iCCI(string symbol, int timeframe, int period, int applied_price, int shift)"
+  },
+  {
+    "name": "iCCIOnArray",
+    "returnType": "double",
+    "params": [
+      "double array[]",
+      "int total",
+      "int period",
+      "int shift"
+    ],
+    "signature": "double iCCIOnArray(double array[], int total, int period, int shift)"
+  },
+  {
+    "name": "iClose",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iClose(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iCustom",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "string name",
+      "... int mode",
+      "int shift"
+    ],
+    "signature": "double iCustom(string symbol, int timeframe, string name, ... int mode, int shift)"
+  },
+  {
+    "name": "iDeMarker",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int shift"
+    ],
+    "signature": "double iDeMarker(string symbol, int timeframe, int period, int shift)"
+  },
+  {
+    "name": "iEnvelopes",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int ma_period",
+      "int ma_method",
+      "int ma_shift",
+      "int applied_price",
+      "double deviation",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iEnvelopes(string symbol, int timeframe, int ma_period, int ma_method, int ma_shift, int applied_price, double deviation, int mode, int shift)"
+  },
+  {
+    "name": "iEnvelopesOnArray",
+    "returnType": "double",
+    "params": [
+      "double array[]",
+      "int total",
+      "int ma_period",
+      "int ma_method",
+      "int ma_shift",
+      "double deviation",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iEnvelopesOnArray(double array[], int total, int ma_period, int ma_method, int ma_shift, double deviation, int mode, int shift)"
+  },
+  {
+    "name": "iForce",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int ma_method",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iForce(string symbol, int timeframe, int period, int ma_method, int applied_price, int shift)"
+  },
+  {
+    "name": "iFractals",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iFractals(string symbol, int timeframe, int mode, int shift)"
+  },
+  {
+    "name": "iGator",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int jaw_period",
+      "int jaw_shift",
+      "int teeth_period",
+      "int teeth_shift",
+      "int lips_period",
+      "int lips_shift",
+      "int ma_method",
+      "int applied_price",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iGator(string symbol, int timeframe, int jaw_period, int jaw_shift, int teeth_period, int teeth_shift, int lips_period, int lips_shift, int ma_method, int applied_price, int mode, int shift)"
+  },
+  {
+    "name": "iHigh",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iHigh(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iHighest",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int type",
+      "int count",
+      "int start"
+    ],
+    "signature": "int iHighest(string symbol, int timeframe, int type, int count, int start)"
+  },
+  {
+    "name": "iIchimoku",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int tenkan_sen",
+      "int kijun_sen",
+      "int senkou_span_b",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iIchimoku(string symbol, int timeframe, int tenkan_sen, int kijun_sen, int senkou_span_b, int mode, int shift)"
+  },
+  {
+    "name": "iLow",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iLow(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iLowest",
+    "returnType": "int",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int type",
+      "int count",
+      "int start"
+    ],
+    "signature": "int iLowest(string symbol, int timeframe, int type, int count, int start)"
+  },
+  {
+    "name": "iMA",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int ma_period",
+      "int ma_shift",
+      "int ma_method",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iMA(string symbol, int timeframe, int ma_period, int ma_shift, int ma_method, int applied_price, int shift)"
+  },
+  {
+    "name": "iMACD",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int fast_ema_period",
+      "int slow_ema_period",
+      "int signal_period",
+      "int applied_price",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iMACD(string symbol, int timeframe, int fast_ema_period, int slow_ema_period, int signal_period, int applied_price, int mode, int shift)"
+  },
+  {
+    "name": "iMAOnArray",
+    "returnType": "double",
+    "params": [
+      "double array[]",
+      "int total",
+      "int ma_period",
+      "int ma_shift",
+      "int ma_method",
+      "int shift"
+    ],
+    "signature": "double iMAOnArray(double array[], int total, int ma_period, int ma_shift, int ma_method, int shift)"
+  },
+  {
+    "name": "iMFI",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int shift"
+    ],
+    "signature": "double iMFI(string symbol, int timeframe, int period, int shift)"
+  },
+  {
+    "name": "iMomentum",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iMomentum(string symbol, int timeframe, int period, int applied_price, int shift)"
+  },
+  {
+    "name": "iMomentumOnArray",
+    "returnType": "double",
+    "params": [
+      "double array[]",
+      "int total",
+      "int period",
+      "int shift"
+    ],
+    "signature": "double iMomentumOnArray(double array[], int total, int period, int shift)"
+  },
+  {
+    "name": "iOBV",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iOBV(string symbol, int timeframe, int applied_price, int shift)"
+  },
+  {
+    "name": "iOpen",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "double iOpen(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iOsMA",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int fast_ema_period",
+      "int slow_ema_period",
+      "int signal_period",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iOsMA(string symbol, int timeframe, int fast_ema_period, int slow_ema_period, int signal_period, int applied_price, int shift)"
+  },
+  {
+    "name": "iRSI",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iRSI(string symbol, int timeframe, int period, int applied_price, int shift)"
+  },
+  {
+    "name": "iRSIOnArray",
+    "returnType": "double",
+    "params": [
+      "double array[]",
+      "int total",
+      "int period",
+      "int shift"
+    ],
+    "signature": "double iRSIOnArray(double array[], int total, int period, int shift)"
+  },
+  {
+    "name": "iRVI",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iRVI(string symbol, int timeframe, int period, int mode, int shift)"
+  },
+  {
+    "name": "iSAR",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "double step",
+      "double maximum",
+      "int shift"
+    ],
+    "signature": "double iSAR(string symbol, int timeframe, double step, double maximum, int shift)"
+  },
+  {
+    "name": "iStdDev",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int ma_period",
+      "int ma_shift",
+      "int ma_method",
+      "int applied_price",
+      "int shift"
+    ],
+    "signature": "double iStdDev(string symbol, int timeframe, int ma_period, int ma_shift, int ma_method, int applied_price, int shift)"
+  },
+  {
+    "name": "iStdDevOnArray",
+    "returnType": "double",
+    "params": [
+      "double array[]",
+      "int total",
+      "int ma_period",
+      "int ma_shift",
+      "int ma_method",
+      "int shift"
+    ],
+    "signature": "double iStdDevOnArray(double array[], int total, int ma_period, int ma_shift, int ma_method, int shift)"
+  },
+  {
+    "name": "iStochastic",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int Kperiod",
+      "int Dperiod",
+      "int slowing",
+      "int method",
+      "int price_field",
+      "int mode",
+      "int shift"
+    ],
+    "signature": "double iStochastic(string symbol, int timeframe, int Kperiod, int Dperiod, int slowing, int method, int price_field, int mode, int shift)"
+  },
+  {
+    "name": "iTime",
+    "returnType": "datetime",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "datetime iTime(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iVolume",
+    "returnType": "long",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int shift"
+    ],
+    "signature": "long iVolume(string symbol, int timeframe, int shift)"
+  },
+  {
+    "name": "iWPR",
+    "returnType": "double",
+    "params": [
+      "string symbol",
+      "int timeframe",
+      "int period",
+      "int shift"
+    ],
+    "signature": "double iWPR(string symbol, int timeframe, int period, int shift)"
+  },
+  {
+    "name": "log",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double log(double val)"
+  },
+  {
+    "name": "log10",
+    "returnType": "double",
+    "params": [
+      "double val"
+    ],
+    "signature": "double log10(double val)"
+  },
+  {
+    "name": "pow",
+    "returnType": "double",
+    "params": [
+      "double base",
+      "double exponent"
+    ],
+    "signature": "double pow(double base, double exponent)"
+  },
+  {
+    "name": "rand",
+    "returnType": "int",
+    "params": [],
+    "signature": "int rand()"
+  },
+  {
+    "name": "round",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double round(double value)"
+  },
+  {
+    "name": "sin",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double sin(double value)"
+  },
+  {
+    "name": "sqrt",
+    "returnType": "double",
+    "params": [
+      "double value"
+    ],
+    "signature": "double sqrt(double value)"
+  },
+  {
+    "name": "srand",
+    "returnType": "void",
+    "params": [
+      "int seed"
+    ],
+    "signature": "void srand(int seed)"
+  },
+  {
+    "name": "tan",
+    "returnType": "double",
+    "params": [
+      "double rad"
+    ],
+    "signature": "double tan(double rad)"
+  }
+]

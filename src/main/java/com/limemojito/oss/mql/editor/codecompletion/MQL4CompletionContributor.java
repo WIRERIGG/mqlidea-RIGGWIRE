@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2026.  Lime Mojito Pty Ltd, Investflow.ru.
+ * Modified 2026 by RIGGWIRE Trading Systems (fork; see git history for changes).
  * This code is copyright under GPL3.  Please refer to the LICENSE.txt file in the base of this code repository.
  */
 
@@ -15,18 +16,28 @@ import com.intellij.patterns.PsiElementPattern;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiRecursiveElementVisitor;
 import com.intellij.util.ProcessingContext;
-import java.util.ArrayList;
-import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.MQL4Language;
-import com.limemojito.oss.mql.doc.DocEntry;
-import com.limemojito.oss.mql.doc.MQL4DocumentationProvider;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 
 import static com.intellij.patterns.PlatformPatterns.psiElement;
 
 /**
- * Code completion for MQL4 files.
+ * Code completion for MQL4/MQL5 files (REVAMP_PLAN.md Phase 6: "completion that knows the
+ * language"). Registration order matters here only in that the narrower contexts
+ * (comments/preprocessor/dot-member) are carved out of the general {@code filter} via
+ * {@code andNot} so the three general-purpose tiers below never fire somewhere they'd add noise
+ * (e.g. proposing global built-ins right after {@code tr.}):
+ *
+ * <ol>
+ *     <li>{@link MQL4LocalScopeCompletionProvider} -- locals/params in scope (highest priority)</li>
+ *     <li>{@link MQL4ProjectSymbolCompletionProvider} -- project-wide functions/classes</li>
+ *     <li>{@link MQL4BuiltinCompletionProvider} -- dialect-filtered built-ins + Std-Lib class names (lowest priority)</li>
+ * </ol>
+ *
+ * <p>Ranking between the three is enforced by {@code PrioritizedLookupElement} priorities on each
+ * provider's lookup elements, not by registration order (multiple providers can and do match the
+ * same position).</p>
  */
 public class MQL4CompletionContributor extends CompletionContributor {
 
@@ -38,36 +49,20 @@ public class MQL4CompletionContributor extends CompletionContributor {
         filter = PreprocessorPropertyCompletions.extend(this, filter);
         filter = PreprocessorIncludeCompletions.extend(this, filter);
 
-        extend(CompletionType.BASIC, filter, new MQL4KeywordCompletionProvider());
-        extend(CompletionType.BASIC, filter, new MQL4IdentifiersCompletionProvider());
+        PsiElementPattern.Capture<PsiElement> afterDot = mql4().afterLeaf(psiElement().withElementType(MQL4Elements.DOT));
+        extend(CompletionType.BASIC, afterDot, new MQL4StdLibMemberCompletionProvider());
+        filter = filter.andNot(afterDot);
+
+        extend(CompletionType.BASIC, filter, new MQL4LocalScopeCompletionProvider());
+        extend(CompletionType.BASIC, filter, new MQL4ProjectSymbolCompletionProvider());
+        extend(CompletionType.BASIC, filter, new MQL4BuiltinCompletionProvider());
     }
 
     /**
-     * Cached keyword completions
-     */
-    private static final List<LookupElementBuilder> KEYWORD_COMPLETIONS = new ArrayList<>();
-
-    private static List<LookupElementBuilder> getKeywordCompletions() {
-        if (KEYWORD_COMPLETIONS.isEmpty()) {
-            for (DocEntry e : MQL4DocumentationProvider.getEntries()) {
-                KEYWORD_COMPLETIONS.add(LookupElementBuilder.create(e.text));
-            }
-        }
-        return KEYWORD_COMPLETIONS;
-    }
-
-    /**
-     * Adds to completion all MQL4 keywords, built-in constants and function names.
-     */
-    private static class MQL4KeywordCompletionProvider extends CompletionProvider<CompletionParameters> {
-        @Override
-        protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
-            getKeywordCompletions().forEach(result::addElement);
-        }
-    }
-
-    /**
-     * Adds to completion all named identifiers from file.
+     * Adds to completion all named identifiers from file. Retained only for the
+     * comment/string/preprocessor-value contexts wired up by {@link CommentsCompletions} and
+     * friends, where a plain-text word list (rather than typed symbol completion) is exactly
+     * right -- normal code positions now go through the three providers above.
      */
     public static class MQL4IdentifiersCompletionProvider extends CompletionProvider<CompletionParameters> {
         @Override

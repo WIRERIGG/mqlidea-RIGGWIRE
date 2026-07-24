@@ -115,6 +115,8 @@
         <lang.foldingBuilder language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4FoldingBuilder"/>
         <completion.contributor language="MQL4"
                                 implementationClass="com.limemojito.oss.mql.editor.codecompletion.MQL4CompletionContributor"/>
+        <codeInsight.parameterInfo language="MQL4"
+                                   implementationClass="com.limemojito.oss.mql.editor.parameterinfo.MQL4ParameterInfoHandler"/>
 
         <!-- sdk -->
         <sdkType implementation="com.limemojito.oss.mql.sdk.MQL4SdkType"/>

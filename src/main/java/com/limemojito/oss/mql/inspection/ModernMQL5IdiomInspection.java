@@ -36,6 +36,16 @@ public class ModernMQL5IdiomInspection extends MQL5SafetyInspectionBase {
             Map.entry("AccountNumber", "AccountInfoInteger(ACCOUNT_LOGIN)")
     );
 
+    /**
+     * The MQL4-only function names this inspection already knows are gone in MQL5, exposed so
+     * completion (REVAMP_PLAN.md Phase 6) can reuse the exact same set for dialect filtering
+     * instead of re-deriving it. See {@link com.limemojito.oss.mql.MqlBuiltinDialect}.
+     */
+    @NotNull
+    public static java.util.Set<String> deprecatedMql4OnlyFunctionNames() {
+        return DEPRECATED_FUNCS.keySet();
+    }
+
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         if (!file.getName().toLowerCase().endsWith(".mq5")) return ProblemDescriptor.EMPTY_ARRAY;

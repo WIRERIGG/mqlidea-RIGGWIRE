@@ -13,6 +13,7 @@ import com.intellij.lang.documentation.DocumentationProviderEx;
 import com.intellij.lang.documentation.ExternalDocumentationHandler;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -28,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4DocLookupElement;
 import com.limemojito.oss.mql.settings.MQL4PluginSettings;
+import com.limemojito.oss.mql.util.TextUtils;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -93,6 +95,14 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
     @Nullable
     @Override
     public String getQuickNavigateInfo(PsiElement element, PsiElement originalElement) {
+        if (element instanceof com.limemojito.oss.mql.psi.impl.MQL4FunctionElement function) {
+            String args = TextUtils.simplify(function.getSignature());
+            return escape(function.getFunctionName()) + "(" + escape(args == null ? "" : args) + ")"
+                    + locationSuffix(function.getContainingFile());
+        }
+        if (element instanceof com.limemojito.oss.mql.psi.impl.MQL4ClassElement cls) {
+            return escape(cls.getClassType().name().toLowerCase() + " " + cls.getTypeName()) + locationSuffix(cls.getContainingFile());
+        }
         return null;
     }
 
@@ -105,6 +115,12 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
     @Nullable
     @Override
     public String generateDoc(PsiElement element, @Nullable PsiElement originalElement) {
+        if (element instanceof com.limemojito.oss.mql.psi.impl.MQL4FunctionElement function) {
+            return generateFunctionDoc(function);
+        }
+        if (element instanceof com.limemojito.oss.mql.psi.impl.MQL4ClassElement cls) {
+            return generateClassDoc(cls);
+        }
         String link = getLinkByElementText(element != null ? element : originalElement);
         return link == null ? null : generateDocByLink(link);
     }
@@ -209,5 +225,86 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
 
     public String getDocsLanguage() {
         return MQL4PluginSettings.getInstance().isUseEnDocs() ? "en" : "ru";
+    }
+
+    // ---- Project-symbol quick-doc (REVAMP_PLAN.md Phase 6, deliverable 5) ---------------------
+
+    @NotNull
+    private String generateFunctionDoc(@NotNull com.limemojito.oss.mql.psi.impl.MQL4FunctionElement function) {
+        StringBuilder html = new StringBuilder();
+        html.append("<div class='definition'><pre>");
+        String args = com.limemojito.oss.mql.util.TextUtils.simplify(function.getSignature());
+        html.append(escape(function.getFunctionName())).append('(').append(escape(args == null ? "" : args)).append(')');
+        html.append("</pre></div>");
+        appendDocCommentAndLocation(html, function, function.getContainingFile());
+        return html.toString();
+    }
+
+    @NotNull
+    private String generateClassDoc(@NotNull com.limemojito.oss.mql.psi.impl.MQL4ClassElement cls) {
+        StringBuilder html = new StringBuilder();
+        html.append("<div class='definition'><pre>");
+        html.append(escape(cls.getClassType().name().toLowerCase())).append(' ').append(escape(cls.getTypeName()));
+        html.append("</pre></div>");
+        appendDocCommentAndLocation(html, cls, cls.getContainingFile());
+        return html.toString();
+    }
+
+    private void appendDocCommentAndLocation(@NotNull StringBuilder html, @NotNull PsiElement declaration, @NotNull PsiFile containingFile) {
+        String docComment = findPrecedingDocComment(declaration);
+        if (docComment != null) {
+            html.append("<div class='content'>").append(escape(docComment)).append("</div>");
+        }
+        html.append("<table class='sections'><tr><td valign='top' class='section'>Declared in:</td><td>")
+                .append(escape(containingFile.getName())).append("</td></tr></table>");
+    }
+
+    @NotNull
+    private String locationSuffix(@NotNull PsiFile containingFile) {
+        return " — " + containingFile.getName();
+    }
+
+    /**
+     * Contiguous comment lines directly above {@code declaration} (no blank-line gap), stripped
+     * of comment markers -- a best-effort "doc comment" since MQL has no dedicated doc-comment
+     * syntax/PSI to key off (unlike e.g. Javadoc). Returns {@code null} if there is none.
+     */
+    @Nullable
+    private String findPrecedingDocComment(@NotNull PsiElement declaration) {
+        java.util.List<PsiElement> comments = new java.util.ArrayList<>();
+        PsiElement prev = declaration.getPrevSibling();
+        while (prev != null) {
+            if (prev instanceof PsiComment) {
+                comments.add(0, prev);
+                prev = prev.getPrevSibling();
+            } else if (prev instanceof com.intellij.psi.PsiWhiteSpace && !prev.getText().contains("\n\n")) {
+                prev = prev.getPrevSibling();
+            } else {
+                break;
+            }
+        }
+        if (comments.isEmpty()) {
+            return null;
+        }
+        StringBuilder text = new StringBuilder();
+        for (PsiElement comment : comments) {
+            String stripped = comment.getText()
+                    .replaceFirst("^/\\*+", "")
+                    .replaceFirst("\\*+/$", "")
+                    .replaceFirst("^//+", "")
+                    .strip();
+            if (!stripped.isEmpty()) {
+                if (text.length() > 0) {
+                    text.append('\n');
+                }
+                text.append(stripped);
+            }
+        }
+        return text.length() == 0 ? null : text.toString();
+    }
+
+    @NotNull
+    private static String escape(@NotNull String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }
