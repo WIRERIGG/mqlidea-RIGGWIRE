@@ -699,6 +699,44 @@ final class StatementAst implements MQL4Elements {
         return null;
     }
 
+    /**
+     * True when a copy/resize {@code call}'s return value is validated in {@code body} by any of the
+     * three legitimate MQL idioms: a literal failure check ({@code <0}/{@code ==-1}/GetLastError —
+     * {@link #hasFailureReturnCheck}); the call compared inline ({@code if(CopyBuffer(...) < count)}
+     * — {@link #callResultCompared}); OR — the common case — the result captured into a variable
+     * that is compared somewhere in the function ({@code int n = CopyBuffer(...); if(n < rates_total)}).
+     * The third idiom is why these inspections must not treat a captured-then-checked call as unchecked.
+     */
+    static boolean callReturnChecked(@Nullable ASTNode body, @NotNull ASTNode callIdentifier) {
+        if (hasFailureReturnCheck(body) || callResultCompared(callIdentifier)) {
+            return true;
+        }
+        String resultVar = assignmentTargetName(callIdentifier);
+        return resultVar != null && identifierIsComparedOperand(body, resultVar);
+    }
+
+    /**
+     * True when an {@code IDENTIFIER} token named {@code name} is an immediate operand of a
+     * comparison ({@code < <= > >= == !=}) anywhere in {@code root} — i.e. the variable's value is
+     * range/failure-tested (e.g. {@code copied < rates_total}, {@code n >= 1}, {@code r == -1}).
+     */
+    static boolean identifierIsComparedOperand(@Nullable ASTNode root, @NotNull String name) {
+        if (root == null) return false;
+        for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (FAILURE_COMPARISON_OPERATORS.contains(child.getElementType())) {
+                ASTNode prev = prevNonTrivia(child);
+                ASTNode next = nextNonTrivia(child);
+                if ((prev != null && prev.getElementType() == IDENTIFIER && name.equals(prev.getText()))
+                        || (next != null && next.getElementType() == IDENTIFIER && name.equals(next.getText()))) {
+                    return true;
+                }
+            }
+            if (identifierIsComparedOperand(child, name)) return true;
+        }
+        return false;
+    }
+
     /** True when an {@code IDENTIFIER} token is directly followed by {@code [} — an array index access. */
     static boolean hasArrayAccess(@Nullable ASTNode root) {
         return findArrayAccess(root) != null;
@@ -884,6 +922,9 @@ final class StatementAst implements MQL4Elements {
     private static final TokenSet CALL_HOSTING_STATEMENTS =
             TokenSet.create(EXPRESSION_STATEMENT, VAR_DECLARATION_STATEMENT);
 
+    /** The plain assignment operator '=' (not '==' EQ_EQ, not '+=' PLUS_EQ). */
+    private static final TokenSet EQ_TOKEN = TokenSet.create(EQ);
+
     /**
      * The enclosing {@code EXPRESSION_STATEMENT} or {@code VAR_DECLARATION_STATEMENT} of {@code node}
      * (the innermost one), or null — the unit a quick fix inserts after / rewrites.
@@ -913,19 +954,23 @@ final class StatementAst implements MQL4Elements {
 
     /**
      * The identifier a value is assigned to in {@code callIdentifier}'s enclosing statement — the LHS
-     * of the first {@code =} in an {@code int h = iMA(...);} declaration or an {@code h = iMA(...);}
-     * assignment — or null if the call is not the RHS of a simple assignment.
+     * of the {@code =} this call's value is assigned to, for both an {@code h = iMA(...);} assignment
+     * (the {@code =} is a direct sibling) and an {@code int copied = CopyBuffer(...);} declaration
+     * (the name and {@code =} live inside a nested {@code VAR_DEFINITION}). Found by scanning
+     * preceding siblings up the call's ancestor chain, bounded to the statement, for the nearest
+     * {@code =}. Null if the call is not the RHS of a simple assignment.
      */
     @Nullable
     static String assignmentTargetName(@NotNull ASTNode callIdentifier) {
         ASTNode stmt = enclosingStatement(callIdentifier);
         if (stmt == null) return null;
-        for (ASTNode child = stmt.getFirstChildNode(); child != null; child = child.getTreeNext()) {
-            if (child.getElementType() == EQ) {
-                ASTNode lhs = prevNonTrivia(child);
-                return (lhs != null && lhs.getElementType() == IDENTIFIER) ? lhs.getText() : null;
-            }
-        }
-        return null;
+        // The lone '=' (assignment) — for `h = iMA(...)` it is a direct child; for the declaration
+        // `int copied = CopyBuffer(...)` it is nested inside VAR_DEFINITION_LIST > VAR_DEFINITION,
+        // while the call is a flat sibling after it. In both, the assigned name is the identifier
+        // immediately before that '='. ('==' is EQ_EQ, '+=' is PLUS_EQ — neither matches EQ.)
+        ASTNode eq = findDescendant(stmt, EQ_TOKEN);
+        if (eq == null) return null;
+        ASTNode lhs = prevNonTrivia(eq);
+        return (lhs != null && lhs.getElementType() == IDENTIFIER) ? lhs.getText() : null;
     }
 }

@@ -273,6 +273,22 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "  for(int i = 0; i < 10; i++) { buf[i] = 0.0; } }");
     }
 
+    public void testUncheckedCopyRatesCapturedResultCheckedClean() {
+        // The dominant real-world idiom (ST_TrendMeasure.mq5:109/114): capture the copied count and
+        // compare it against a count identifier. This is a valid check and must NOT be flagged.
+        assertNoProblems(new UncheckedCopyRatesInspection(),
+                "int f(int rates_total) { double st1[];\n" +
+                "  int copied1 = CopyBuffer(handle, 7, 0, rates_total, st1);\n" +
+                "  if(copied1 < rates_total) return 0;\n" +
+                "  return rates_total; }");
+    }
+
+    public void testUncheckedCopyRatesCapturedResultUncheckedStillFlagged() {
+        // Captured but never compared anywhere — genuinely unchecked, must still flag.
+        assertHasProblems(new UncheckedCopyRatesInspection(),
+                "void foo() { double buf[]; int n = CopyBuffer(handle, 0, 0, 10, buf); Print(n); }");
+    }
+
     public void testDoubleIndicatorRelease() {
         assertHasProblems(new DoubleIndicatorReleaseInspection(),
                 "void OnDeinit(const int reason) { IndicatorRelease(h); IndicatorRelease(h); }",

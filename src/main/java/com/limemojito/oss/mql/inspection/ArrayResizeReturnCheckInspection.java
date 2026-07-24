@@ -30,8 +30,7 @@ public class ArrayResizeReturnCheckInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 ASTNode call = StatementAst.findCall(body, "ArrayResize");
-                if (call != null && !StatementAst.hasFailureReturnCheck(body)
-                        && !StatementAst.callResultCompared(call)) {
+                if (call != null && !StatementAst.callReturnChecked(body, call)) {
                     PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
                     if (StatementAst.isBareCallStatement(call)) {
                         problems.add(createWarning(manager, anchor, MESSAGE, new WrapCallInFailureCheckFix(call.getText())));

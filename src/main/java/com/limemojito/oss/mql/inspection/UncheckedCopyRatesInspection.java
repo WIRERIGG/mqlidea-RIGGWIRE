@@ -30,8 +30,7 @@ public class UncheckedCopyRatesInspection extends MQL5SafetyInspectionBase {
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 ASTNode call = StatementAst.findAnyCall(body, MQL5_COPY_FUNCS);
-                if (call != null && !StatementAst.hasFailureReturnCheck(body)
-                        && !StatementAst.callResultCompared(call)) {
+                if (call != null && !StatementAst.callReturnChecked(body, call)) {
                     PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
                     // Offer the wrap-in-check fix only for a bare call statement (safe to rewrite).
                     if (StatementAst.isBareCallStatement(call)) {
