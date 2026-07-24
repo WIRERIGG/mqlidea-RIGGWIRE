@@ -42,20 +42,22 @@
                  sites project-wide.</li>
              <li><code>#include "X.mqh"</code> and <code>#include &lt;Trade/Trade.mqh&gt;</code> are
                  navigable links.</li>
-             <li>Quick documentation in English and Russian (see settings).</li>
+             <li>Parameter info (Ctrl-P) for built-in and project functions, and quick documentation
+                 (English &amp; Russian, plus your own doc comments).</li>
              <li>MQL-specific code-safety inspections (trading/handle/lifecycle), on by default; style inspections opt-in.</li>
              <li>Code formatting (Reformat Code, indent-on-Enter) with a configurable,
                  MetaEditor-compatible default style (Settings &gt; Code Style &gt; MQL4).</li>
+             <li>Inline MetaEditor compiler diagnostics on save &mdash; real compiler errors/warnings as
+                 editor squiggles (macOS via the <code>mt5</code> wrapper; other platforms planned).</li>
            </ul>
          </p>
          <p>
            <b>Not yet supported:</b>
            <ul>
              <li>Safe-delete refactoring</li>
-             <li>Member access resolution (<code>obj.field</code> / <code>obj.Method()</code>) --
+             <li>Member access resolution (<code>obj.field</code> / <code>obj.Method()</code>) &mdash;
                  needs type inference, planned for a later phase</li>
-             <li>Built-in functions/constants resolve as "known", not yet to browsable documentation PSI</li>
-             <li>Inline compiler diagnostics and debugging</li>
+             <li>Inline compiler diagnostics on Windows/Linux (macOS/Wine only for now) and debugging</li>
            </ul>
          </p>
          ]]>
@@ -63,9 +65,25 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.0 &ndash; major revamp</b> (see docs/REVAMP_PLAN.md). RIGGWIRE MQL is now
+               focused on honest, everyday help for MQL4/MQL5 projects, especially catching errors early.</p>
+            <p><b>New:</b></p>
             <ul>
-             <li>2026.1.0 &ndash; RIGGWIRE MQL: rebrand of the Lime Mojito / investflow.ru mqlidea fork. Revamp in progress (see docs/REVAMP_PLAN.md): trimmed the default inspection profile to the MQL-specific safety set (style checks now opt-in), fixed dialect handling for .mqh headers, and removed the unsupported AI-fix apply surface.</li>
+             <li>Inline MetaEditor compiler diagnostics on save (macOS via <code>mt5</code>).</li>
+             <li>Go-to-declaration, Find Usages and Rename across files (including <code>#include</code>),
+                 with navigable <code>#include</code> links.</li>
+             <li>Language-aware completion (dialect-filtered), parameter info (Ctrl-P) with real signatures,
+                 quick-doc for your own functions/classes, and a bundled MQL5 Standard Library catalog.</li>
+             <li>Code formatting + Code Style settings.</li>
+             <li>All code-safety inspections are now AST-based (far fewer false positives); the default
+                 profile is the MQL-specific safety set, with style checks opt-in.</li>
             </ul>
+            <p><b>Removed:</b> the AI "code healing" pipeline (Grok/Claude fix generation, the SQLite
+               database, the healing tool window, and the "Apply AI fix" button). It generated fixes that
+               governance forbade applying and that were never compile-verified; none were ever applied.
+               If you used it, an AI-free <i>Tools &gt; Generate MQL Inspection Catalog</i> action still writes
+               a triage document of current inspection findings. You can delete any old
+               <code>.idea/mql-healing.db</code>.</p>
          ]]>
     </change-notes>
 
