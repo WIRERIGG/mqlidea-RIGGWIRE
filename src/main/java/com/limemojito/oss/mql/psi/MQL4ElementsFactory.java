@@ -79,6 +79,14 @@ public class MQL4ElementsFactory implements MQL4Elements {
         if (!VALID_IDENTIFIER.matcher(name).matches()) {
             throw new IncorrectOperationException("Not a valid MQL identifier: " + name);
         }
+        // P2.7: refuse to rename to a documented built-in function/type/constant — it would shadow
+        // the MQL API symbol (and silently break the code). Language keywords are already rejected
+        // below, because the throwaway parse tokenises them as keywords, not an IDENTIFIER.
+        com.limemojito.oss.mql.doc.DocEntry builtin =
+                com.limemojito.oss.mql.doc.MQL4DocumentationProvider.getEntryByText(name);
+        if (builtin != null) {
+            throw new IncorrectOperationException("'" + name + "' is a built-in MQL symbol and cannot be used as a name");
+        }
         PsiFile dummyFile = PsiFileFactory.getInstance(project)
                 .createFileFromText("_mql4_rename_dummy_.mq4", MQL4Language.INSTANCE, "void " + name + "(){}");
         MQL4FunctionElement function = PsiTreeUtil.findChildOfType(dummyFile, MQL4FunctionElement.class);

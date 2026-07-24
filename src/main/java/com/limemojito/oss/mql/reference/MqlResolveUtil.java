@@ -11,6 +11,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.CachedValueProvider;
+import com.intellij.psi.util.CachedValuesManager;
+import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.index.MQL4ClassNameIndex;
@@ -213,9 +216,19 @@ public final class MqlResolveUtil {
     /**
      * Every file reachable from {@code root} by following #include chains, transitively, with a
      * visited-set cycle guard. Always includes {@code root} itself.
+     *
+     * <p>P1.3: cached on {@code root} (invalidated on any PSI change) so the multi-file #include BFS
+     * isn't rebuilt on every identifier Ctrl-click/highlight/annotation pass — the biggest resolve
+     * cost on projects that include the MQL5 Standard Library.
      */
     @NotNull
     private static Set<PsiFile> includeClosure(@NotNull PsiFile root) {
+        return CachedValuesManager.getCachedValue(root, () ->
+                CachedValueProvider.Result.create(computeIncludeClosure(root), PsiModificationTracker.MODIFICATION_COUNT));
+    }
+
+    @NotNull
+    private static Set<PsiFile> computeIncludeClosure(@NotNull PsiFile root) {
         Set<PsiFile> visited = new LinkedHashSet<>();
         Deque<PsiFile> queue = new ArrayDeque<>();
         visited.add(root);
