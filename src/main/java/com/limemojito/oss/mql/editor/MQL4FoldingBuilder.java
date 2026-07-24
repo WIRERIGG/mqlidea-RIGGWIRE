@@ -23,7 +23,8 @@ import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
 /**
- * MQL4 code folding. Supports folding of comments only today.
+ * MQL4 code folding: line/block comments, {@code {...}} code blocks, class bodies
+ * ({@code CLASS_INNER_BLOCK}) and enum bodies.
  */
 public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
     @NotNull
@@ -49,6 +50,17 @@ public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
             if (!isNestedBlock(node)) {
                 int startOffset = node.getFirstChildNode().getTextRange().getStartOffset();
                 int endOffset = node.getLastChildNode().getTextRange().getEndOffset() - 1;
+                if (document.getLineNumber(startOffset) != document.getLineNumber(endOffset)) {
+                    descriptors.add(new FoldingDescriptor(node, new TextRange(startOffset, endOffset)));
+                }
+            }
+        } else if (type == MQL4Elements.CLASS_INNER_BLOCK) {
+            // P3: the class body is a CLASS_INNER_BLOCK, not a BRACKETS_BLOCK, so it wasn't foldable.
+            ASTNode lBrace = node.findChildByType(MQL4Elements.L_CURLY_BRACKET);
+            ASTNode rBrace = node.findChildByType(MQL4Elements.R_CURLY_BRACKET);
+            if (lBrace != null && rBrace != null) {
+                int startOffset = lBrace.getTextRange().getStartOffset();
+                int endOffset = rBrace.getTextRange().getEndOffset() - 1;
                 if (document.getLineNumber(startOffset) != document.getLineNumber(endOffset)) {
                     descriptors.add(new FoldingDescriptor(node, new TextRange(startOffset, endOffset)));
                 }

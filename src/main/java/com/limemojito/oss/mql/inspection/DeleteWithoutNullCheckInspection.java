@@ -41,7 +41,17 @@ public class DeleteWithoutNullCheckInspection extends MQL5SafetyInspectionBase {
                 if (deleteNode != null) {
                     if (!StatementAst.hasNullComparison(body)
                             && !StatementAst.hasIdentifier(body, "CheckPointer")) {
-                        problems.add(createWeakWarning(manager, StatementAst.anchor(deleteNode, child.getNavigationElement()), MESSAGE));
+                        // Only offer the "null it after delete" quick fix for a bare `delete ptr;` —
+                        // an array-element delete (`delete arr[i];`) has no single pointer variable
+                        // to null out, so bareDeletedIdentifier() returns null and we fall back to
+                        // the plain (fix-less) warning rather than guessing at what to insert.
+                        ASTNode statement = deleteNode.getTreeParent();
+                        ASTNode idNode = statement != null ? StatementAst.bareDeletedIdentifier(statement) : null;
+                        ProblemDescriptor problem = idNode != null
+                                ? createWeakWarning(manager, StatementAst.anchor(deleteNode, child.getNavigationElement()), MESSAGE,
+                                        new NullifyAfterDeleteFix(idNode.getText()))
+                                : createWeakWarning(manager, StatementAst.anchor(deleteNode, child.getNavigationElement()), MESSAGE);
+                        problems.add(problem);
                     }
                 }
             }

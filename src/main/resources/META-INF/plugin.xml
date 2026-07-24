@@ -128,7 +128,7 @@
                   implementationClass="com.limemojito.oss.mql.MQL5FileType"
                   fieldName="INSTANCE"
                   language="MQL4"
-                  extensions="mq5;mqh;mql5"
+                  extensions="mq5;mql5"
         />
 
         <lang.parserDefinition language="MQL4"
@@ -136,6 +136,7 @@
         <lang.syntaxHighlighterFactory language="MQL4"
                                        implementationClass="com.limemojito.oss.mql.editor.MQL4SyntaxHighlighter$MQL4SyntaxHighlighterFactory"/>
         <colorSettingsPage implementation="com.limemojito.oss.mql.editor.MQL4ColorSettingsPage"/>
+        <lang.quoteHandler language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4QuoteHandler"/>
         <lang.commenter language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MQL4Commenter"/>
         <lang.documentationProvider language="MQL4"
                                     implementationClass="com.limemojito.oss.mql.doc.MQL4DocumentationProvider"/>

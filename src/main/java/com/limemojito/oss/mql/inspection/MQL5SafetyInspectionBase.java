@@ -9,6 +9,7 @@ package com.limemojito.oss.mql.inspection;
 import com.intellij.codeInspection.CustomSuppressableInspectionTool;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
+import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.SuppressIntentionAction;
@@ -272,6 +273,19 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
                 ProblemHighlightType.WARNING, onTheFly);
     }
 
+    /**
+     * Warning variant carrying one or more {@link LocalQuickFix}es (onTheFly always true — the
+     * fixes are only meaningful for the interactive/editor case).
+     */
+    @NotNull
+    protected ProblemDescriptor createWarning(@NotNull InspectionManager manager,
+                                              @NotNull PsiElement element,
+                                              @NotNull String message,
+                                              @NotNull LocalQuickFix... fixes) {
+        return manager.createProblemDescriptor(element, element, message,
+                ProblemHighlightType.WARNING, true, fixes);
+    }
+
     @NotNull
     protected ProblemDescriptor createWeakWarning(@NotNull InspectionManager manager,
                                                   @NotNull PsiElement element,
@@ -286,6 +300,19 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
                                                   boolean onTheFly) {
         return manager.createProblemDescriptor(element, element, message,
                 ProblemHighlightType.WEAK_WARNING, onTheFly);
+    }
+
+    /**
+     * Weak-warning variant carrying one or more {@link LocalQuickFix}es (onTheFly always true —
+     * the fixes are only meaningful for the interactive/editor case).
+     */
+    @NotNull
+    protected ProblemDescriptor createWeakWarning(@NotNull InspectionManager manager,
+                                                  @NotNull PsiElement element,
+                                                  @NotNull String message,
+                                                  @NotNull LocalQuickFix... fixes) {
+        return manager.createProblemDescriptor(element, element, message,
+                ProblemHighlightType.WEAK_WARNING, true, fixes);
     }
 
     protected boolean isEventHandler(@NotNull MQL4FunctionElement function) {

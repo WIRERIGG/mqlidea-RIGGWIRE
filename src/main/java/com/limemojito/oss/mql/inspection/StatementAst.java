@@ -446,6 +446,23 @@ final class StatementAst implements MQL4Elements {
     }
 
     /**
+     * Stricter form of {@link #deletedIdentifier} for callers (quick fixes) that must be certain
+     * the deleted pointer is a single plain variable — not just excluding the {@code [} case
+     * {@link #deletedIdentifier} already excludes, but requiring the identifier be directly
+     * followed by the statement's closing {@code ';'} with nothing else in between. This also
+     * covers {@code delete arr[i];}, whose {@code [i]} is parsed as a nested {@code BRACKETS_BLOCK}
+     * sibling (not the raw {@code L_SQUARE_BRACKET} token {@link #deletedIdentifier} checks for),
+     * so that exclusion alone does not actually fire for it.
+     */
+    @Nullable
+    static ASTNode bareDeletedIdentifier(@NotNull ASTNode statement) {
+        ASTNode id = deletedIdentifier(statement);
+        if (id == null) return null;
+        ASTNode after = nextNonTrivia(id);
+        return (after != null && after.getElementType() == SEMICOLON) ? id : null;
+    }
+
+    /**
      * Space-joined text of every non-trivia leaf token under {@code root}, excluding string/char
      * literal content — for coarse keyword-substring heuristics (e.g. "does this body mention
      * 'retry' or 'MAX_DEPTH' anywhere") that aren't naturally a call/identifier/statement shape.

@@ -37,12 +37,10 @@ public class MQL4ClassElementStubType extends ILightStubElementType<MQL4ClassEle
     @NotNull
     @Override
     public MQL4ClassElementStub createStub(@NotNull LighterAST tree, @NotNull LighterASTNode node, @NotNull StubElement parentStub) {
+        // Malformed (nameless) class: use an empty key rather than returning null — createStub is
+        // @NotNull by contract and a null return can break stub indexing on incomplete code.
         LighterASTNode keyNode = LightTreeUtil.firstChildOfType(tree, node, MQL4Elements.IDENTIFIER);
-        if (keyNode == null) {
-            //TODO: fix
-            return null;
-        }
-        String key = ((LighterASTTokenNode) keyNode).getText().toString();
+        String key = keyNode == null ? "" : ((LighterASTTokenNode) keyNode).getText().toString();
 
         LighterASTNode typeNode = LightTreeUtil.firstChildOfType(tree, node, MQL4TokenSets.CLASS_STRUCT_INTERFACE);
         ClassType classType = ClassType.fromTokenType(typeNode == null ? MQL4Elements.CLASS_KEYWORD : typeNode.getTokenType());

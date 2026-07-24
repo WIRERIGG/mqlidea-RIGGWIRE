@@ -8,7 +8,11 @@ package parser;
 
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
+import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.codeInspection.QuickFix;
+import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import com.limemojito.oss.mql.inspection.*;
@@ -62,6 +66,25 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         ProblemDescriptor[] problems = runInspection(inspection, code);
         // Just verify the inspection runs without throwing exceptions
         // problems may be null or empty — that's fine
+    }
+
+    /**
+     * Runs {@code inspection} over {@code code}, applies the first quick fix of the first problem
+     * found, and returns the resulting file text. Fails the test if there is no problem or no fix.
+     */
+    private String applyFirstQuickFix(LocalInspectionTool inspection, String code, String fileName) {
+        PsiFile file = myFixture.configureByText(fileName, code);
+        InspectionManager manager = InspectionManager.getInstance(getProject());
+        ProblemDescriptor[] problems = inspection.checkFile(file, manager, false);
+        assertNotNull("checkFile returned null for " + inspection.getClass().getSimpleName(), problems);
+        assertTrue("Expected problems from " + inspection.getClass().getSimpleName(), problems.length > 0);
+        QuickFix<?>[] fixes = problems[0].getFixes();
+        assertNotNull("Expected quick fixes on the first problem from " + inspection.getClass().getSimpleName(), fixes);
+        assertTrue("Expected at least one quick fix from " + inspection.getClass().getSimpleName(), fixes.length > 0);
+        LocalQuickFix fix = (LocalQuickFix) fixes[0];
+        WriteCommandAction.runWriteCommandAction(getProject(), () -> fix.applyFix(getProject(), problems[0]));
+        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+        return file.getText();
     }
 
     // ===== Trading Safety =====
@@ -165,6 +188,26 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testDeleteWithNullCheck() {
         assertNoProblems(new DeleteWithoutNullCheckInspection(),
                 "void foo() { if(ptr != NULL) delete ptr; }");
+    }
+
+    public void testDeleteWithoutNullCheckQuickFixInsertsNullAssignment() {
+        String result = applyFirstQuickFix(new DeleteWithoutNullCheckInspection(),
+                "void foo() { delete ptr; }", "test.mq4");
+        assertTrue("Expected 'ptr = NULL;' inserted after the delete statement:\n" + result,
+                result.contains("delete ptr;\nptr = NULL;"));
+    }
+
+    public void testDeleteWithoutNullCheckArrayElementHasNoQuickFix() {
+        // delete arr[i]; has no single pointer variable to null out — the fix must not be offered
+        // rather than guessing at what to insert.
+        PsiFile file = myFixture.configureByText("test.mq4", "void foo() { delete arr[i]; }");
+        InspectionManager manager = InspectionManager.getInstance(getProject());
+        ProblemDescriptor[] problems = new DeleteWithoutNullCheckInspection().checkFile(file, manager, false);
+        assertNotNull(problems);
+        assertTrue(problems.length > 0);
+        QuickFix<?>[] fixes = problems[0].getFixes();
+        assertTrue("Array-element delete must not offer the nullify-pointer fix",
+                fixes == null || fixes.length == 0);
     }
 
     // ===== Function Signature =====
@@ -518,6 +561,26 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testNullAfterDeleteClean() {
         assertNoProblems(new NullAfterDeleteInspection(),
                 "void foo() { delete ptr; ptr = NULL; }");
+    }
+
+    public void testNullAfterDeleteQuickFixInsertsNullAssignment() {
+        String result = applyFirstQuickFix(new NullAfterDeleteInspection(),
+                "void foo() { delete ptr; }", "test.mq4");
+        assertTrue("Expected 'ptr = NULL;' inserted after the delete statement:\n" + result,
+                result.contains("delete ptr;\nptr = NULL;"));
+    }
+
+    public void testNullAfterDeleteArrayElementHasNoQuickFix() {
+        // delete arr[i]; has no single pointer variable to null out — the fix must not be offered
+        // rather than inserting a nonsensical 'arr = NULL;' wiping out the whole array reference.
+        PsiFile file = myFixture.configureByText("test.mq4", "void foo() { delete arr[i]; }");
+        InspectionManager manager = InspectionManager.getInstance(getProject());
+        ProblemDescriptor[] problems = new NullAfterDeleteInspection().checkFile(file, manager, false);
+        assertNotNull(problems);
+        assertTrue(problems.length > 0);
+        QuickFix<?>[] fixes = problems[0].getFixes();
+        assertTrue("Array-element delete must not offer the nullify-pointer fix",
+                fixes == null || fixes.length == 0);
     }
 
     public void testIndicatorCreationInOnTick() {
