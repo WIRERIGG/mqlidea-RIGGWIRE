@@ -549,7 +549,6 @@
 
         <!-- MQL Problems Logger -->
         <projectService serviceImplementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerService"/>
-        <postStartupActivity implementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerStartupActivity"/>
 
         <!-- Phase 2 (REVAMP_PLAN.md): the AI-healing subsystem (Grok/Claude clients, SQLite
              database, healing service, tool window, and apply surface removed in Phase 0) has
@@ -601,5 +600,20 @@
         <lang.findUsagesProvider language="MQL4" implementationClass="com.limemojito.oss.mql.findusages.MqlFindUsagesProvider"/>
         <lang.refactoringSupport language="MQL4" implementationClass="com.limemojito.oss.mql.refactoring.MqlRefactoringSupportProvider"/>
 
+        <!-- Phase 1 (REVAMP_PLAN.md): gutter icons, usage highlighting, names validator -->
+        <codeInsight.lineMarkerProvider language="MQL4"
+                                        implementationClass="com.limemojito.oss.mql.editor.MqlEventHandlerLineMarkerProvider"/>
+        <runLineMarkerContributor language="MQL4"
+                                  implementationClass="com.limemojito.oss.mql.runconfig.MqlRunLineMarkerContributor"/>
+        <readWriteAccessDetector implementation="com.limemojito.oss.mql.editor.MqlReadWriteAccessDetector"/>
+        <lang.namesValidator language="MQL4" implementationClass="com.limemojito.oss.mql.refactoring.MqlNamesValidator"/>
+
     </extensions>
+
+    <!-- Phase 0 (REVAMP_PLAN.md): replaces the deprecated StartupActivity-based wiring that used
+         to manually connect MqlProblemsLoggerFileListener to the project message bus. -->
+    <projectListeners>
+        <listener class="com.limemojito.oss.mql.inspection.MqlProblemsLoggerFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </projectListeners>
 </idea-plugin>

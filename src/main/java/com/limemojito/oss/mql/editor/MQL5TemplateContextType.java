@@ -12,13 +12,15 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
-@SuppressWarnings("deprecation")
 public class MQL5TemplateContextType extends TemplateContextType {
 
     private static final Set<String> MQL_EXTENSIONS = Set.of("mq4", "mq5", "mqh", "mql4", "mql5");
 
     public MQL5TemplateContextType() {
-        super("MQL5", "MQL5");
+        // The 2-arg super(id, presentableName) ctor is deprecated -- plugin.xml already supplies
+        // the id via <liveTemplateContext contextId="MQL5">, so only the presentable name is
+        // needed here.
+        super("MQL5");
     }
 
     @Override

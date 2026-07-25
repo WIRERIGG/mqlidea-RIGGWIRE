@@ -47,4 +47,15 @@ public class ASTUtils {
             }
         }
     }
+
+    @Nullable
+    public static ASTNode getNextIgnoreCommentsAndWs(ASTNode node) {
+        ASTNode next = node;
+        while (true) {
+            next = next.getTreeNext();
+            if (next == null || !MQL4TokenSets.COMMENTS_OR_WS.contains(next.getElementType())) {
+                return next;
+            }
+        }
+    }
 }

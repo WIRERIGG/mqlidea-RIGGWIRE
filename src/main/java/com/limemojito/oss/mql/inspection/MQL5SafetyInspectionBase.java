@@ -28,6 +28,7 @@ import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.MqlDialect;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
+import com.limemojito.oss.mql.psi.MqlEventHandlers;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import org.jetbrains.annotations.NotNull;
@@ -39,12 +40,8 @@ import java.util.Set;
 
 public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool implements CustomSuppressableInspectionTool {
 
-    public static final Set<String> MQL5_EVENT_HANDLERS = Set.of(
-            "OnInit", "OnDeinit", "OnTick", "OnTimer", "OnTrade",
-            "OnTradeTransaction", "OnBookEvent", "OnChartEvent",
-            "OnCalculate", "OnTester", "OnTesterInit", "OnTesterDeinit",
-            "OnTesterPass", "OnStart"
-    );
+    /** @see MqlEventHandlers#NAMES the shared canonical catalog this aliases. */
+    public static final Set<String> MQL5_EVENT_HANDLERS = MqlEventHandlers.NAMES;
 
     public static final Set<String> MQL5_HANDLE_CREATORS = Set.of(
             "iCustom", "iMA", "iMACD", "iRSI", "iBands", "iATR",

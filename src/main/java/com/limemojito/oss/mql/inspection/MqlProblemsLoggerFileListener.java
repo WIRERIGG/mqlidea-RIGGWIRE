@@ -15,12 +15,23 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Registered declaratively via {@code <projectListeners>} in plugin.xml (topic
+ * {@link BulkFileListener}), one instance constructed per project. This replaces the deprecated
+ * {@code StartupActivity}-based wiring (formerly {@code MqlProblemsLoggerStartupActivity}, which
+ * manually connected this listener to the project message bus and kicked off the initial full
+ * scan) -- the platform now handles both the subscription and the listener's lifecycle. The
+ * one-time initial scan that the startup activity used to trigger is instead piggybacked onto the
+ * first VFS event this listener receives (see {@link #initialized}).
+ */
 public class MqlProblemsLoggerFileListener implements BulkFileListener {
 
     private static final Set<String> MQL_EXTENSIONS = Set.of("mq4", "mq5", "mqh", "mql4", "mql5");
 
     private final Project project;
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     public MqlProblemsLoggerFileListener(@NotNull Project project) {
         this.project = project;
@@ -29,6 +40,13 @@ public class MqlProblemsLoggerFileListener implements BulkFileListener {
     @Override
     public void after(@NotNull List<? extends VFileEvent> events) {
         if (project.isDisposed()) return;
+
+        // First event delivered to this project after open: do the one-time full scan the old
+        // postStartupActivity used to trigger explicitly, so mql-problems.log / mql-tasks.md get
+        // written even if the very first event isn't itself an MQL file change.
+        if (initialized.compareAndSet(false, true)) {
+            MqlProblemsLoggerService.getInstance(project).scanAllFiles();
+        }
 
         List<String> changedUrls = new ArrayList<>();
         for (VFileEvent event : events) {
