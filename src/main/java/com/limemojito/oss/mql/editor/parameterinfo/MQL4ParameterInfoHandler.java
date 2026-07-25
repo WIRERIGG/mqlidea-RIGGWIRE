@@ -14,17 +14,12 @@ import com.intellij.lang.parameterInfo.UpdateParameterInfoContext;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.doc.BuiltinSignature;
-import com.limemojito.oss.mql.doc.BuiltinSignatureCatalog;
-import com.limemojito.oss.mql.index.MQL4FunctionNameIndex;
 import com.limemojito.oss.mql.psi.MQL4Elements;
-import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -80,7 +75,7 @@ public class MQL4ParameterInfoHandler implements ParameterInfoHandler<PsiElement
         List<String> params;
         String returnType = null;
         if (item instanceof MQL4FunctionElement function) {
-            params = splitTopLevelParams(function.getSignature());
+            params = MqlCallSignatures.splitTopLevelParams(function.getSignature());
         } else if (item instanceof BuiltinSignature sig) {
             params = sig.params == null ? List.of() : sig.params;
             returnType = sig.returnType;
@@ -139,47 +134,14 @@ public class MQL4ParameterInfoHandler implements ParameterInfoHandler<PsiElement
     }
 
     private boolean isCallArgsBlock(@NotNull PsiElement element) {
-        ASTNode node = element.getNode();
-        if (node == null || node.getElementType() != MQL4Elements.BRACKETS_BLOCK) {
-            return false;
-        }
-        ASTNode first = node.getFirstChildNode();
-        if (first == null || first.getElementType() != MQL4Elements.L_ROUND_BRACKET) {
-            return false;
-        }
-        PsiElement prev = prevNonTrivialSibling(element);
-        return prev != null && prev.getNode() != null && prev.getNode().getElementType() == MQL4Elements.IDENTIFIER;
-    }
-
-    @Nullable
-    private static PsiElement prevNonTrivialSibling(@NotNull PsiElement element) {
-        PsiElement prev = element.getPrevSibling();
-        while (prev != null && prev.getNode() != null && MQL4TokenSets.COMMENTS_OR_WS.contains(prev.getNode().getElementType())) {
-            prev = prev.getPrevSibling();
-        }
-        return prev;
+        return MqlCallSignatures.isCallArgsBlock(element);
     }
 
     /** Project function declarations/definitions with this name, else the built-in signature, else {@code null}. */
     @Nullable
     private Object[] itemsFor(@NotNull PsiElement callArgs, @NotNull Project project) {
-        PsiElement nameElement = prevNonTrivialSibling(callArgs);
-        if (nameElement == null) {
-            return null;
-        }
-        String name = nameElement.getText();
-        var projectFunctions = MQL4FunctionNameIndex.getInstance().get(name, project, GlobalSearchScope.allScope(project));
-        List<MQL4FunctionElement> matching = new ArrayList<>();
-        for (MQL4FunctionElement f : projectFunctions) {
-            if (name.equals(f.getFunctionName())) {
-                matching.add(f);
-            }
-        }
-        if (!matching.isEmpty()) {
-            return matching.toArray();
-        }
-        BuiltinSignature builtin = BuiltinSignatureCatalog.get(name);
-        return builtin == null ? null : new Object[]{builtin};
+        String name = MqlCallSignatures.callName(callArgs);
+        return name == null ? null : MqlCallSignatures.resolveItems(name, project);
     }
 
     private int currentParameterIndex(@NotNull PsiElement callArgs, int offset) {
@@ -193,33 +155,5 @@ public class MQL4ParameterInfoHandler implements ParameterInfoHandler<PsiElement
             }
         }
         return index;
-    }
-
-    /** Splits a raw FUNCTION_ARGS_LIST text ("int a, string b=NULL") on top-level commas only. */
-    @NotNull
-    private static List<String> splitTopLevelParams(@NotNull String argsText) {
-        List<String> parts = new ArrayList<>();
-        String trimmed = argsText.trim();
-        if (trimmed.isEmpty()) {
-            return parts;
-        }
-        int depth = 0;
-        int start = 0;
-        for (int i = 0; i < trimmed.length(); i++) {
-            char c = trimmed.charAt(i);
-            if (c == '(' || c == '[') {
-                depth++;
-            } else if (c == ')' || c == ']') {
-                depth--;
-            } else if (c == ',' && depth == 0) {
-                parts.add(trimmed.substring(start, i).trim());
-                start = i + 1;
-            }
-        }
-        String last = trimmed.substring(start).trim();
-        if (!last.isEmpty()) {
-            parts.add(last);
-        }
-        return parts;
     }
 }
