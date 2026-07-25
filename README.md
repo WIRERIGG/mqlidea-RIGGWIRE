@@ -20,28 +20,31 @@ Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL m
 - Dedicated file types for `.mq4`, `.mql4`, `.mq5`, `.mql5`, and `.mqh`, each with its own icon
 - JFlex lexer and hand-written parser with error recovery — a syntax error does not break highlighting or navigation for the rest of the file
 - Dialect awareness (`MqlDialect`): files are classified as MQL4 or MQL5, and dialect-specific features (completion, inspections) only apply where they belong
-- Syntax highlighting plus a semantic annotator that recognizes event handlers (`OnInit`, `OnTick`, …) and `input` parameters
-- Structure view for classes, functions, and enums
-- New File actions for MQL4 and MQL5 sources
+- Syntax highlighting plus a semantic annotator that recognizes event handlers (`OnInit`, `OnTick`, …) and `input` parameters, with read-vs-write identifier highlighting and a spellchecker (MQL/MetaTrader dictionary bundled)
+- Structure view and breadcrumbs (`CClass ▸ Method`) for classes, functions, and enums; `#region`/`#endregion` and consecutive-`#include` folding; native TODO support
+- Gutter icons marking MT5 entry points (`OnInit`/`OnTick`/…) and a ▶ run marker (one-click compile)
+- **New → MQL5 Expert Advisor / Indicator / Script** (and MQL4 Expert) from templates pre-filled with `#property` blocks and event-handler skeletons
 
 ### Error detection
 
-- **80 local inspections** across 13 categories, including a **Trading Safety** group (unchecked `OrderSend()` results, unchecked indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, and more)
+- **80 local inspections** across 13 categories, including a **Trading Safety** group (unchecked `OrderSend()` results, unchecked indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, and more), plus a cross-file **global** inspection (unused global function across the `#include` closure)
 - Dialect-filtered: MQL5-only checks (indicator handles, `OnCalculate()`) stay off `.mq4` files and vice versa
 - Safety-focused checks are enabled by default; style and complexity checks are opt-in
+- Suppression that works both in the editor and in batch **Inspect Code** (via comment markers), plus Alt-Enter previews on quick-fixes so you see the exact edit before applying it
 - A background problems logger that writes a structured report of current findings, plus a **Tools → Generate MQL Inspection Catalog** action that produces an AI-free triage document (`docs/MQL_INSPECTION_CATALOG.md`)
 
 ### Navigation and refactoring
 
-- Real reference resolution: go-to-declaration (Ctrl-click) and Find Usages for functions, classes/structs, enums, enum constants, parameters, and variables — local, global, and member — including across files reached via `#include`
-- Rename refactoring (Shift-F6, in-place) for the same symbol kinds, updating call sites project-wide
+- Real reference resolution: go-to-declaration (Ctrl-click) and Find Usages for functions, classes/structs, enums, enum constants, parameters, and variables — local, global, and member (`obj.field` / `obj.Method()`, including through base classes) — across files reached via `#include`
+- Rename refactoring (Shift-F6, in-place) for the same symbol kinds, updating call sites project-wide **including member accesses**
+- **Go to Super**, **Extract Variable**, and **Safe Delete** (blocked when the symbol is still used, via the member-aware usage search)
 - `#include "X.mqh"` and `#include <Trade/Trade.mqh>` are navigable links; the include closure is computed with cycle protection
 - Stub indexes for classes and functions powering Go to Class and Go to Symbol
 
 ### Editing and formatting
 
-- Code completion: tiered, dialect-filtered, with insert handlers for parentheses and arguments
-- Parameter info (Ctrl-P) with real signatures for built-in and project functions
+- Code completion: tiered, dialect-filtered, with insert handlers for parentheses and arguments — including members of project-defined classes after `.`
+- Parameter info (Ctrl-P) with real signatures for built-in and project functions, and inline **parameter-name hints** on positional calls (`OrderSend(sym, /*cmd:*/ OP_BUY, /*volume:*/ 0.1, …)`)
 - Quick documentation (hover / Ctrl-Q) in English and Russian, including your own doc comments
 - Code formatter with a configurable, MetaEditor-compatible default style (**Settings → Code Style → MQL4**)
 - Brace matching, code folding, and line/block commenting
@@ -107,13 +110,10 @@ When you stop typing (or trigger **Compile Check Now**), the ExternalAnnotator h
 
 Known limitations, tracked as upcoming work:
 
-- **Quick-fixes cover a growing subset of inspections** — property/doc-comment/empty-body/delete-nullify fixes plus **Trading Safety** remediations (wrap an unchecked `CopyRates`/`CopyBuffer`/`ArrayResize` call in a `< 0` failure check; insert an `INVALID_HANDLE` guard after indicator-handle creation); more Trading Safety fixes planned
-- **Inspection suppression is editor-only** — `// noinspection`-style comments plus Suppress-for-function / Suppress-for-file intentions work in the editor, but batch **Inspect Code** results and statement/line-level scope are not yet supported
-- **Member-access rename/completion gap** — because `obj.field` / `obj.Method()` are not type-resolved, renaming a member does not rewrite its call sites and dot-completion only knows bundled StdLib types (project-defined types need type inference, planned)
+- **Inline compiler diagnostics on Windows/Linux** (macOS/Wine only today), plus debugging support (no public MetaTrader debug protocol)
 - **Header (`.mqh`) compile errors are not yet surfaced** — the compiler integration currently reports diagnostics for the compiled `.mq4`/`.mq5` file only
-- **Inline compiler diagnostics on Windows/Linux**, plus debugging support
-- **Member access resolution** (`obj.field` / `obj.Method()`) requires type inference and is planned for a later phase
-- Safe-delete refactoring
+- **Trading Safety quick-fixes cover a subset** — more mechanical remediations planned for the flagship group
+- **Member-access resolution is declared-type + bounded inheritance/chain**, not full expression type inference — function-return types, casts, templates and array-element types are out of scope, so member navigation/rename on those forms is not yet resolved
 
 Note: earlier versions shipped an experimental AI "code healing" pipeline. It was removed in the 2026.1.0 revamp and is not part of this plugin. The AI-free **Generate MQL Inspection Catalog** action is its only surviving artifact.
 
@@ -145,7 +145,7 @@ src/main/resources/
 └── mql/doc/                     Bundled MQL documentation + JSON catalogs
 ```
 
-~233 Java source files; the test suite (253 tests) covers the parser, resolution, inspections, and compiler-output parsing.
+~250 Java source files; the test suite (387 tests) covers the parser, resolution (incl. member access), inspections, refactoring, editor extensions, and compiler-output parsing.
 
 ---
 
