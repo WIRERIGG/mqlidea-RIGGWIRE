@@ -6,6 +6,7 @@
 
 package com.limemojito.oss.mql.inspection;
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.lang.ASTNode;
@@ -14,6 +15,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.limemojito.oss.mql.MQL4FileType;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -68,6 +70,27 @@ final class CheckHandleAfterCreationFix implements LocalQuickFix {
                 + indent + "   Print(__FUNCTION__, \": invalid indicator handle '" + handleName + "'\");";
         doc.insertString(insertOffset, inserted);
         PsiDocumentManager.getInstance(project).commitDocument(doc);
+    }
+
+    /**
+     * Alt-Enter preview. Because the fix inserts text into the document after the creation statement
+     * (not a pure PSI edit of the highlighted range), the default preview would be empty; we render
+     * the guard we would insert as an explicit {@link IntentionPreviewInfo.CustomDiff} of the
+     * creation statement (before) vs. the statement followed by the inserted check (after).
+     */
+    @NotNull
+    @Override
+    public IntentionPreviewInfo generatePreview(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
+        PsiElement element = descriptor.getPsiElement();
+        if (element == null || !element.isValid()) return IntentionPreviewInfo.EMPTY;
+        ASTNode callId = element.getNode();
+        if (callId == null) return IntentionPreviewInfo.EMPTY;
+        ASTNode statement = StatementAst.enclosingStatement(callId);
+        if (statement == null) return IntentionPreviewInfo.EMPTY;
+        String original = statement.getText();
+        String modified = original + "\nif(" + handleName + " == INVALID_HANDLE)\n"
+                + "   Print(__FUNCTION__, \": invalid indicator handle '" + handleName + "'\");";
+        return new IntentionPreviewInfo.CustomDiff(MQL4FileType.INSTANCE, original, modified);
     }
 
     @NotNull

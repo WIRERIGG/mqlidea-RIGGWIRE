@@ -6,6 +6,7 @@
 
 package com.limemojito.oss.mql.inspection;
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.lang.ASTNode;
@@ -14,6 +15,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.limemojito.oss.mql.MQL4FileType;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -75,6 +77,26 @@ final class NullifyAfterDeleteFix implements LocalQuickFix {
         String indent = lineIndent(doc, statement.getStartOffset());
         doc.insertString(insertOffset, "\n" + indent + pointerName + " = NULL;");
         PsiDocumentManager.getInstance(project).commitDocument(doc);
+    }
+
+    /**
+     * Alt-Enter preview. The fix inserts a new {@code <pointer> = NULL;} line after the delete
+     * statement via a document text edit, so the default preview would show nothing; we render the
+     * delete statement (before) vs. the same statement followed by the nulling line (after) as an
+     * explicit {@link IntentionPreviewInfo.CustomDiff}.
+     */
+    @NotNull
+    @Override
+    public IntentionPreviewInfo generatePreview(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
+        PsiElement element = descriptor.getPsiElement();
+        if (element == null || !element.isValid()) return IntentionPreviewInfo.EMPTY;
+        ASTNode anchorNode = element.getNode();
+        if (anchorNode == null) return IntentionPreviewInfo.EMPTY;
+        ASTNode statement = enclosingExpressionStatement(anchorNode);
+        if (statement == null) return IntentionPreviewInfo.EMPTY;
+        String original = statement.getText();
+        String modified = original + "\n" + pointerName + " = NULL;";
+        return new IntentionPreviewInfo.CustomDiff(MQL4FileType.INSTANCE, original, modified);
     }
 
     /** Walks up from {@code node} to the enclosing {@code EXPRESSION_STATEMENT} (the {@code delete ...;} statement), or null. */

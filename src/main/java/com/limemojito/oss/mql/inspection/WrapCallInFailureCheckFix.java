@@ -6,6 +6,7 @@
 
 package com.limemojito.oss.mql.inspection;
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.lang.ASTNode;
@@ -14,6 +15,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.limemojito.oss.mql.MQL4FileType;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -75,6 +77,28 @@ final class WrapCallInFailureCheckFix implements LocalQuickFix {
                 + indent + "   Print(__FUNCTION__, \": " + callName + " failed\");";
         doc.replaceString(start, end, replacement);
         PsiDocumentManager.getInstance(project).commitDocument(doc);
+    }
+
+    /**
+     * Alt-Enter preview. This fix edits the document via {@link Document#replaceString} rather than
+     * a pure PSI mutation in the highlighted range, so the platform's default preview cannot render
+     * the change. We build the before/after of the single rewritten statement explicitly as a
+     * {@link IntentionPreviewInfo.CustomDiff}, which does not depend on the preview copy having a
+     * committable document.
+     */
+    @NotNull
+    @Override
+    public IntentionPreviewInfo generatePreview(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
+        PsiElement element = descriptor.getPsiElement();
+        if (element == null || !element.isValid()) return IntentionPreviewInfo.EMPTY;
+        ASTNode callId = element.getNode();
+        if (callId == null || !StatementAst.isBareCallStatement(callId)) return IntentionPreviewInfo.EMPTY;
+        ASTNode statement = StatementAst.enclosingStatement(callId);
+        if (statement == null) return IntentionPreviewInfo.EMPTY;
+        String original = statement.getText();
+        String expr = original.endsWith(";") ? original.substring(0, original.length() - 1).trim() : original.trim();
+        String modified = "if(" + expr + " < 0)\n   Print(__FUNCTION__, \": " + callName + " failed\");";
+        return new IntentionPreviewInfo.CustomDiff(MQL4FileType.INSTANCE, original, modified);
     }
 
     @NotNull

@@ -1,0 +1,6 @@
+﻿<html>
+<body>
+Reports a top-level project function that is defined but never referenced anywhere reachable through the project's <code>#include</code> closure (dead code). Event handlers (<code>OnInit</code>/<code>OnTick</code>/<code>OnStart</code>/<code>OnCalculate</code>/...) and functions declared in an <code>#import</code> block are never flagged, since they are entry points or library-boundary symbols with no in-code caller. Cross-file, opt-in (default off).
+<!-- tooltip end -->
+</body>
+</html>

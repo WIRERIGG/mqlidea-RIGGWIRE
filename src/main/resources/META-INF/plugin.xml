@@ -568,6 +568,12 @@
                          displayName="Repeated expensive API calls in OnTick()"
                          implementationClass="com.limemojito.oss.mql.inspection.RepeatedApiCallInspection"/>
 
+        <!-- MQL5 Safety: Cross-file (global) -->
+        <!--suppress PluginXmlI18n -->
+        <globalInspection language="MQL4" groupName="Cross-file" groupPath="RIGGWIRE MQL" enabledByDefault="false" level="WEAK WARNING"
+                          displayName="Unused global function (across #include closure)"
+                          implementationClass="com.limemojito.oss.mql.inspection.global.UnusedGlobalFunctionInspection"/>
+
         <!-- MQL Problems Logger -->
         <projectService serviceImplementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerService"/>
 
