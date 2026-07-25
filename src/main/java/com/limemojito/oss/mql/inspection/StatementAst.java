@@ -848,7 +848,9 @@ final class StatementAst implements MQL4Elements {
     /**
      * The lexical scope of {@code node}: its nearest ancestor that introduces one — a control-flow
      * statement (a {@code for}-header declaration is scoped to the whole {@code for} statement) or a
-     * {@code {...}} code block. Null at function/file top level.
+     * {@code {...}} code block. Returns null only when no such ancestor exists; for a declaration
+     * collected from within a function body this never happens (the body's own {@code {...}} block is
+     * always an ancestor), but callers still treat null as an all-containing (outermost) scope.
      */
     @Nullable
     private static ASTNode scopeOf(@NotNull ASTNode node) {
