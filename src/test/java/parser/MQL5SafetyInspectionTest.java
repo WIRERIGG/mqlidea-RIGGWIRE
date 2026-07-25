@@ -296,6 +296,38 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void f() { double buf[]; int a = 5, n = CopyBuffer(h, 0, 0, 10, buf); if(a < 3) return; Print(n); }");
     }
 
+    public void testUncheckedCopyRatesShadowedLoopCounterStillFlagged() {
+        // Review finding #4: the copy result is captured in `i` but never checked — the `i < 10`
+        // belongs to a DIFFERENT, shadowing `for(int i = ...)` loop counter. A bare name-match on
+        // the compared operand must not accept it as a check of the copy result.
+        assertHasProblems(new UncheckedCopyRatesInspection(),
+                "void f() {\n" +
+                "  double buf[];\n" +
+                "  int i = CopyBuffer(h, 0, 0, 10, buf);\n" +
+                "  for(int i = 0; i < 10; i++) { buf[i] = 0; }\n" +
+                "}");
+    }
+
+    public void testUncheckedCopyRatesCheckedBeforeLaterShadowClean() {
+        // No-FP guard for the shadowing fix: a GENUINE check of the captured result that occurs
+        // after the capture and before a later same-name redeclaration must stay accepted — the
+        // fix only distrusts comparisons at/after an intervening redeclaration.
+        assertNoProblems(new UncheckedCopyRatesInspection(),
+                "int f(int total) { double buf[];\n" +
+                "  int n = CopyBuffer(h, 0, 0, total, buf);\n" +
+                "  if(n < total) return 0;\n" +
+                "  for(int n = 0; n < 3; n++) { buf[n] = 0.0; }\n" +
+                "  return 1; }");
+    }
+
+    public void testUncheckedCopyRatesRetryLoopPreCaptureComparisonClean() {
+        // No-FP guard: the retry-loop idiom compares the captured variable BEFORE (textually) the
+        // capturing assignment. That was accepted before the shadowing fix and must stay accepted.
+        assertNoProblems(new UncheckedCopyRatesInspection(),
+                "void f() { double buf[]; int n = 0;\n" +
+                "  while(n < 5) { n = CopyBuffer(h, 0, 0, 10, buf); } }");
+    }
+
     public void testDoubleIndicatorRelease() {
         assertHasProblems(new DoubleIndicatorReleaseInspection(),
                 "void OnDeinit(const int reason) { IndicatorRelease(h); IndicatorRelease(h); }",
@@ -887,6 +919,16 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // The count-comparison idiom: checking the resized array's size against the requested count.
         assertNoProblems(new ArrayResizeReturnCheckInspection(),
                 "void foo() { double arr[]; int n = 100; if(ArrayResize(arr, n) != n) return; }");
+    }
+
+    public void testArrayResizeReturnCheckShadowedLoopCounterStillFlagged() {
+        // Review finding #4 (ArrayResize consumer): the resize result captured in `n` is never
+        // checked — the `n < 100` is a shadowing for-loop counter of the same name.
+        assertHasProblems(new ArrayResizeReturnCheckInspection(),
+                "void f() { double arr[];\n" +
+                "  int n = ArrayResize(arr, 100);\n" +
+                "  for(int n = 0; n < 100; n++) { arr[n] = 0.0; }\n" +
+                "}");
     }
 
     public void testNullAfterDelete() {

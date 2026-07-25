@@ -766,29 +766,118 @@ final class StatementAst implements MQL4Elements {
             return true;
         }
         String resultVar = assignmentTargetName(callIdentifier);
-        return resultVar != null && identifierIsComparedOperand(body, resultVar);
+        return resultVar != null
+                && capturedResultCompared(body, resultVar, callIdentifier.getStartOffset());
     }
 
     /**
-     * True when an {@code IDENTIFIER} token named {@code name} is an immediate operand of a
-     * comparison ({@code < <= > >= == !=}) anywhere in {@code root} — i.e. the variable's value is
-     * range/failure-tested (e.g. {@code copied < rates_total}, {@code n >= 1}, {@code r == -1}).
+     * True when the captured copy/resize result variable {@code name} is genuinely compared in
+     * {@code body} — an {@code IDENTIFIER} token named {@code name} is an immediate operand of a
+     * comparison ({@code < <= > >= == !=}), e.g. {@code copied < rates_total}, {@code n >= 1},
+     * {@code r == -1} — with SHADOWING awareness (review finding #4): a comparison of a
+     * <em>different, shadowing</em> variable of the same name must not count as a check of the
+     * captured result. In {@code int i = CopyBuffer(...); for(int i = 0; i < 10; i++) ...} the
+     * {@code i < 10} operand is the loop's own freshly-declared {@code i}, not the copy result —
+     * a bare name-match would silently pass the genuinely-unchecked copy.
+     * <p>
+     * Rule (no symbol table needed, zero-false-positive by construction):
+     * <ul>
+     *   <li>A comparison at or before {@code captureOffset} is accepted as before (the retry-loop
+     *       idiom {@code while(copied < needed) { copied = CopyBuffer(...); }} — unchanged
+     *       behavior, so no previously-clean code starts being flagged).</li>
+     *   <li>A comparison after the capture is accepted only when NO declaration of {@code name}
+     *       lies between the capture and that comparison. With no intervening redeclaration the
+     *       compared name can only denote the captured variable, so acceptance is sound; with one,
+     *       the comparison (e.g. the shadowing {@code for}'s own {@code i < 10}) is distrusted.
+     *       A genuine check BEFORE a later redeclaration (e.g. {@code int n = CopyBuffer(...);
+     *       if(n < total) return; ... for(int n = 0; ...)}) still lies inside the clean window and
+     *       stays accepted — more precise than distrusting every redeclared name outright.</li>
+     * </ul>
+     * Declarations are recognised structurally in both parse shapes (see {@link #isDeclarationOf}),
+     * including the flat-token {@code for(int i = 0; ...)} header, which the parser never wraps in
+     * a {@code VAR_DEFINITION}.
      */
-    static boolean identifierIsComparedOperand(@Nullable ASTNode root, @NotNull String name) {
-        if (root == null) return false;
+    static boolean capturedResultCompared(@Nullable ASTNode body, @NotNull String name, int captureOffset) {
+        if (body == null) return false;
+        List<ASTNode> compared = new ArrayList<>();
+        collectComparedOperands(body, name, compared);
+        if (compared.isEmpty()) return false;
+        List<ASTNode> declarations = new ArrayList<>();
+        collectDeclarations(body, name, declarations);
+        for (ASTNode operand : compared) {
+            int comparisonOffset = operand.getStartOffset();
+            if (comparisonOffset <= captureOffset) {
+                return true; // pre-capture comparison (retry-loop idiom) — accepted as before
+            }
+            boolean shadowed = false;
+            for (ASTNode declaration : declarations) {
+                int declarationOffset = declaration.getStartOffset();
+                if (declarationOffset > captureOffset && declarationOffset <= comparisonOffset) {
+                    shadowed = true; // redeclared between capture and comparison — different variable
+                    break;
+                }
+            }
+            if (!shadowed) return true;
+        }
+        return false;
+    }
+
+    /** Collects every {@code IDENTIFIER} token named {@code name} that is an immediate operand of a comparison. */
+    private static void collectComparedOperands(@NotNull ASTNode root, @NotNull String name, @NotNull List<ASTNode> out) {
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (FAILURE_COMPARISON_OPERATORS.contains(child.getElementType())) {
                 ASTNode prev = prevNonTrivia(child);
                 ASTNode next = nextNonTrivia(child);
-                if ((prev != null && prev.getElementType() == IDENTIFIER && name.equals(prev.getText()))
-                        || (next != null && next.getElementType() == IDENTIFIER && name.equals(next.getText()))) {
-                    return true;
+                if (prev != null && prev.getElementType() == IDENTIFIER && name.equals(prev.getText())) {
+                    out.add(prev);
+                }
+                if (next != null && next.getElementType() == IDENTIFIER && name.equals(next.getText())) {
+                    out.add(next);
                 }
             }
-            if (identifierIsComparedOperand(child, name)) return true;
+            collectComparedOperands(child, name, out);
         }
-        return false;
+    }
+
+    /** Collects every {@code IDENTIFIER} token that is a DECLARATION of {@code name} (see {@link #isDeclarationOf}). */
+    private static void collectDeclarations(@NotNull ASTNode root, @NotNull String name, @NotNull List<ASTNode> out) {
+        for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (child.getElementType() == IDENTIFIER && name.equals(child.getText()) && isDeclarationOf(child)) {
+                out.add(child);
+            }
+            collectDeclarations(child, name, out);
+        }
+    }
+
+    /**
+     * True when this {@code IDENTIFIER} token is the declared NAME of a variable declaration, in
+     * either parse shape the statement AST produces:
+     * <ul>
+     *   <li>its parent is a {@code VAR_DEFINITION} — the {@code int x = ...;} / {@code int x;}
+     *       statement form ({@code VAR_DECLARATION_STATEMENT > VAR_DEFINITION_LIST >
+     *       VAR_DEFINITION{IDENTIFIER, EQ}}); or</li>
+     *   <li>its previous non-trivia sibling is a data-type keyword token ({@code int}/{@code double}
+     *       /...) — the flat-token form inside a {@code for(int i = 0; ...)} header (a {@code (...)}
+     *       {@code BRACKETS_BLOCK}'s content is raw tokens, never statements) and the
+     *       expression-statement fallback for shapes {@code VarDeclarationStatement} declines
+     *       (declaration lists, arrays). A cast like {@code (int)x} can never false-match: its
+     *       {@code x} is preceded by the cast's {@code )} token (or nested {@code BRACKETS_BLOCK}),
+     *       not by the bare type keyword.</li>
+     * </ul>
+     * A user-defined type's declaration ({@code MyStruct n;}) is not recognised (the type token is
+     * an {@code IDENTIFIER}, indistinguishable from an expression without resolution) — missing a
+     * declaration only means falling back to the previous, more lenient behavior, never new
+     * false positives.
+     */
+    private static boolean isDeclarationOf(@NotNull ASTNode identifier) {
+        ASTNode parent = identifier.getTreeParent();
+        if (parent != null && parent.getElementType() == VAR_DEFINITION) {
+            return true;
+        }
+        ASTNode prev = prevNonTrivia(identifier);
+        return prev != null && MQL4TokenSets.DATA_TYPES.contains(prev.getElementType());
     }
 
     /** True when an {@code IDENTIFIER} token is directly followed by {@code [} — an array index access. */
