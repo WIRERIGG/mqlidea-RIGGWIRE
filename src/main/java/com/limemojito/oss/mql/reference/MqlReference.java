@@ -50,13 +50,18 @@ public class MqlReference extends PsiPolyVariantReferenceBase<PsiElement> {
         if (name.isEmpty()) {
             return ResolveResult.EMPTY_ARRAY;
         }
-        // Member access (`obj.field` / `obj.method()`): the receiver's type is unknown (no type
-        // inference yet), so resolving `field` as a free identifier would wrongly jump to any
-        // same-named global/function in the include closure. Don't resolve it here.
+        // Member access (`obj.field` / `obj.method()`): resolve the member *inside the receiver's
+        // resolved class type* (Phase 5). If the receiver's type doesn't resolve to a project class,
+        // fall back to today's behavior (EMPTY_ARRAY) -- never resolve `field` as a free identifier,
+        // which would wrongly jump to any same-named global/function in the include closure.
         if (isMemberAccess()) {
-            return ResolveResult.EMPTY_ARRAY;
+            return toResults(MqlTypeResolver.resolveMember(myElement));
         }
         List<PsiElement> targets = MqlResolveUtil.resolve(myElement, name);
+        return toResults(targets);
+    }
+
+    private static ResolveResult @NotNull [] toResults(@NotNull List<PsiElement> targets) {
         if (targets.isEmpty()) {
             return ResolveResult.EMPTY_ARRAY;
         }

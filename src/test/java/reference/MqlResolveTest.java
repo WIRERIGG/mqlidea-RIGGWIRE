@@ -114,6 +114,115 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertEquals(lib.getVirtualFile(), resolved instanceof PsiFile ? ((PsiFile) resolved).getVirtualFile() : null);
     }
 
+    // ---- Phase 5: member-access resolution -------------------------------------------------
+
+    public void testResolveMemberFieldOnLocalVar() {
+        // `CFoo v;` local of a project class -> `v.value` resolves to the field declaration.
+        String code = "class CFoo { public:\n int value;\n };\n"
+                + "void f() { CFoo v; int y = v.value; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        int offset = code.indexOf("value; }");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on the member access v.value", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("expected resolution to the field declaration", resolved instanceof MQL4VarDefinitionElement);
+        assertEquals("value", ((MQL4VarDefinitionElement) resolved).getName());
+    }
+
+    public void testResolveMemberMethodOnLocalVar() {
+        String code = "class CFoo { public:\n int GetValue() { return 1; }\n };\n"
+                + "void f() { CFoo v; v.GetValue(); }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        int offset = code.indexOf("GetValue();");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on the member call v.GetValue()", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("expected resolution to the method declaration", resolved instanceof MQL4FunctionElement);
+        assertEquals("GetValue", ((MQL4FunctionElement) resolved).getFunctionName());
+    }
+
+    public void testResolveMemberFieldOnParameter() {
+        String code = "class CFoo { public:\n int value;\n };\n"
+                + "void f(CFoo &v) { int y = v.value; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        int offset = code.indexOf("value; }");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on parameter member access", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue(resolved instanceof MQL4VarDefinitionElement);
+        assertEquals("value", ((MQL4VarDefinitionElement) resolved).getName());
+    }
+
+    public void testResolveMemberThroughBaseClass() {
+        // Stage B: member declared on the base class resolves through inheritance.
+        String code = "class CBase { public:\n int baseField;\n };\n"
+                + "class CDerived : public CBase { public:\n int derivedField;\n };\n"
+                + "void f() { CDerived d; int y = d.baseField; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        int offset = code.indexOf("baseField; }");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on inherited member access", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("expected resolution through the base class", resolved instanceof MQL4VarDefinitionElement);
+        assertEquals("baseField", ((MQL4VarDefinitionElement) resolved).getName());
+        MQL4ClassElement owner = com.intellij.psi.util.PsiTreeUtil.getParentOfType(resolved, MQL4ClassElement.class);
+        assertNotNull(owner);
+        assertEquals("resolved field must belong to the base class", "CBase", owner.getTypeName());
+    }
+
+    public void testResolveThisMemberInsideMethod() {
+        // Stage C: `this.value` inside a method resolves to the class's own field.
+        String code = "class CFoo { public:\n int value;\n int GetValue() { return this.value; }\n };";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        int offset = code.indexOf("value; }");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on this.value", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("expected resolution to the own field", resolved instanceof MQL4VarDefinitionElement);
+        assertEquals("value", ((MQL4VarDefinitionElement) resolved).getName());
+    }
+
+    public void testUnresolvedReceiverMemberIsEmptyNoException() {
+        // NON-REGRESSION: an unknown receiver leaves the member unresolved (EMPTY), never crashes.
+        PsiReference ref = referenceAt("void f() { unknownVar.someField = 1; }", "someField");
+        assertNotNull("a reference is still attached to the member leaf", ref);
+        assertNull("an unresolvable receiver's member must resolve to nothing", ref.resolve());
+    }
+
+    public void testEnumConstantIsNotTreatedAsMemberAccess() {
+        // `EnumType::CONST` uses COLON_COLON, not DOT -> must NOT be routed through member access;
+        // existing (free-identifier) behavior is unchanged and must not throw.
+        String code = "enum Color { RED, GREEN };\nvoid f() { Color c = Color::RED; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        int offset = code.indexOf("RED; }");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        // The reference exists (RED is a usage identifier); the point of the test is that resolving
+        // it doesn't crash and isn't hijacked by member-access logic. (RED after `::` is not a DOT
+        // member, so MqlTypeResolver is never consulted.)
+        if (ref != null) {
+            ref.resolve();
+        }
+    }
+
+    public void testFindUsagesOfMethodFindsMemberCallSite() {
+        String code = "class CFoo { public:\n int GetValue() { return 1; }\n };\n"
+                + "void f() { CFoo v; v.GetValue(); }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        int declOffset = code.indexOf("GetValue() {");
+        PsiElement leaf = file.findElementAt(declOffset);
+        MQL4FunctionElement method = com.intellij.psi.util.PsiTreeUtil.getParentOfType(leaf, MQL4FunctionElement.class);
+        assertNotNull("expected the method declaration element", method);
+        java.util.Collection<com.intellij.psi.PsiReference> refs =
+                com.intellij.psi.search.searches.ReferencesSearch.search(method).findAll();
+        assertFalse("expected Find Usages to locate the v.GetValue() call site", refs.isEmpty());
+    }
+
     public void testUnresolvedBuiltinIsSoftNotError() {
         // Print(...) is a documented built-in (mql4-functions.json) that we don't yet resolve to
         // real/synthetic PSI (Phase 6). It must resolve to nothing but be marked "soft" so a

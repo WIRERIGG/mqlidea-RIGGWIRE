@@ -88,4 +88,26 @@ public class MQL4CompletionTest extends BasePlatformTestCase {
         assertTrue("expected CTrade's PositionOpen among tr. completions, got: " + strings,
                 strings.contains("PositionOpen"));
     }
+
+    public void testProjectMemberCompletionAfterDot() {
+        // Phase 5: dot-completion after a project-class-typed local offers that class's members.
+        LookupElement[] items = complete(
+                "class CFoo { public:\n int value;\n int GetValue() { return value; }\n };\n"
+                        + "void f() { CFoo v; v.<caret> }");
+        assertNotNull(items);
+        List<String> strings = Arrays.stream(items).map(LookupElement::getLookupString).toList();
+        assertTrue("expected project field `value` after v., got: " + strings, strings.contains("value"));
+        assertTrue("expected project method `GetValue` after v., got: " + strings, strings.contains("GetValue"));
+    }
+
+    public void testProjectMemberCompletionThroughInheritance() {
+        LookupElement[] items = complete(
+                "class CBase { public:\n int baseField;\n };\n"
+                        + "class CDerived : public CBase { public:\n int derivedField;\n };\n"
+                        + "void f() { CDerived d; d.<caret> }");
+        assertNotNull(items);
+        List<String> strings = Arrays.stream(items).map(LookupElement::getLookupString).toList();
+        assertTrue("expected inherited `baseField` after d., got: " + strings, strings.contains("baseField"));
+        assertTrue("expected own `derivedField` after d., got: " + strings, strings.contains("derivedField"));
+    }
 }

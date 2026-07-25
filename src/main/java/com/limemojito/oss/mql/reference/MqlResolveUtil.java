@@ -181,6 +181,160 @@ public final class MqlResolveUtil {
         return hits;
     }
 
+    // ---- Phase 5: member-access support (fields + methods inside a class, incl. inheritance) ------
+
+    /** Bounds the base-class walk so a (malformed) inheritance cycle can never loop forever. */
+    private static final int MAX_INHERITANCE_DEPTH = 5;
+
+    /**
+     * Fields and methods named {@code name} declared directly in {@code cls}'s inner block. May
+     * return several PSI elements (overloaded methods); a field and a method never collide by MQL
+     * rules but both are returned if present so the caller can poly-resolve rather than crash.
+     */
+    @NotNull
+    public static List<PsiElement> resolveMemberInClass(@NotNull MQL4ClassElement cls, @NotNull String name) {
+        List<PsiElement> out = new ArrayList<>();
+        collectMembersNamed(cls, name, out);
+        return out;
+    }
+
+    /**
+     * As {@link #resolveMemberInClass} but, when the member is not declared on {@code cls} itself,
+     * walks up the {@code CLASS_INHERITANCE_LIST} base classes (resolved via the class index),
+     * depth- and visited-bounded so multi-level inheritance works without looping.
+     */
+    @NotNull
+    public static List<PsiElement> resolveMemberInClassHierarchy(@NotNull MQL4ClassElement cls, @NotNull String name) {
+        List<PsiElement> out = new ArrayList<>();
+        collectMemberInHierarchy(cls, name, out, new java.util.HashSet<>(), 0);
+        return out;
+    }
+
+    private static void collectMemberInHierarchy(@NotNull MQL4ClassElement cls,
+                                                 @NotNull String name,
+                                                 @NotNull List<PsiElement> out,
+                                                 @NotNull Set<MQL4ClassElement> visited,
+                                                 int depth) {
+        if (depth > MAX_INHERITANCE_DEPTH || !visited.add(cls)) {
+            return;
+        }
+        collectMembersNamed(cls, name, out);
+        if (!out.isEmpty()) {
+            return; // nearest declaration wins
+        }
+        for (String baseName : baseClassNames(cls)) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            MQL4ClassElement base = findClassByName(baseName, cls.getProject());
+            if (base != null) {
+                collectMemberInHierarchy(base, name, out, visited, depth + 1);
+                if (!out.isEmpty()) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private static void collectMembersNamed(@NotNull MQL4ClassElement cls, @NotNull String name, @NotNull List<PsiElement> out) {
+        ASTNode inner = cls.getInnerBlockNode();
+        if (inner == null) {
+            return;
+        }
+        for (ASTNode child = inner.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            if (child.getElementType() == MQL4Elements.VAR_DECLARATION_STATEMENT) {
+                PsiElement field = findVarDefinitionInDeclaration(child, name);
+                if (field != null) {
+                    out.add(field);
+                }
+            } else {
+                PsiElement psi = child.getPsi();
+                if (psi instanceof MQL4FunctionElement fn && name.equals(fn.getFunctionName())) {
+                    out.add(fn);
+                }
+            }
+        }
+    }
+
+    /**
+     * Every member (fields + methods) of {@code cls} and its (bounded) base classes -- used by
+     * dot-completion. Order is this-class-first, then bases, so nearer members rank ahead.
+     */
+    @NotNull
+    public static List<PsiElement> collectAllMembers(@NotNull MQL4ClassElement cls) {
+        List<PsiElement> out = new ArrayList<>();
+        collectAllMembers(cls, out, new java.util.HashSet<>(), 0);
+        return out;
+    }
+
+    private static void collectAllMembers(@NotNull MQL4ClassElement cls,
+                                          @NotNull List<PsiElement> out,
+                                          @NotNull Set<MQL4ClassElement> visited,
+                                          int depth) {
+        if (depth > MAX_INHERITANCE_DEPTH || !visited.add(cls)) {
+            return;
+        }
+        ASTNode inner = cls.getInnerBlockNode();
+        if (inner != null) {
+            for (ASTNode child = inner.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+                if (child.getElementType() == MQL4Elements.VAR_DECLARATION_STATEMENT) {
+                    ASTNode list = child.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
+                    if (list != null) {
+                        for (ASTNode def = list.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+                            if (def.getElementType() == MQL4Elements.VAR_DEFINITION) {
+                                out.add(def.getPsi());
+                            }
+                        }
+                    }
+                } else {
+                    PsiElement psi = child.getPsi();
+                    if (psi instanceof MQL4FunctionElement) {
+                        out.add(psi);
+                    }
+                }
+            }
+        }
+        for (String baseName : baseClassNames(cls)) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            MQL4ClassElement base = findClassByName(baseName, cls.getProject());
+            if (base != null) {
+                collectAllMembers(base, out, visited, depth + 1);
+            }
+        }
+    }
+
+    /** Base-class type names read from {@code cls}'s CLASS_INHERITANCE_LIST / CLASS_INHERITANCE_ITEM. */
+    @NotNull
+    private static List<String> baseClassNames(@NotNull MQL4ClassElement cls) {
+        ASTNode list = cls.getNode().findChildByType(MQL4Elements.CLASS_INHERITANCE_LIST);
+        if (list == null) {
+            return java.util.Collections.emptyList();
+        }
+        List<String> names = new ArrayList<>();
+        for (ASTNode item = list.getFirstChildNode(); item != null; item = item.getTreeNext()) {
+            if (item.getElementType() == MQL4Elements.CLASS_INHERITANCE_ITEM) {
+                ASTNode id = item.findChildByType(MQL4Elements.IDENTIFIER);
+                if (id != null) {
+                    names.add(id.getText());
+                }
+            }
+        }
+        return names;
+    }
+
+    /** The single project/closure class named {@code name}, or {@code null} (also null in dumb mode). */
+    @org.jetbrains.annotations.Nullable
+    public static MQL4ClassElement findClassByName(@NotNull String name, @NotNull Project project) {
+        if (com.intellij.openapi.project.DumbService.isDumb(project)) {
+            return null;
+        }
+        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, GlobalSearchScope.allScope(project))) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            if (name.equals(c.getTypeName())) {
+                return c;
+            }
+        }
+        return null;
+    }
+
     private static void collectIndexed(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope, @NotNull List<PsiElement> out) {
         for (MQL4FunctionElement f : MQL4FunctionNameIndex.getInstance().get(name, project, scope)) {
             if (name.equals(f.getFunctionName())) {

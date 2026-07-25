@@ -51,6 +51,7 @@ public class MQL4CompletionContributor extends CompletionContributor {
 
         PsiElementPattern.Capture<PsiElement> afterDot = mql4().afterLeaf(psiElement().withElementType(MQL4Elements.DOT));
         extend(CompletionType.BASIC, afterDot, new MQL4StdLibMemberCompletionProvider());
+        extend(CompletionType.BASIC, afterDot, new MQL4ProjectMemberCompletionProvider());
         filter = filter.andNot(afterDot);
 
         extend(CompletionType.BASIC, filter, new MQL4LocalScopeCompletionProvider());

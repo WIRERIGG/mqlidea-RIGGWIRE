@@ -66,6 +66,20 @@ public class MqlRenameTest extends BasePlatformTestCase {
         myFixture.checkResult("class CBaseRenamed { };\nclass CDerived : CBaseRenamed { };");
     }
 
+    public void testRenameFieldUpdatesMemberAccessSites() {
+        // Phase 5: renaming a field from its member-access usage updates the declaration and every
+        // obj.field call site (proves the member reference resolves + renames the member leaf).
+        myFixture.configureByText("test.mq4",
+                "class CFoo { public:\n int value;\n };\n"
+                        + "void f() { CFoo v; v.value = 1; int y = v.value; }");
+        int offset = myFixture.getFile().getText().indexOf("v.value = 1") + 2; // on the `value` member leaf
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        myFixture.renameElementAtCaret("amount");
+        myFixture.checkResult(
+                "class CFoo { public:\n int amount;\n };\n"
+                        + "void f() { CFoo v; v.amount = 1; int y = v.amount; }");
+    }
+
     public void testRenameFunctionAcrossFilesViaInclude() {
         PsiFile lib = myFixture.addFileToProject("Lib.mqh", "void Shared() { }");
         PsiFile main = myFixture.addFileToProject("Main.mq4",

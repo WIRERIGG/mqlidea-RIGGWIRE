@@ -47,6 +47,35 @@ public class MQL4VarDefinitionElement extends MQL4PsiElement implements PsiNameI
         return id == null ? null : id.getText();
     }
 
+    /**
+     * The declared TYPE name of this variable/field, read from the leading type token of the
+     * enclosing {@code VAR_DECLARATION_STATEMENT} (the child before the {@code VAR_DEFINITION_LIST}).
+     * Returns {@code null} when that type is a built-in primitive keyword (never a class) or the
+     * enclosing shape is unexpected. Used by
+     * {@link com.limemojito.oss.mql.reference.MqlTypeResolver} to type-resolve {@code v.member};
+     * today the tolerant parser only builds a {@code VAR_DECLARATION_STATEMENT} for primitive-typed
+     * declarations, so this returns {@code null} in practice, but it is kept general so a future
+     * custom-type declaration node resolves without further change.
+     */
+    @Nullable
+    public String getDeclaredTypeName() {
+        ASTNode list = getNode().getTreeParent();
+        if (list == null || list.getElementType() != MQL4Elements.VAR_DEFINITION_LIST) {
+            return null;
+        }
+        ASTNode statement = list.getTreeParent();
+        if (statement == null || statement.getElementType() != MQL4Elements.VAR_DECLARATION_STATEMENT) {
+            return null;
+        }
+        for (ASTNode child = statement.getFirstChildNode(); child != null && child != list; child = child.getTreeNext()) {
+            // A custom (class) type appears as an IDENTIFIER; primitive keywords / modifiers are skipped.
+            if (child.getElementType() == MQL4Elements.IDENTIFIER) {
+                return child.getText();
+            }
+        }
+        return null;
+    }
+
     @Override
     public PsiElement setName(@NotNull String name) throws IncorrectOperationException {
         ASTNode nameNode = getNameIdentifierNode();
