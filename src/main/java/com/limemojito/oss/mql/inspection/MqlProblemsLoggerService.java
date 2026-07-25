@@ -13,9 +13,7 @@ import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.QuickFix;
-import com.intellij.ide.projectView.ProjectView;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -47,7 +45,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -174,9 +171,6 @@ public final class MqlProblemsLoggerService implements Disposable {
     private final Object scheduleLock = new Object();
     // Dirty files needing re-scan (null = full scan needed); access only under dirtyLock
     private Set<String> dirtyFileUrls;
-    // Track which file URLs had problems on the previous scan, for icon refresh
-    private volatile Set<String> previousProblemUrls = new HashSet<>();
-
     public MqlProblemsLoggerService(Project project) {
         this.project = project;
         this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -295,8 +289,10 @@ public final class MqlProblemsLoggerService implements Disposable {
             writeReport();
             writeTaskFile();
 
-            // Refresh project tree icons if problem state changed
-            refreshIconsIfChanged();
+            // NOTE: the project-tree icons (MQL4FileIconProvider) read hasProblems() on demand, so
+            // they update on the next natural project-view/VFS refresh. We deliberately do NOT force
+            // a full ProjectView.refresh() on the EDT per problem-state change (that whole-tree
+            // refresh was the logger's main editor-thread cost); the report files are still written.
 
         } catch (ProcessCanceledException e) {
             // Normal during shutdown
@@ -330,26 +326,6 @@ public final class MqlProblemsLoggerService implements Disposable {
                 // A write action interrupted the read; yield briefly before retrying
                 Thread.sleep(YIELD_SLEEP_MS);
             }
-        }
-    }
-
-    private void refreshIconsIfChanged() {
-        Set<String> currentProblemUrls = new HashSet<>();
-        for (Map.Entry<String, CachedFileResult> entry : cache.entrySet()) {
-            if (!entry.getValue().problems().isEmpty()) {
-                currentProblemUrls.add(entry.getKey());
-            }
-        }
-
-        Set<String> prev = previousProblemUrls;
-        if (!currentProblemUrls.equals(prev)) {
-            previousProblemUrls = currentProblemUrls;
-            ApplicationManager.getApplication().invokeLater(() -> {
-                if (!project.isDisposed()) {
-                    ProjectView projectView = ProjectView.getInstance(project);
-                    projectView.refresh();
-                }
-            });
         }
     }
 

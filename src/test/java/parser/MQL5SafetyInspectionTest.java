@@ -516,6 +516,21 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { cfg.MaxRisk = 10; }");
     }
 
+    public void testImmutableInputParameterFlagsOnlyReassignedOfMany() {
+        // The single body walk must flag exactly the reassigned inputs (Gain via ++, Loss via =)
+        // and leave the untouched input (Period) alone — one problem per reassigned input.
+        ProblemDescriptor[] problems = runInspection(new ImmutableInputParameterInspection(),
+                "input int Period = 14;\n" +
+                "input int Gain = 1;\n" +
+                "input int Loss = 2;\n" +
+                "void OnInit() { Gain++; Loss = 5; }");
+        assertEquals("exactly the two reassigned inputs are flagged", 2, problems.length);
+        String all = problems[0].getDescriptionTemplate() + " | " + problems[1].getDescriptionTemplate();
+        assertTrue("Gain flagged", all.contains("'Gain'"));
+        assertTrue("Loss flagged", all.contains("'Loss'"));
+        assertFalse("Period must not be flagged", all.contains("'Period'"));
+    }
+
     // ===== Naming & Style =====
 
     public void testFunctionNamingConvention() {

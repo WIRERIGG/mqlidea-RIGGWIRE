@@ -20,7 +20,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AST-based detection of input-parameter reassignment: an assignment-operator token
@@ -60,8 +62,13 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
+                // ONE walk of the body collecting every reassigned identifier name -> its first
+                // reassignment IDENTIFIER node (in pre-order, exactly the node the old per-input
+                // findReassignment would have returned), instead of a full recursive walk per input.
+                Map<String, ASTNode> reassigned = new HashMap<>();
+                collectReassignments(body, reassigned);
                 for (String inputName : inputNames) {
-                    ASTNode target = findReassignment(body, inputName);
+                    ASTNode target = reassigned.get(inputName);
                     if (target != null) {
                         problems.add(createWarning(manager, StatementAst.anchor(target, child.getNavigationElement()),
                                 String.format(MESSAGE, inputName), isOnTheFly));
@@ -72,29 +79,32 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
-    /** The {@code IDENTIFIER} node of the first reassignment of {@code name}, or null — for anchoring. */
-    @Nullable
-    private static ASTNode findReassignment(@NotNull ASTNode root, @NotNull String name) {
+    /**
+     * Single pre-order walk recording, for each reassigned identifier name, the first
+     * ({@link Map#putIfAbsent}) {@code IDENTIFIER} node that reassigns it. "Reassigns" = the
+     * identifier is the write target of an assignment operator or a {@code ++}/{@code --}, and is
+     * not itself a member-access target ({@code obj.x}). Semantics are identical to the old
+     * per-name {@code findReassignment}; only the traversal is shared across all names.
+     */
+    private static void collectReassignments(@NotNull ASTNode root, @NotNull Map<String, ASTNode> out) {
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             IElementType t = child.getElementType();
             if (StatementAst.ASSIGNMENT_OPERATORS.contains(t)) {
-                ASTNode prev = StatementAst.prevNonTrivia(child);
-                if (isName(prev, name) && !isMemberAccessTarget(prev)) return prev;
+                record(StatementAst.prevNonTrivia(child), out);
             } else if (t == MQL4Elements.PLUS_PLUS || t == MQL4Elements.MINUS_MINUS) {
-                ASTNode prev = StatementAst.prevNonTrivia(child);
-                if (isName(prev, name) && !isMemberAccessTarget(prev)) return prev;
-                ASTNode next = StatementAst.nextNonTrivia(child);
-                if (isName(next, name) && !isMemberAccessTarget(next)) return next;
+                record(StatementAst.prevNonTrivia(child), out);
+                record(StatementAst.nextNonTrivia(child), out);
             }
-            ASTNode found = findReassignment(child, name);
-            if (found != null) return found;
+            collectReassignments(child, out);
         }
-        return null;
     }
 
-    private static boolean isName(@Nullable ASTNode node, @NotNull String name) {
-        return node != null && node.getElementType() == MQL4Elements.IDENTIFIER && name.equals(node.getText());
+    /** Records {@code node} as a reassignment (first-wins) when it is a plain (non-member) identifier. */
+    private static void record(@Nullable ASTNode node, @NotNull Map<String, ASTNode> out) {
+        if (node != null && node.getElementType() == MQL4Elements.IDENTIFIER && !isMemberAccessTarget(node)) {
+            out.putIfAbsent(node.getText(), node);
+        }
     }
 
     /** True when {@code identifier} is preceded by a {@code DOT} — i.e. it is {@code x} in {@code obj.x}, a member access, not a plain variable. */

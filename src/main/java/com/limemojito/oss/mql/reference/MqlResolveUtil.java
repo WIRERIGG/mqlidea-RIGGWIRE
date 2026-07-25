@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Resolution order per REVAMP_PLAN.md #3b:
@@ -169,7 +170,7 @@ public final class MqlResolveUtil {
         List<PsiElement> hits = new ArrayList<>();
         Project project = identifier.getProject();
 
-        GlobalSearchScope closureScope = closureScope(project, closure);
+        GlobalSearchScope closureScope = closureScopeFor(file);
         if (closureScope != null) {
             collectIndexed(name, project, closureScope, hits);
         }
@@ -397,21 +398,46 @@ public final class MqlResolveUtil {
         if (context != null) {
             PsiFile file = context.getContainingFile();
             if (file != null) {
-                GlobalSearchScope closureScope = closureScope(project, includeClosure(file));
-                if (closureScope != null) {
-                    MQL4ClassElement inClosure = uniqueClassInScope(name, project, closureScope);
-                    if (inClosure != null) {
-                        return inClosure;
-                    }
-                    // Ambiguous within the closure -> don't fall through to an arbitrary project pick.
-                    if (anyClassInScope(name, project, closureScope)) {
-                        return null;
-                    }
+                // Per-file memo (name -> class), invalidated on any PSI change like includeClosure.
+                // Base-class chains and many member accesses re-query the same names from the same
+                // file; caching the UNAMBIGUOUS single result avoids re-hitting the class index.
+                // Ambiguous (-> null) and genuine misses (-> null) are never stored as positives.
+                Map<String, MQL4ClassElement> memo = classResolutionMemo(file);
+                MQL4ClassElement cached = memo.get(name);
+                if (cached != null) {
+                    return cached;
                 }
+                MQL4ClassElement resolved = resolveClassByName(name, project, file);
+                if (resolved != null) {
+                    memo.put(name, resolved);
+                }
+                return resolved;
             }
         }
         // No context / not in the closure: accept only an unambiguous project-wide match.
-        return uniqueClassInScope(name, project, GlobalSearchScope.allScope(project));
+        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
+    }
+
+    /**
+     * The class named {@code name} visible from {@code file}: unambiguous match in the file's
+     * #include closure if any; otherwise (closure has none) the unambiguous project-wide match.
+     * A closure with several matches yields {@code null} (ambiguous — no fall-through). This is the
+     * exact phase-5-hardening semantics {@link #findClassByName} previously inlined.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static MQL4ClassElement resolveClassByName(@NotNull String name, @NotNull Project project, @NotNull PsiFile file) {
+        GlobalSearchScope closureScope = closureScopeFor(file);
+        if (closureScope != null) {
+            ClassLookup inClosure = lookupClassInScope(name, project, closureScope);
+            if (inClosure.match != null) {
+                return inClosure.match;
+            }
+            if (inClosure.ambiguous) {
+                // Ambiguous within the closure -> don't fall through to an arbitrary project pick.
+                return null;
+            }
+        }
+        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
     }
 
     /** Backward-compatible context-less lookup — unambiguous project-wide match only. */
@@ -420,29 +446,56 @@ public final class MqlResolveUtil {
         return findClassByName(name, project, null);
     }
 
-    /** The single class named {@code name} in {@code scope}, or null if there are zero or several. */
-    @org.jetbrains.annotations.Nullable
-    private static MQL4ClassElement uniqueClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
+    /** Tri-state class-index scan result: a unique match, or ambiguous (several), or none. */
+    private static final class ClassLookup {
+        static final ClassLookup NONE = new ClassLookup(null, false);
+        static final ClassLookup AMBIGUOUS = new ClassLookup(null, true);
+        @org.jetbrains.annotations.Nullable
+        final MQL4ClassElement match;
+        final boolean ambiguous;
+
+        private ClassLookup(@org.jetbrains.annotations.Nullable MQL4ClassElement match, boolean ambiguous) {
+            this.match = match;
+            this.ambiguous = ambiguous;
+        }
+
+        static ClassLookup unique(@NotNull MQL4ClassElement match) {
+            return new ClassLookup(match, false);
+        }
+    }
+
+    /**
+     * ONE pass over the class index for {@code name} in {@code scope}, classifying the result as the
+     * unique match, {@link ClassLookup#AMBIGUOUS} (two or more), or {@link ClassLookup#NONE}. Merges
+     * what was previously a {@code uniqueClassInScope} query followed by an identical
+     * {@code anyClassInScope} query into a single index lookup.
+     */
+    @NotNull
+    private static ClassLookup lookupClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
         MQL4ClassElement found = null;
         for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
             if (name.equals(c.getTypeName())) {
                 if (found != null) {
-                    return null; // ambiguous
+                    return ClassLookup.AMBIGUOUS;
                 }
                 found = c;
             }
         }
-        return found;
+        return found == null ? ClassLookup.NONE : ClassLookup.unique(found);
     }
 
-    private static boolean anyClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
-        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
-            if (name.equals(c.getTypeName())) {
-                return true;
-            }
-        }
-        return false;
+    /**
+     * Per-context-file memo of resolved class names, cached until any PSI change (same dependency as
+     * {@link #includeClosure}). A {@link ConcurrentHashMap} because resolution runs off multiple
+     * threads; only unambiguous positive results are ever stored (never nulls), so a hit is always a
+     * genuine unique match. Recomputed empty on invalidation, so a stored positive is never stale.
+     */
+    @NotNull
+    private static Map<String, MQL4ClassElement> classResolutionMemo(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () ->
+                CachedValueProvider.Result.create(new ConcurrentHashMap<String, MQL4ClassElement>(),
+                        PsiModificationTracker.MODIFICATION_COUNT));
     }
 
     private static void collectIndexed(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope, @NotNull List<PsiElement> out) {
@@ -512,6 +565,20 @@ public final class MqlResolveUtil {
         });
     }
 
+    /**
+     * The #include-closure search scope for {@code file}, cached on the file (same PSI-change
+     * dependency as {@link #includeClosure}) so the fresh {@code List} +
+     * {@link GlobalSearchScope#filesScope} allocation isn't repeated on every resolve / member
+     * access / class lookup from that file. Reused by both {@link #resolveNonLocal} and
+     * {@link #resolveClassByName}.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static GlobalSearchScope closureScopeFor(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () ->
+                CachedValueProvider.Result.create(closureScope(file.getProject(), includeClosure(file)),
+                        PsiModificationTracker.MODIFICATION_COUNT));
+    }
+
     @org.jetbrains.annotations.Nullable
     private static GlobalSearchScope closureScope(@NotNull Project project, @NotNull Set<PsiFile> closure) {
         List<VirtualFile> files = new ArrayList<>();
@@ -545,6 +612,7 @@ public final class MqlResolveUtil {
         visited.add(root);
         queue.add(root);
         while (!queue.isEmpty()) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
             PsiFile current = queue.poll();
             for (MQL4PreprocessorIncludeBlock include : PsiTreeUtil.findChildrenOfType(current, MQL4PreprocessorIncludeBlock.class)) {
                 PsiFile target = include.resolveIncludedFile();

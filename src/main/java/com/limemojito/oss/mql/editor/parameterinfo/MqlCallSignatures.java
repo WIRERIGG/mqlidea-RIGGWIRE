@@ -85,6 +85,15 @@ public final class MqlCallSignatures {
      */
     @Nullable
     public static Object[] resolveItems(@NotNull String name, @NotNull Project project) {
+        // Documented built-ins are never project symbols (the same assumption MqlResolveUtil encodes
+        // when it short-circuits the project index for a documented built-in). Consult the bundled
+        // catalog FIRST so a built-in call (Print, OrderSend, iMA, ...) — the common case — skips the
+        // project-wide allScope FUNCTION index query entirely. The signature returned is identical to
+        // what the previous project-first path would have fallen through to for such a name.
+        BuiltinSignature builtin = BuiltinSignatureCatalog.get(name);
+        if (builtin != null) {
+            return new Object[]{builtin};
+        }
         var projectFunctions = MQL4FunctionNameIndex.getInstance().get(name, project, GlobalSearchScope.allScope(project));
         List<MQL4FunctionElement> matching = new ArrayList<>();
         for (MQL4FunctionElement f : projectFunctions) {
@@ -92,11 +101,7 @@ public final class MqlCallSignatures {
                 matching.add(f);
             }
         }
-        if (!matching.isEmpty()) {
-            return matching.toArray();
-        }
-        BuiltinSignature builtin = BuiltinSignatureCatalog.get(name);
-        return builtin == null ? null : new Object[]{builtin};
+        return matching.isEmpty() ? null : matching.toArray();
     }
 
     /** Raw parameter declaration strings for a resolved item (function element or built-in signature). */

@@ -9,9 +9,12 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.ProjectJdkTable;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.roots.ProjectRootModificationTracker;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.util.CachedValueProvider;
+import com.intellij.psi.util.CachedValuesManager;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.sdk.MQL4SdkType;
 
@@ -36,8 +39,21 @@ public final class MqlIncludeRoots {
     private MqlIncludeRoots() {
     }
 
+    /**
+     * The candidate Include roots for {@code project}, cached per project and invalidated only on a
+     * project-roots change (mirrors {@code MqlDialect.inferFromProject}). This removes the ~10
+     * {@link File#isDirectory()} disk stats plus the {@link ProjectJdkTable#getAllJdks()} enumeration
+     * from every closure rebuild / angle-bracket include resolution.
+     */
     @NotNull
     public static List<VirtualFile> candidateIncludeRoots(@NotNull Project project) {
+        return CachedValuesManager.getManager(project).getCachedValue(project, () ->
+                CachedValueProvider.Result.create(computeCandidateIncludeRoots(project),
+                        ProjectRootModificationTracker.getInstance(project)));
+    }
+
+    @NotNull
+    private static List<VirtualFile> computeCandidateIncludeRoots(@NotNull Project project) {
         List<VirtualFile> roots = new ArrayList<>();
         LocalFileSystem lfs = LocalFileSystem.getInstance();
 

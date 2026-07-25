@@ -59,8 +59,13 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
                     continue;
                 }
                 String signatureText = function.getSignature();
+                // Stub-safe icon: getPresentation().getIcon(false) calls getParent().getNode(),
+                // which forces a full AST parse of the candidate's file just to pick a method-vs-
+                // function glyph. isDeclaration() is stub-backed (no parse), so use the function
+                // declaration/definition icon without touching the AST. Only the icon source
+                // changes; the offered completion item is identical.
                 LookupElementBuilder builder = LookupElementBuilder.create(name)
-                        .withIcon(function.getPresentation().getIcon(false))
+                        .withIcon(function.isDeclaration() ? MQL4Icons.FunctionDeclaration : MQL4Icons.FunctionDefinition)
                         .withTailText("(" + signatureText + ")", true)
                         .withTypeText(function.getContainingFile().getName())
                         .withInsertHandler(ParenthesesInsertHandler.getInstance(!signatureText.isEmpty()));
