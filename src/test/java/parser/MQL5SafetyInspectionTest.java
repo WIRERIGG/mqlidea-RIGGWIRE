@@ -289,6 +289,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { double buf[]; int n = CopyBuffer(handle, 0, 0, 10, buf); Print(n); }");
     }
 
+    public void testUncheckedCopyRatesMultiDeclaratorSiblingCheckStillFlags() {
+        // Review finding: in `int a = 5, n = CopyBuffer(...)`, the copy result is `n`. A check of the
+        // UNRELATED sibling `a` must not clear the unchecked `n` — the '=' nearest the call names `n`.
+        assertHasProblems(new UncheckedCopyRatesInspection(),
+                "void f() { double buf[]; int a = 5, n = CopyBuffer(h, 0, 0, 10, buf); if(a < 3) return; Print(n); }");
+    }
+
     public void testDoubleIndicatorRelease() {
         assertHasProblems(new DoubleIndicatorReleaseInspection(),
                 "void OnDeinit(const int reason) { IndicatorRelease(h); IndicatorRelease(h); }",
@@ -861,6 +868,19 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // Growing to a fixed size CAN fail on OOM → still flagged even next to a cannot-fail resize.
         assertHasProblems(new ArrayResizeReturnCheckInspection(),
                 "void foo() { double a[]; ArrayResize(a, 0); double b[]; ArrayResize(b, 100); }");
+    }
+
+    public void testArrayResizeReturnCheckGrowViaOtherArraySizeStillFlags() {
+        // Review finding: ArraySize(src)-1 on a DIFFERENT array (dst) can grow dst → can fail.
+        // The cannot-fail skip must require the ArraySize to be of the array being resized.
+        assertHasProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double dst[]; double src[]; ArrayResize(dst, ArraySize(src) - 1); }");
+    }
+
+    public void testArrayResizeReturnCheckSiblingCheckDoesNotMask() {
+        // Review finding: a checked resize must not mask a genuinely-unchecked sibling resize.
+        assertHasProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double a[]; if(ArrayResize(a, 100) < 0) return; double b[]; ArrayResize(b, 200); }");
     }
 
     public void testArrayResizeReturnCheckCountComparisonClean() {

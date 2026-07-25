@@ -718,7 +718,17 @@ final class StatementAst implements MQL4Elements {
         if (sizeArg == null) return false;
         sizeArg = sizeArg.trim();
         if ("0".equals(sizeArg)) return true;                              // resize to 0 — clear
-        return sizeArg.contains("ArraySize") && sizeArg.contains("-");     // shrink of an array
+        // Shrink/same-size of THE ARRAY BEING RESIZED: `ArraySize(<thatArray>)` optionally followed
+        // by a subtraction. Requiring the SAME array and rejecting growth operators (*, +, <<) avoids
+        // treating a grow as non-failing — e.g. `ArrayResize(dst, ArraySize(src) - 1)` where src is
+        // larger, or `ArrayResize(a, ArraySize(a) * 4 - 1)`, both of which can reallocate and fail.
+        String arrayArg = nthCallArg(callIdentifier, 0);
+        if (arrayArg == null) return false;
+        String prefix = "ArraySize(" + arrayArg.trim() + ")";
+        if (!sizeArg.startsWith(prefix)) return false;
+        String rest = sizeArg.substring(prefix.length()).trim();
+        return rest.isEmpty()                                             // resize to current size
+                || (rest.charAt(0) == '-' && rest.indexOf('*') < 0 && rest.indexOf('+') < 0 && rest.indexOf('<') < 0);
     }
 
     /** The first non-trivia sibling after the {@code )} matching {@code lParen}, tracking depth; or null. */
@@ -746,7 +756,13 @@ final class StatementAst implements MQL4Elements {
      * The third idiom is why these inspections must not treat a captured-then-checked call as unchecked.
      */
     static boolean callReturnChecked(@Nullable ASTNode body, @NotNull ASTNode callIdentifier) {
-        if (hasFailureReturnCheck(body) || callResultCompared(callIdentifier)) {
+        // Per-call only. Deliberately NOT the whole-body hasFailureReturnCheck: at whole-function
+        // scope a single `if(other < 0)` (or a stray GetLastError) elsewhere would mask a genuinely
+        // unchecked sibling resize/copy. The inline form `if(CopyBuffer(...) < n)` is caught by
+        // callResultCompared, and the captured form `int r = CopyBuffer(...); if(r < n)` by the
+        // result-variable comparison below — together they cover the real check idioms without the
+        // false negatives whole-body scoping introduces.
+        if (callResultCompared(callIdentifier)) {
             return true;
         }
         String resultVar = assignmentTargetName(callIdentifier);
@@ -960,8 +976,6 @@ final class StatementAst implements MQL4Elements {
     private static final TokenSet CALL_HOSTING_STATEMENTS =
             TokenSet.create(EXPRESSION_STATEMENT, VAR_DECLARATION_STATEMENT);
 
-    /** The plain assignment operator '=' (not '==' EQ_EQ, not '+=' PLUS_EQ). */
-    private static final TokenSet EQ_TOKEN = TokenSet.create(EQ);
 
     /**
      * The enclosing {@code EXPRESSION_STATEMENT} or {@code VAR_DECLARATION_STATEMENT} of {@code node}
@@ -992,23 +1006,36 @@ final class StatementAst implements MQL4Elements {
 
     /**
      * The identifier a value is assigned to in {@code callIdentifier}'s enclosing statement — the LHS
-     * of the {@code =} this call's value is assigned to, for both an {@code h = iMA(...);} assignment
-     * (the {@code =} is a direct sibling) and an {@code int copied = CopyBuffer(...);} declaration
-     * (the name and {@code =} live inside a nested {@code VAR_DEFINITION}). Found by scanning
-     * preceding siblings up the call's ancestor chain, bounded to the statement, for the nearest
-     * {@code =}. Null if the call is not the RHS of a simple assignment.
+     * of the {@code =} this call is the RHS of, for both an {@code h = iMA(...);} assignment (the
+     * {@code =} is a direct sibling) and an {@code int copied = CopyBuffer(...);} declaration (the
+     * name and {@code =} live inside a nested {@code VAR_DEFINITION}, the call a flat sibling after).
+     * Uses the {@code =} nearest BEFORE the call — not merely the first {@code =} in the statement —
+     * so in a multi-declarator {@code int a = 5, n = CopyBuffer(...);} it correctly names {@code n},
+     * not {@code a}. Null if the call is not the RHS of a simple assignment. ({@code ==} is EQ_EQ,
+     * {@code +=} is PLUS_EQ — neither matches EQ.)
      */
     @Nullable
     static String assignmentTargetName(@NotNull ASTNode callIdentifier) {
         ASTNode stmt = enclosingStatement(callIdentifier);
         if (stmt == null) return null;
-        // The lone '=' (assignment) — for `h = iMA(...)` it is a direct child; for the declaration
-        // `int copied = CopyBuffer(...)` it is nested inside VAR_DEFINITION_LIST > VAR_DEFINITION,
-        // while the call is a flat sibling after it. In both, the assigned name is the identifier
-        // immediately before that '='. ('==' is EQ_EQ, '+=' is PLUS_EQ — neither matches EQ.)
-        ASTNode eq = findDescendant(stmt, EQ_TOKEN);
+        ASTNode[] nearest = {null};
+        collectNearestPrecedingEq(stmt, callIdentifier.getStartOffset(), nearest);
+        ASTNode eq = nearest[0];
         if (eq == null) return null;
         ASTNode lhs = prevNonTrivia(eq);
         return (lhs != null && lhs.getElementType() == IDENTIFIER) ? lhs.getText() : null;
+    }
+
+    /** Records into {@code best[0]} the {@code EQ} descendant of {@code node} with the greatest start
+     *  offset still below {@code beforeOffset} — i.e. the '=' closest before the call. */
+    private static void collectNearestPrecedingEq(@NotNull ASTNode node, int beforeOffset, @NotNull ASTNode[] best) {
+        for (ASTNode child = node.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            ProgressManager.checkCanceled();
+            if (child.getElementType() == EQ && child.getStartOffset() < beforeOffset
+                    && (best[0] == null || child.getStartOffset() > best[0].getStartOffset())) {
+                best[0] = child;
+            }
+            collectNearestPrecedingEq(child, beforeOffset, best);
+        }
     }
 }
