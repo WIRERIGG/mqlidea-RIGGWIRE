@@ -6,19 +6,16 @@
 
 package com.limemojito.oss.mql.inspection;
 
-import com.intellij.codeInspection.CustomSuppressableInspectionTool;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
-import com.intellij.codeInspection.SuppressIntentionAction;
+import com.intellij.codeInspection.SuppressQuickFix;
 import com.intellij.codeInspection.SuppressionUtil;
-import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiComment;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.util.IncorrectOperationException;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
@@ -38,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool implements CustomSuppressableInspectionTool {
+public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
 
     /** @see MqlEventHandlers#NAMES the shared canonical catalog this aliases. */
     public static final Set<String> MQL5_EVENT_HANDLERS = MqlEventHandlers.NAMES;
@@ -63,17 +60,19 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
     );
 
     /**
-     * Comment-based suppression. Adds "Suppress for function/statement/file" quick-fixes and
-     * recognises {@code //noinspection <InspectionId>} comments — previously advertised (via
-     * {@link CustomSuppressableInspectionTool}) but returned {@code null}, so nothing could be
-     * suppressed. A trading-safety linter with heuristic checks needs a per-site escape hatch or
-     * users disable the whole inspection on the first false positive.
+     * Comment-based suppression. Adds "Suppress for function/file" quick-fixes and recognises
+     * {@code //noinspection <InspectionId>} comments. Uses the modern {@link SuppressQuickFix}
+     * API (returned from {@link #getBatchSuppressActions}) rather than the deprecated
+     * {@code CustomSuppressableInspectionTool}/{@code SuppressIntentionAction} pair — a
+     * {@code SuppressIntentionAction} only ever ran from the editor's intention popup, so batch
+     * "Inspect Code" runs could report a problem but offered no way to suppress it; a
+     * {@code SuppressQuickFix} is also a {@link LocalQuickFix} and works in both places.
      */
-    @Nullable
+    @NotNull
     @Override
-    public SuppressIntentionAction[] getSuppressActions(@Nullable PsiElement psiElement) {
+    public SuppressQuickFix[] getBatchSuppressActions(@Nullable PsiElement element) {
         String id = getID();
-        return new SuppressIntentionAction[]{
+        return new SuppressQuickFix[]{
                 new MqlSuppressFix(id, false),
                 new MqlSuppressFix(id, true),
         };
@@ -84,7 +83,7 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
      * the file) — a self-contained suppression fix (the platform's {@code SuppressByCommentFix} is
      * not exported in the lang-only module).
      */
-    private static final class MqlSuppressFix extends SuppressIntentionAction {
+    private static final class MqlSuppressFix implements SuppressQuickFix {
         private final String id;
         private final boolean fileLevel;
 
@@ -95,7 +94,7 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
 
         @NotNull
         @Override
-        public String getText() {
+        public String getName() {
             return fileLevel ? "Suppress '" + id + "' for file" : "Suppress '" + id + "' for function";
         }
 
@@ -106,12 +105,21 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool imple
         }
 
         @Override
-        public boolean isAvailable(@NotNull Project project, Editor editor, @NotNull PsiElement element) {
-            return holderFor(element) != null;
+        public boolean isAvailable(@NotNull Project project, @NotNull PsiElement context) {
+            return holderFor(context) != null;
         }
 
         @Override
-        public void invoke(@NotNull Project project, Editor editor, @NotNull PsiElement element) throws IncorrectOperationException {
+        public boolean isSuppressAll() {
+            return "ALL".equals(id);
+        }
+
+        @Override
+        public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
+            PsiElement element = descriptor.getPsiElement();
+            if (element == null) {
+                return;
+            }
             PsiElement holder = holderFor(element);
             if (holder == null) {
                 return;

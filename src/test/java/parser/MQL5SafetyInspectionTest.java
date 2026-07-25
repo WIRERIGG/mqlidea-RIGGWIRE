@@ -1571,4 +1571,69 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "  return INIT_SUCCEEDED; }",
                 "test.mq5");
     }
+
+    // ===== Modern batch suppression (2a: MQL5SafetyInspectionBase.getBatchSuppressActions) =====
+
+    /**
+     * Applying the "Suppress for function" fix inserts a {@code //noinspection <id>} comment
+     * directly above the enclosing function; a fresh check of that function's flagged call then
+     * reports {@link com.limemojito.oss.mql.inspection.MQL5SafetyInspectionBase#isSuppressedFor}
+     * as {@code true} for the (re-resolved) offending element.
+     */
+    public void testSuppressForFunctionQuickFixSuppressesWarning() {
+        UncheckedOrderSendInspection inspection = new UncheckedOrderSendInspection();
+        String code = "void OnTick() { OrderSend(request, result); }";
+        ProblemDescriptor[] problems = runInspection(inspection, code);
+        assertTrue("Expected the unsuppressed snippet to be flagged", problems.length > 0);
+        assertFalse("Should not be suppressed before applying any fix",
+                inspection.isSuppressedFor(problems[0].getPsiElement()));
+
+        com.intellij.codeInspection.SuppressQuickFix[] fixes = inspection.getBatchSuppressActions(problems[0].getPsiElement());
+        assertEquals(2, fixes.length);
+        com.intellij.codeInspection.SuppressQuickFix functionScopedFix = fixes[0];
+        assertTrue(functionScopedFix.getName().contains("function"));
+        ProblemDescriptor problemToFix = problems[0];
+        WriteCommandAction.runWriteCommandAction(getProject(), () -> functionScopedFix.applyFix(getProject(), problemToFix));
+        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+
+        ProblemDescriptor[] afterFix = runInspection(inspection, myFixture.getFile().getText());
+        assertTrue("Inspection should still flag the call site (isSuppressedFor filters separately)",
+                afterFix.length > 0);
+        assertTrue("Expected the re-checked element to now be suppressed for the function scope",
+                inspection.isSuppressedFor(afterFix[0].getPsiElement()));
+    }
+
+    /**
+     * Same as above but for the file-scoped fix: the {@code //noinspection} comment lands at the
+     * top of the file and suppresses the warning file-wide.
+     */
+    public void testSuppressForFileQuickFixSuppressesWarning() {
+        UncheckedOrderSendInspection inspection = new UncheckedOrderSendInspection();
+        String code = "void OnTick() { OrderSend(request, result); }";
+        ProblemDescriptor[] problems = runInspection(inspection, code);
+        assertTrue("Expected the unsuppressed snippet to be flagged", problems.length > 0);
+
+        com.intellij.codeInspection.SuppressQuickFix[] fixes = inspection.getBatchSuppressActions(problems[0].getPsiElement());
+        assertEquals(2, fixes.length);
+        com.intellij.codeInspection.SuppressQuickFix fileScopedFix = fixes[1];
+        assertTrue(fileScopedFix.getName().contains("file"));
+        ProblemDescriptor problemToFix = problems[0];
+        WriteCommandAction.runWriteCommandAction(getProject(), () -> fileScopedFix.applyFix(getProject(), problemToFix));
+        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+
+        String suppressedText = myFixture.getFile().getText();
+        assertTrue("Expected a //noinspection comment inserted at the top of the file:\n" + suppressedText,
+                suppressedText.trim().startsWith("//noinspection"));
+
+        ProblemDescriptor[] afterFix = runInspection(inspection, suppressedText);
+        assertTrue("Inspection should still flag the call site (isSuppressedFor filters separately)",
+                afterFix.length > 0);
+        assertTrue("Expected the re-checked element to now be suppressed at file level",
+                inspection.isSuppressedFor(afterFix[0].getPsiElement()));
+    }
+
+    /** PreprocessorPropertyInspection no longer implements the deprecated CustomSuppressableInspectionTool. */
+    public void testPreprocessorPropertyInspectionIsPlainLocalInspectionTool() {
+        assertFalse(new PreprocessorPropertyInspection() instanceof com.intellij.codeInspection.CustomSuppressableInspectionTool);
+    }
 }

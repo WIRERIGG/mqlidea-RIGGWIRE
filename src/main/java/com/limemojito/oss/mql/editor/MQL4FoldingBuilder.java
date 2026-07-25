@@ -14,17 +14,22 @@ import com.intellij.openapi.util.Couple;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.tree.IElementType;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.editor.folding.EnumFoldingDescriptor;
+import com.limemojito.oss.mql.editor.folding.IncludeRunFoldingDescriptor;
+import com.limemojito.oss.mql.editor.folding.RegionFoldingDescriptor;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
 /**
  * MQL4 code folding: line/block comments, {@code {...}} code blocks, class bodies
- * ({@code CLASS_INNER_BLOCK}) and enum bodies.
+ * ({@code CLASS_INNER_BLOCK}), enum bodies, {@code #region}/{@code #endregion} blocks and runs of
+ * {@code >= 2} consecutive {@code #include} directives.
  */
 public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
     @NotNull
@@ -71,9 +76,113 @@ public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
                 descriptors.add(new EnumFoldingDescriptor(node));
             }
         }
-        for (ASTNode child : node.getChildren(null)) {
+        ASTNode[] children = node.getChildren(null);
+        // Both #region/#endregion and runs of #include need sibling context (they aren't
+        // single composite nodes), so scan this node's own children once per level rather than
+        // per-child -- the recursive walk below already visits every level exactly once.
+        collectIncludeRunFolds(children, descriptors);
+        collectRegionFolds(children, document, descriptors);
+        for (ASTNode child : children) {
             collectDescriptorsRecursively(child, document, descriptors);
         }
+    }
+
+    /**
+     * Collapses a run of {@code >= 2} consecutive {@code PREPROCESSOR_INCLUDE_BLOCK} siblings
+     * (ignoring whitespace/line-terminator gaps between them) into one fold.
+     */
+    private static void collectIncludeRunFolds(@NotNull ASTNode[] children, @NotNull List<FoldingDescriptor> descriptors) {
+        int i = 0;
+        while (i < children.length) {
+            if (children[i].getElementType() != MQL4Elements.PREPROCESSOR_INCLUDE_BLOCK) {
+                i++;
+                continue;
+            }
+            int runStart = i;
+            int lastIncludeIndex = i;
+            int count = 1;
+            int j = i + 1;
+            while (j < children.length) {
+                IElementType t = children[j].getElementType();
+                if (t == MQL4Elements.PREPROCESSOR_INCLUDE_BLOCK) {
+                    count++;
+                    lastIncludeIndex = j;
+                    j++;
+                } else if (t == MQL4Elements.WHITE_SPACE || t == MQL4Elements.LINE_TERMINATOR) {
+                    j++;
+                } else {
+                    break;
+                }
+            }
+            if (count >= 2) {
+                ASTNode first = children[runStart];
+                ASTNode last = children[lastIncludeIndex];
+                TextRange range = new TextRange(first.getTextRange().getStartOffset(), last.getTextRange().getEndOffset());
+                descriptors.add(new IncludeRunFoldingDescriptor(first, range, count));
+            }
+            i = j;
+        }
+    }
+
+    /**
+     * Matches {@code #region}/{@code #endregion} pairs among {@code children} (a single sibling
+     * level) via a stack so nested regions fold independently; an unmatched {@code #endregion} (no
+     * open region on the stack) or an unmatched trailing {@code #region} (never closed) is skipped
+     * rather than folded.
+     * <p/>
+     * Neither directive is a first-class lexer token (see {@link RegionFoldingDescriptor}): a
+     * {@code #region} start is recognised as a {@code BAD_CHARACTER('#')} leaf immediately
+     * followed by an {@code IDENTIFIER("region")} leaf (ditto {@code "endregion"}); the region name
+     * is whatever raw source text follows on the rest of that line.
+     */
+    private static void collectRegionFolds(@NotNull ASTNode[] children, @NotNull Document document, @NotNull List<FoldingDescriptor> descriptors) {
+        Deque<int[]> startOffsetStack = new ArrayDeque<>();
+        Deque<String> nameStack = new ArrayDeque<>();
+        int i = 0;
+        while (i < children.length - 1) {
+            ASTNode current = children[i];
+            ASTNode next = children[i + 1];
+            if (!isHash(current) || next.getElementType() != MQL4Elements.IDENTIFIER) {
+                i++;
+                continue;
+            }
+            String keyword = next.getText();
+            if ("region".equals(keyword)) {
+                int nameStart = next.getTextRange().getEndOffset();
+                String name = restOfLine(document, nameStart);
+                startOffsetStack.push(new int[]{current.getTextRange().getStartOffset()});
+                nameStack.push(name);
+                i += 2;
+            } else if ("endregion".equals(keyword)) {
+                if (!startOffsetStack.isEmpty()) {
+                    int startOffset = startOffsetStack.pop()[0];
+                    String name = nameStack.pop();
+                    int endOffset = next.getTextRange().getEndOffset();
+                    if (document.getLineNumber(startOffset) != document.getLineNumber(endOffset - 1)) {
+                        descriptors.add(new RegionFoldingDescriptor(current, new TextRange(startOffset, endOffset), name));
+                    }
+                }
+                i += 2;
+            } else {
+                i++;
+            }
+        }
+        // Any #region left on the stack here has no matching #endregion at this sibling level --
+        // gracefully skipped (never added to descriptors).
+    }
+
+    private static boolean isHash(@NotNull ASTNode node) {
+        return node.getElementType() == MQL4Elements.BAD_CHARACTER && "#".equals(node.getText());
+    }
+
+    @NotNull
+    private static String restOfLine(@NotNull Document document, int offset) {
+        if (offset >= document.getTextLength()) {
+            return "";
+        }
+        int line = document.getLineNumber(offset);
+        int lineEnd = document.getLineEndOffset(line);
+        return document.getText(new TextRange(offset, Math.max(offset, lineEnd))).trim();
     }
 
     private static boolean isNestedBlock(@NotNull ASTNode node) {

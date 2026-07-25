@@ -28,6 +28,11 @@ dependencies {
         intellijIdea("2025.3.2")
         jetbrainsRuntime("21.0.9-b1283")
         testFramework(TestFrameworkType.Platform)
+        // Spellchecking support (Phase 2c, REVAMP_PLAN.md): intellij.spellchecker is a bundled
+        // core module (declared via <depends>com.intellij.modules.spellchecker</depends> in
+        // plugin.xml, not a separate plugin id), so it needs bundledModule rather than
+        // bundledPlugin to land com.intellij.spellchecker.* on the compile/test classpath.
+        bundledModule("intellij.spellchecker")
     }
 
     implementation("com.google.code.gson:gson:2.10.1")

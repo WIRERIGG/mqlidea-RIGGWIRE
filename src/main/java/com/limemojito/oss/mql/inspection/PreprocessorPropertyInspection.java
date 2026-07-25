@@ -6,13 +6,11 @@
 
 package com.limemojito.oss.mql.inspection;
 
-import com.intellij.codeInspection.CustomSuppressableInspectionTool;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
-import com.intellij.codeInspection.SuppressIntentionAction;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressManager;
@@ -40,7 +38,7 @@ import static com.limemojito.oss.mql.psi.MQL4Elements.IDENTIFIER;
 import static com.limemojito.oss.mql.psi.MQL4Elements.INTEGER_LITERAL;
 import static com.limemojito.oss.mql.psi.MQL4Elements.STRING_LITERAL;
 
-public class PreprocessorPropertyInspection extends LocalInspectionTool implements CustomSuppressableInspectionTool {
+public class PreprocessorPropertyInspection extends LocalInspectionTool {
 
     private static final String UNKNOWN_PROPERTY_WARNING = "Unknown property";
     private static final String ARGUMENT_EXPECTED_WARNING = "Argument is expected";
@@ -90,12 +88,6 @@ public class PreprocessorPropertyInspection extends LocalInspectionTool implemen
             }
         }
         return name;
-    }
-
-    @Nullable
-    @Override
-    public SuppressIntentionAction[] getSuppressActions(@Nullable PsiElement psiElement) {
-        return null;
     }
 
     private static class RemovePropertyValueFix implements LocalQuickFix {

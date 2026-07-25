@@ -90,6 +90,7 @@
     <idea-version since-build="253.30387"/>
 
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.spellchecker</depends>
 
     <actions>
         <action id="NewMQL4File" class="com.limemojito.oss.mql.action.CreateMQL4FileAction">
@@ -150,6 +151,21 @@
                                 implementationClass="com.limemojito.oss.mql.editor.codecompletion.MQL4CompletionContributor"/>
         <codeInsight.parameterInfo language="MQL4"
                                    implementationClass="com.limemojito.oss.mql.editor.parameterinfo.MQL4ParameterInfoHandler"/>
+
+        <!-- Spellchecking (Phase 2c): comments/strings as free text, identifiers split on
+             case/underscore boundaries; common MQL/MetaTrader jargon is allow-listed via the
+             bundled dictionary so it isn't flagged. -->
+        <spellchecker.support language="MQL4" implementationClass="com.limemojito.oss.mql.editor.MqlSpellcheckingStrategy"/>
+        <spellchecker.bundledDictionaryProvider implementation="com.limemojito.oss.mql.editor.MqlBundledDictionaryProvider"/>
+
+        <!-- Native TODO tool window (Phase 2d): feeds MQL comments into the platform TODO index. -->
+        <indexPatternBuilder implementation="com.limemojito.oss.mql.editor.MqlIndexPatternBuilder"/>
+
+        <!-- File templates (Phase 2e): backs the New MQL4/MQL5 File actions (see action/). -->
+        <internalFileTemplate name="MQL5 Expert Advisor"/>
+        <internalFileTemplate name="MQL5 Indicator"/>
+        <internalFileTemplate name="MQL5 Script"/>
+        <internalFileTemplate name="MQL4 Expert"/>
 
         <!-- sdk -->
         <sdkType implementation="com.limemojito.oss.mql.sdk.MQL4SdkType"/>
