@@ -7,6 +7,7 @@
 package com.limemojito.oss.mql;
 
 import com.intellij.ide.IconProvider;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
@@ -19,9 +20,15 @@ import javax.swing.*;
 
 /**
  * Provides distinct file icons for MQL4, MQL5, and header (.mqh) files.
- * Returns gray (desaturated) icons for files that have inspection problems.
+ *
+ * <p>In the no-problem case this returns exactly the same base icon each file's {@link
+ * com.intellij.openapi.fileTypes.FileType#getIcon() FileType} already advertises (mq4/mql4 ->
+ * mql4.svg, mq5/mql5 -> mql5.svg, mqh -> mqh.svg), so the platform's deferred repaint is a visual
+ * no-op (no flash). Problem state is an OVERLAY badge on that same base icon (see
+ * {@code MQL4Icons.*Problem}), never a different base icon -- the base icon never changes, so the
+ * worst transition a file ever shows is base -> base+badge. Dumb-safe (a pure name/cache lookup).
  */
-public class MQL4FileIconProvider extends IconProvider {
+public class MQL4FileIconProvider extends IconProvider implements DumbAware {
 
     @Nullable
     @Override
@@ -36,16 +43,16 @@ public class MQL4FileIconProvider extends IconProvider {
                 return null;
             }
 
-            boolean gray = hasProblems(psiFile);
+            boolean problem = hasProblems(psiFile);
 
             if (isHeader) {
-                return gray ? MQL4Icons.HeaderFileGray : MQL4Icons.HeaderFile;
+                return problem ? MQL4Icons.HeaderFileProblem : MQL4Icons.HeaderFile;
             }
             if (isMql5) {
-                return gray ? MQL4Icons.MQL5FileGray : MQL4Icons.MQL5File;
+                return problem ? MQL4Icons.MQL5FileProblem : MQL4Icons.MQL5File;
             }
             // isMql4
-            return gray ? MQL4Icons.FileGray : MQL4Icons.File;
+            return problem ? MQL4Icons.FileProblem : MQL4Icons.File;
         }
         return null;
     }

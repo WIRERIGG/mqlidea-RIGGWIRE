@@ -11,7 +11,6 @@ import com.intellij.execution.lineMarker.RunLineMarkerContributor;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.fileTypes.FileType;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
@@ -27,14 +26,13 @@ import java.util.Set;
 /**
  * Run-gutter (&#9654;) on {@code OnInit}/{@code OnStart} -- the entry points MetaEditor actually
  * compiles/runs a file from -- in a top-level compilable source file (never a {@code .mqh} header,
- * which cannot be built standalone). {@code MQL4FileType} covers {@code .mqh} too (see its
- * registered extensions in plugin.xml), so the header exclusion has to check the real file
- * extension rather than the file type class.
+ * which cannot be built standalone). A {@code .mqh} header now carries its own
+ * {@link com.limemojito.oss.mql.MqlHeaderFileType} (not {@link MQL4FileType}), so restricting to
+ * {@link MQL4FileType}/{@link MQL5FileType} already excludes headers -- no extension special-case needed.
  */
 public class MqlRunLineMarkerContributor extends RunLineMarkerContributor {
 
     private static final Set<String> RUNNABLE_ENTRY_POINTS = Set.of("OnInit", "OnStart");
-    private static final String HEADER_EXTENSION = "mqh";
 
     @Nullable
     @Override
@@ -63,10 +61,7 @@ public class MqlRunLineMarkerContributor extends RunLineMarkerContributor {
         if (file == null) {
             return false;
         }
-        VirtualFile vf = file.getVirtualFile();
-        if (vf != null && HEADER_EXTENSION.equalsIgnoreCase(vf.getExtension())) {
-            return false;
-        }
+        // A .mqh header is MqlHeaderFileType, so it is neither of these -> headers are excluded here.
         FileType fileType = file.getFileType();
         return fileType instanceof MQL4FileType || fileType instanceof MQL5FileType;
     }

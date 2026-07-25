@@ -23,8 +23,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@code StartupActivity}-based wiring (formerly {@code MqlProblemsLoggerStartupActivity}, which
  * manually connected this listener to the project message bus and kicked off the initial full
  * scan) -- the platform now handles both the subscription and the listener's lifecycle. The
- * one-time initial scan that the startup activity used to trigger is instead piggybacked onto the
- * first VFS event this listener receives (see {@link #initialized}).
+ * one-time initial scan is also piggybacked onto the first VFS event this listener receives (see
+ * {@link #initialized}) as a backstop; the primary open-time trigger is now
+ * {@link MqlProblemsLoggerStartupActivity}. Both are idempotent (the {@link #initialized} guard
+ * here, and the modstamp cache in {@link MqlProblemsLoggerService}), so running both is harmless.
  */
 public class MqlProblemsLoggerFileListener implements BulkFileListener {
 

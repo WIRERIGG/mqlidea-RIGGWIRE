@@ -9,7 +9,6 @@ package com.limemojito.oss.mql;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.LayeredIcon;
-import com.intellij.util.IconUtil;
 import com.intellij.util.ReflectionUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,15 +16,17 @@ import javax.swing.*;
 import java.util.Objects;
 
 public interface MQL4Icons {
-    // File type icons
+    // File type icons -- these are the STABLE base icons a file's FileType.getIcon() returns, so the
+    // first painted (DeferredIcon placeholder) icon already equals the final one: no wrong->right flash.
     Icon File = IconLoader.getIcon("/icons/mql4.svg", callingClassLoader());
     Icon MQL5File = IconLoader.getIcon("/icons/mql5.svg", callingClassLoader());
     Icon HeaderFile = IconLoader.getIcon("/icons/mqh.svg", callingClassLoader());
 
-    // Desaturated (gray) variants for files with problems
-    Icon FileGray = IconUtil.desaturate(File);
-    Icon MQL5FileGray = IconUtil.desaturate(MQL5File);
-    Icon HeaderFileGray = IconUtil.desaturate(HeaderFile);
+    // Problem-state variants: the SAME base icon plus a warning badge overlay (never a different base
+    // icon), so a file that gains/loses problems only adds/removes the badge -- the base never swaps.
+    Icon FileProblem = withWarningBadge(File);
+    Icon MQL5FileProblem = withWarningBadge(MQL5File);
+    Icon HeaderFileProblem = withWarningBadge(HeaderFile);
 
     // Classes and structs
     Icon Class = AllIcons.Nodes.Class;
@@ -43,6 +44,15 @@ public interface MQL4Icons {
         LayeredIcon icon = new LayeredIcon(2);
         icon.setIcon(base, 0);
         icon.setIcon(AllIcons.Nodes.Symlink, 1);
+        return icon;
+    }
+
+    /** Base file icon overlaid with a small warning badge in the bottom-right corner. */
+    @NotNull
+    private static Icon withWarningBadge(@NotNull Icon base) {
+        LayeredIcon icon = new LayeredIcon(2);
+        icon.setIcon(base, 0);
+        icon.setIcon(AllIcons.Nodes.WarningMark, 1, SwingConstants.SOUTH_EAST);
         return icon;
     }
 

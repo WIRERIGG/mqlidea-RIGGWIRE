@@ -123,13 +123,22 @@
                   implementationClass="com.limemojito.oss.mql.MQL4FileType"
                   fieldName="INSTANCE"
                   language="MQL4"
-                  extensions="mq4;mqh;mql4"
+                  extensions="mq4;mql4"
         />
         <fileType name="MQL5 File"
                   implementationClass="com.limemojito.oss.mql.MQL5FileType"
                   fieldName="INSTANCE"
                   language="MQL4"
                   extensions="mq5;mql5"
+        />
+        <!-- Header files (.mqh) get their own FileType so the neutral header icon is stable at the
+             FileType level (fixes the editor-tab/project-tree icon flash). Still language="MQL4", so
+             headers are parsed/inspected exactly as before. -->
+        <fileType name="MQL Header"
+                  implementationClass="com.limemojito.oss.mql.MqlHeaderFileType"
+                  fieldName="INSTANCE"
+                  language="MQL4"
+                  extensions="mqh"
         />
 
         <lang.parserDefinition language="MQL4"
@@ -576,6 +585,9 @@
 
         <!-- MQL Problems Logger -->
         <projectService serviceImplementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerService"/>
+        <!-- Kick the initial scan on project open (not just on the first VFS event), so a freshly
+             opened, untouched project still computes problem icons + writes its report. -->
+        <postStartupActivity implementation="com.limemojito.oss.mql.inspection.MqlProblemsLoggerStartupActivity"/>
 
         <!-- Phase 2 (REVAMP_PLAN.md): the AI-healing subsystem (Grok/Claude clients, SQLite
              database, healing service, tool window, and apply surface removed in Phase 0) has
@@ -634,6 +646,11 @@
              hierarchies, reusing the Phase-5 base-class resolution (CLASS_INHERITANCE_LIST walk). -->
         <codeInsight.gotoSuper language="MQL4"
                                implementationClass="com.limemojito.oss.mql.structure.MqlGotoSuperHandler"/>
+
+        <!-- Go To Type Declaration (Ctrl+Shift+B): from a variable/parameter to its class type,
+             reusing the Phase-5 declared-type resolution. -->
+        <codeInsight.typeDeclarationProvider
+                implementation="com.limemojito.oss.mql.reference.MqlTypeDeclarationProvider"/>
 
         <!-- Phase 1 (REVAMP_PLAN.md): gutter icons, usage highlighting, names validator -->
         <codeInsight.lineMarkerProvider language="MQL4"

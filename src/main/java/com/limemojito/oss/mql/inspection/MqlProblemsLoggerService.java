@@ -13,25 +13,31 @@ import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.QuickFix;
+import com.intellij.ide.projectView.ProjectView;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.extensions.ExtensionPointName;
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.util.ui.update.MergingUpdateQueue;
+import com.intellij.util.ui.update.Update;
 import com.limemojito.oss.mql.MQL4FileType;
 import com.limemojito.oss.mql.MQL5FileType;
+import com.limemojito.oss.mql.MqlHeaderFileType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -171,6 +177,16 @@ public final class MqlProblemsLoggerService implements Disposable {
     private final Object scheduleLock = new Object();
     // Dirty files needing re-scan (null = full scan needed); access only under dirtyLock
     private Set<String> dirtyFileUrls;
+
+    // SETTLE: the set of file URLs that had problems at the end of the LAST scan. A scan schedules a
+    // (coalesced, bounded) UI refresh only when this set actually changes — never per-file, never
+    // per-scan-unconditionally (the opposite of the old per-change whole-tree refresh).
+    private volatile Set<String> lastProblemUrls = Set.of();
+    // URLs whose problem-state flipped since the pending refresh was queued; drained on the EDT.
+    private final Set<String> pendingIconRefreshUrls = ConcurrentHashMap.newKeySet();
+    // Coalesces problem-icon refreshes to at most one per ~500ms window, on the EDT.
+    private final MergingUpdateQueue iconRefreshQueue;
+
     public MqlProblemsLoggerService(Project project) {
         this.project = project;
         this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -179,6 +195,8 @@ public final class MqlProblemsLoggerService implements Disposable {
             t.setPriority(Thread.MIN_PRIORITY);
             return t;
         });
+        this.iconRefreshQueue = new MergingUpdateQueue(
+                "MQL-Problem-Icons", 500, true, MergingUpdateQueue.ANY_COMPONENT, this);
     }
 
     public static MqlProblemsLoggerService getInstance(@NotNull Project project) {
@@ -234,6 +252,9 @@ public final class MqlProblemsLoggerService implements Disposable {
                 Set<VirtualFile> files = new LinkedHashSet<>();
                 files.addAll(FileTypeIndex.getFiles(MQL4FileType.INSTANCE, GlobalSearchScope.projectScope(project)));
                 files.addAll(FileTypeIndex.getFiles(MQL5FileType.INSTANCE, GlobalSearchScope.projectScope(project)));
+                // .mqh headers now carry MqlHeaderFileType (split out of MQL4FileType), so include
+                // them explicitly or headers would silently drop out of the scan/report.
+                files.addAll(FileTypeIndex.getFiles(MqlHeaderFileType.INSTANCE, GlobalSearchScope.projectScope(project)));
                 return files;
             });
 
@@ -289,10 +310,12 @@ public final class MqlProblemsLoggerService implements Disposable {
             writeReport();
             writeTaskFile();
 
-            // NOTE: the project-tree icons (MQL4FileIconProvider) read hasProblems() on demand, so
-            // they update on the next natural project-view/VFS refresh. We deliberately do NOT force
-            // a full ProjectView.refresh() on the EDT per problem-state change (that whole-tree
-            // refresh was the logger's main editor-thread cost); the report files are still written.
+            // SETTLE: the project-tree/editor-tab icons (MQL4FileIconProvider) read hasProblems() on
+            // demand, so a newly-computed problem state stays invisible until something repaints them.
+            // We do NOT force a whole-tree refresh per problem-state change (that was the logger's main
+            // editor-thread cost). Instead we flip-gate it: only when the SET of files-with-problems
+            // actually changes do we schedule ONE coalesced, bounded refresh for just the changed files.
+            settleIconsIfProblemSetChanged();
 
         } catch (ProcessCanceledException e) {
             // Normal during shutdown
@@ -658,6 +681,75 @@ public final class MqlProblemsLoggerService implements Disposable {
             case "WEAK WARNING" -> 2;
             default -> 3;
         };
+    }
+
+    /**
+     * SETTLE step: compare the current set of files-with-problems against the previous scan's set and,
+     * only if it changed, queue a single coalesced UI refresh for the files that flipped. Runs on the
+     * scan thread; the actual EDT work is deferred to {@link #iconRefreshQueue}.
+     */
+    private void settleIconsIfProblemSetChanged() {
+        Set<String> current = new LinkedHashSet<>();
+        for (Map.Entry<String, CachedFileResult> entry : cache.entrySet()) {
+            if (!entry.getValue().problems().isEmpty()) {
+                current.add(entry.getKey());
+            }
+        }
+        Set<String> flipped = computeFlipped(lastProblemUrls, current);
+        if (flipped.isEmpty()) {
+            return; // problem set unchanged -> no refresh at all
+        }
+        lastProblemUrls = current;
+        scheduleIconRefresh(flipped);
+    }
+
+    /**
+     * The symmetric difference of two problem-URL sets: every file whose problem-state flipped
+     * (gained a problem or had its last problem cleared). Empty iff the two sets are equal, so callers
+     * can use "empty flipped set" as "nothing changed". Exposed for testing.
+     */
+    @NotNull
+    public static Set<String> computeFlipped(@NotNull Set<String> previous, @NotNull Set<String> current) {
+        Set<String> flipped = new LinkedHashSet<>();
+        for (String url : current) {
+            if (!previous.contains(url)) {
+                flipped.add(url);
+            }
+        }
+        for (String url : previous) {
+            if (!current.contains(url)) {
+                flipped.add(url);
+            }
+        }
+        return flipped;
+    }
+
+    private void scheduleIconRefresh(@NotNull Set<String> flippedUrls) {
+        if (project.isDisposed()) {
+            return;
+        }
+        pendingIconRefreshUrls.addAll(flippedUrls);
+        iconRefreshQueue.queue(new Update("mql-problem-icons") {
+            @Override
+            public void run() {
+                if (project.isDisposed()) {
+                    return;
+                }
+                List<String> urls = new ArrayList<>(pendingIconRefreshUrls);
+                pendingIconRefreshUrls.clear();
+                // One bounded refresh: the project view, plus tab presentation for the changed files
+                // that are actually open in an editor. Not a per-file, not a per-scan whole-tree churn.
+                ProjectView.getInstance(project).refresh();
+                FileEditorManagerEx editors = FileEditorManagerEx.getInstanceEx(project);
+                VirtualFileManager vfm = VirtualFileManager.getInstance();
+                for (String url : urls) {
+                    VirtualFile vf = vfm.findFileByUrl(url);
+                    if (vf != null && editors.isFileOpen(vf)) {
+                        editors.updateFilePresentation(vf);
+                    }
+                }
+            }
+        });
     }
 
     @Override

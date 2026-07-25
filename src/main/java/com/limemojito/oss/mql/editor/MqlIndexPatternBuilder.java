@@ -13,6 +13,7 @@ import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.TokenSet;
 import com.limemojito.oss.mql.MQL4FileType;
 import com.limemojito.oss.mql.MQL5FileType;
+import com.limemojito.oss.mql.MqlHeaderFileType;
 import com.limemojito.oss.mql.parser.MQL4ParserDefinition;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +32,8 @@ public class MqlIndexPatternBuilder implements IndexPatternBuilder {
     @Override
     public Lexer getIndexingLexer(@NotNull PsiFile file) {
         FileType type = file.getFileType();
-        if (!(type instanceof MQL4FileType) && !(type instanceof MQL5FileType)) {
+        if (!(type instanceof MQL4FileType) && !(type instanceof MQL5FileType)
+                && !(type instanceof MqlHeaderFileType)) {
             return null;
         }
         return new MQL4ParserDefinition().createLexer(file.getProject());

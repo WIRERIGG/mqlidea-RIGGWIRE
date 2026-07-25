@@ -21,6 +21,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.swing.JComponent;
@@ -28,12 +29,30 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.limemojito.oss.mql.MQL4FileType;
 import com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfiguration;
 import com.limemojito.oss.mql.sdk.MQL4SdkType;
 import com.limemojito.oss.mql.util.OSUtils;
 
 public class MQL4CompilerRunnerEditor extends SettingsEditor<MQL4RunCompilerConfiguration> {
+
+    /**
+     * Extensions the compile run-config can build. Includes both MQL4 ({@code mq4}/{@code mql4}) and
+     * MQL5 ({@code mq5}/{@code mql5}) programs; a plain {@link
+     * FileChooserDescriptorFactory#createSingleFileDescriptor(com.intellij.openapi.fileTypes.FileType)
+     * createSingleFileDescriptor(MQL4FileType.INSTANCE)} filtered out {@code .mq5} files (whose type
+     * is MQL5FileType), so they could not be selected.
+     */
+    private static final Set<String> COMPILABLE_PROGRAM_EXTENSIONS = Set.of("mq4", "mql4", "mq5", "mql5");
+
+    /** True when {@code vf} is a selectable MQL program file (any dialect; not a folder or header). */
+    public static boolean acceptsProgramFile(@Nullable VirtualFile vf) {
+        if (vf == null || vf.isDirectory()) {
+            return false;
+        }
+        String ext = vf.getExtension();
+        return ext != null && COMPILABLE_PROGRAM_EXTENSIONS.contains(ext.toLowerCase());
+    }
+
     private JPanel rootPanel;
     private TextFieldWithBrowseButton fileField;
     private MQL4SDKComboBoxWithBrowseButton sdkComboBox;
@@ -94,8 +113,11 @@ public class MQL4CompilerRunnerEditor extends SettingsEditor<MQL4RunCompilerConf
         @Nullable
         @Override
         protected String showDialog() {
-            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor(MQL4FileType.INSTANCE);
-            descriptor.setTitle("Select MQL4 File…");
+            // Accept any MQL program file (mq4/mql4/mq5/mql5), not just MQL4FileType — the old
+            // single-FileType descriptor rejected .mq5 (MQL5FileType) so MQL5 programs weren't selectable.
+            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
+                    .withFileFilter(MQL4CompilerRunnerEditor::acceptsProgramFile);
+            descriptor.setTitle("Select MQL File…");
             descriptor.setRoots(project.getBaseDir());
 
             FileChooserDialog chooser = FileChooserFactory.getInstance().createFileChooser(descriptor, project, null);

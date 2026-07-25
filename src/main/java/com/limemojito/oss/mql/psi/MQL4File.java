@@ -9,7 +9,6 @@ import com.intellij.extapi.psi.PsiFileBase;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.psi.FileViewProvider;
 import org.jetbrains.annotations.NotNull;
-import com.limemojito.oss.mql.MQL4FileType;
 import com.limemojito.oss.mql.MQL4Language;
 
 public class MQL4File extends PsiFileBase {
@@ -21,7 +20,10 @@ public class MQL4File extends PsiFileBase {
     @NotNull
     @Override
     public FileType getFileType() {
-        return MQL4FileType.INSTANCE;
+        // Return the real per-extension FileType (MQL4/MQL5/MQL Header) rather than hardcoding
+        // MQL4FileType. This makes the platform's DeferredIcon placeholder equal the final icon for
+        // mq4/mql4/mq5/mql5/mqh files, so the first painted icon never has to repaint wrong->right.
+        return getViewProvider().getFileType();
     }
 
     @Override
