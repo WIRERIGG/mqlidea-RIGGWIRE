@@ -296,6 +296,30 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void f() { double buf[]; int a = 5, n = CopyBuffer(h, 0, 0, 10, buf); if(a < 3) return; Print(n); }");
     }
 
+    public void testUncheckedCopyRatesGetLastErrorIdiomClean() {
+        // Review R2 finding #1: the ResetLastError()/GetLastError() error-detection idiom is a valid
+        // check of the copy — must NOT be flagged (dropping whole-body GetLastError was a false pos).
+        assertNoProblems(new UncheckedCopyRatesInspection(),
+                "void f() { double buf[]; ResetLastError(); CopyBuffer(h, 0, 0, 10, buf); if(GetLastError() != 0) return; }");
+    }
+
+    public void testUncheckedCopyRatesCheckAfterShadowingLoopClean() {
+        // Review R2 finding #3: a genuine check placed AFTER a block-scoped shadowing loop refers to
+        // the OUTER captured variable → clean. The loop's own `n` doesn't reach the post-loop if.
+        assertNoProblems(new UncheckedCopyRatesInspection(),
+                "int f(int total) { double buf[]; int n = CopyBuffer(h, 0, 0, total, buf);\n" +
+                "  for(int n = 0; n < 3; n++) { buf[n] = 0; }\n" +
+                "  if(n < total) return 0; return total; }");
+    }
+
+    public void testUncheckedCopyRatesUnrelatedEarlierLoopStillFlagged() {
+        // Review R2 finding #5: an unrelated earlier same-name loop before the capture is a different
+        // variable — its `n < 10` must not mask the genuinely-unchecked later capture.
+        assertHasProblems(new UncheckedCopyRatesInspection(),
+                "void f() { int x = 0; for(int n = 0; n < 10; n++) { x = n; }\n" +
+                "  double buf[]; int n = CopyBuffer(h, 0, 0, 10, buf); Print(n); }");
+    }
+
     public void testUncheckedCopyRatesShadowedLoopCounterStillFlagged() {
         // Review finding #4: the copy result is captured in `i` but never checked — the `i < 10`
         // belongs to a DIFFERENT, shadowing `for(int i = ...)` loop counter. A bare name-match on
@@ -894,6 +918,19 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // Shrinking (new size derived from ArraySize(...) - 1) never reallocates → can't fail.
         assertNoProblems(new ArrayResizeReturnCheckInspection(),
                 "void foo() { double arr[]; ArrayResize(arr, ArraySize(arr) - 1); }");
+    }
+
+    public void testArrayResizeReturnCheckShrinkWhitespaceClean() {
+        // Review R2 finding #2: spacing inside ArraySize( a ) must not defeat the same-array match.
+        assertNoProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double a[]; ArrayResize(a, ArraySize( a ) - 1); }");
+    }
+
+    public void testArrayResizeReturnCheckShrinkCompoundSubtrahendClean() {
+        // Review R2 finding #4: the subtrahend may be any expression — ArraySize(a) - (count + 1)
+        // is still a shrink of the same array and cannot fail; the '+' inside it must not flag it.
+        assertNoProblems(new ArrayResizeReturnCheckInspection(),
+                "void foo() { double a[]; int count = 2; ArrayResize(a, ArraySize(a) - (count + 1)); }");
     }
 
     public void testArrayResizeReturnCheckGrowStillFlags() {

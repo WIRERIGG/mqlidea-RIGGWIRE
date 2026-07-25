@@ -715,20 +715,21 @@ final class StatementAst implements MQL4Elements {
      */
     static boolean arrayResizeCannotFail(@NotNull ASTNode callIdentifier) {
         String sizeArg = nthCallArg(callIdentifier, 1);
-        if (sizeArg == null) return false;
-        sizeArg = sizeArg.trim();
-        if ("0".equals(sizeArg)) return true;                              // resize to 0 — clear
-        // Shrink/same-size of THE ARRAY BEING RESIZED: `ArraySize(<thatArray>)` optionally followed
-        // by a subtraction. Requiring the SAME array and rejecting growth operators (*, +, <<) avoids
-        // treating a grow as non-failing — e.g. `ArrayResize(dst, ArraySize(src) - 1)` where src is
-        // larger, or `ArrayResize(a, ArraySize(a) * 4 - 1)`, both of which can reallocate and fail.
         String arrayArg = nthCallArg(callIdentifier, 0);
-        if (arrayArg == null) return false;
-        String prefix = "ArraySize(" + arrayArg.trim() + ")";
-        if (!sizeArg.startsWith(prefix)) return false;
-        String rest = sizeArg.substring(prefix.length()).trim();
-        return rest.isEmpty()                                             // resize to current size
-                || (rest.charAt(0) == '-' && rest.indexOf('*') < 0 && rest.indexOf('+') < 0 && rest.indexOf('<') < 0);
+        if (sizeArg == null || arrayArg == null) return false;
+        // Whitespace-insensitive: `ArraySize( a )` must match array `a` (the call args can carry any
+        // spacing). The size is non-failing when it is literal 0 (clear), the same array's current
+        // size `ArraySize(a)` (no realloc), or that size immediately followed by a subtraction
+        // `ArraySize(a) - ...` (a shrink — the subtrahend may be any expression, e.g. `(count + 1)`).
+        // A growth operator directly after the size (`ArraySize(a) * 4 - 1`) is NOT matched, so it
+        // stays flaggable. (A pathological `ArraySize(a) - 1 + big` can slip through as a rare missed
+        // flag — an accepted false negative, never a false positive.)
+        String size = sizeArg.replaceAll("\\s", "");
+        if ("0".equals(size)) return true;
+        String prefix = "ArraySize(" + arrayArg.replaceAll("\\s", "") + ")";
+        if (!size.startsWith(prefix)) return false;
+        String rest = size.substring(prefix.length());
+        return rest.isEmpty() || rest.charAt(0) == '-';
     }
 
     /** The first non-trivia sibling after the {@code )} matching {@code lParen}, tracking depth; or null. */
@@ -748,21 +749,21 @@ final class StatementAst implements MQL4Elements {
     }
 
     /**
-     * True when a copy/resize {@code call}'s return value is validated in {@code body} by any of the
-     * three legitimate MQL idioms: a literal failure check ({@code <0}/{@code ==-1}/GetLastError —
-     * {@link #hasFailureReturnCheck}); the call compared inline ({@code if(CopyBuffer(...) < count)}
-     * — {@link #callResultCompared}); OR — the common case — the result captured into a variable
-     * that is compared somewhere in the function ({@code int n = CopyBuffer(...); if(n < rates_total)}).
-     * The third idiom is why these inspections must not treat a captured-then-checked call as unchecked.
+     * True when a copy/resize {@code call}'s return value is validated in {@code body} by a
+     * legitimate MQL idiom: the call compared inline ({@code if(CopyBuffer(...) < count)} —
+     * {@link #callResultCompared}); the result captured into a variable that is genuinely compared
+     * ({@code int n = CopyBuffer(...); if(n < rates_total)} — {@link #capturedResultCompared},
+     * shadow-aware); or the {@code GetLastError} error-detection idiom
+     * ({@code ResetLastError(); CopyBuffer(...); if(GetLastError() != 0) return;}).
+     * <p>
+     * Deliberately does NOT use the whole-body literal {@code <0} scan of {@link #hasFailureReturnCheck}
+     * — at function scope a single {@code if(other < 0)} elsewhere would mask a genuinely unchecked
+     * sibling resize/copy. {@code GetLastError} is kept whole-body (its mere presence signals error
+     * handling, and it is a documented check idiom); the rare over-accept that gives is a false
+     * negative, never a false positive.
      */
     static boolean callReturnChecked(@Nullable ASTNode body, @NotNull ASTNode callIdentifier) {
-        // Per-call only. Deliberately NOT the whole-body hasFailureReturnCheck: at whole-function
-        // scope a single `if(other < 0)` (or a stray GetLastError) elsewhere would mask a genuinely
-        // unchecked sibling resize/copy. The inline form `if(CopyBuffer(...) < n)` is caught by
-        // callResultCompared, and the captured form `int r = CopyBuffer(...); if(r < n)` by the
-        // result-variable comparison below — together they cover the real check idioms without the
-        // false negatives whole-body scoping introduces.
-        if (callResultCompared(callIdentifier)) {
+        if (callResultCompared(callIdentifier) || (body != null && hasCall(body, "GetLastError"))) {
             return true;
         }
         String resultVar = assignmentTargetName(callIdentifier);
@@ -780,22 +781,29 @@ final class StatementAst implements MQL4Elements {
      * {@code i < 10} operand is the loop's own freshly-declared {@code i}, not the copy result —
      * a bare name-match would silently pass the genuinely-unchecked copy.
      * <p>
-     * Rule (no symbol table needed, zero-false-positive by construction):
+     * Rule (lexical scope resolution, no symbol table, zero-false-positive by construction): a
+     * comparison of {@code name} counts as a check of the captured result only when the SAME
+     * declaration is in effect at the comparison as at the capture — i.e. the compared {@code name}
+     * resolves to the captured variable, not a shadow. "In effect at X" = among same-name
+     * declarations positioned at/before X whose lexical scope contains X, the one in the innermost
+     * scope (see {@link #declarationInEffectAt} / {@link #scopeOf}). This handles all the cases a
+     * bare name-match got wrong:
      * <ul>
-     *   <li>A comparison at or before {@code captureOffset} is accepted as before (the retry-loop
-     *       idiom {@code while(copied < needed) { copied = CopyBuffer(...); }} — unchanged
-     *       behavior, so no previously-clean code starts being flagged).</li>
-     *   <li>A comparison after the capture is accepted only when NO declaration of {@code name}
-     *       lies between the capture and that comparison. With no intervening redeclaration the
-     *       compared name can only denote the captured variable, so acceptance is sound; with one,
-     *       the comparison (e.g. the shadowing {@code for}'s own {@code i < 10}) is distrusted.
-     *       A genuine check BEFORE a later redeclaration (e.g. {@code int n = CopyBuffer(...);
-     *       if(n < total) return; ... for(int n = 0; ...)}) still lies inside the clean window and
-     *       stays accepted — more precise than distrusting every redeclared name outright.</li>
+     *   <li>{@code int i = CopyBuffer(...); for(int i=0; i<10; i++)} — inside the {@code for}, the
+     *       loop's own {@code i} is in effect, so {@code i<10} is NOT a check → flagged.</li>
+     *   <li>{@code int n = CopyBuffer(...); for(int n=0;...){} if(n<total)} — the block-scoped loop
+     *       {@code n} does not reach the post-loop {@code if}, so the outer {@code n} is in effect
+     *       there → the genuine check counts → clean.</li>
+     *   <li>{@code for(int n=0;n<10;n++){} int n = CopyBuffer(...);} — the earlier loop's {@code n}
+     *       is a different variable; its {@code n<10} is not in the captured var's binding → the
+     *       unchecked capture is still flagged.</li>
+     *   <li>{@code int copied; while(copied<needed){copied=CopyBuffer(...);}} retry idiom — the
+     *       outer {@code copied} is in effect at both, so the header check counts → clean.</li>
      * </ul>
      * Declarations are recognised structurally in both parse shapes (see {@link #isDeclarationOf}),
-     * including the flat-token {@code for(int i = 0; ...)} header, which the parser never wraps in
-     * a {@code VAR_DEFINITION}.
+     * including the flat-token {@code for(int i = 0; ...)} header, which the parser never wraps in a
+     * {@code VAR_DEFINITION}. When {@code name} has no recognised local declaration (parameter /
+     * global), the binding is null at every use, so uses still match — lenient, never a false positive.
      */
     static boolean capturedResultCompared(@Nullable ASTNode body, @NotNull String name, int captureOffset) {
         if (body == null) return false;
@@ -804,22 +812,53 @@ final class StatementAst implements MQL4Elements {
         if (compared.isEmpty()) return false;
         List<ASTNode> declarations = new ArrayList<>();
         collectDeclarations(body, name, declarations);
+        ASTNode captureDecl = declarationInEffectAt(declarations, captureOffset);
         for (ASTNode operand : compared) {
-            int comparisonOffset = operand.getStartOffset();
-            if (comparisonOffset <= captureOffset) {
-                return true; // pre-capture comparison (retry-loop idiom) — accepted as before
+            if (declarationInEffectAt(declarations, operand.getStartOffset()) == captureDecl) {
+                return true;
             }
-            boolean shadowed = false;
-            for (ASTNode declaration : declarations) {
-                int declarationOffset = declaration.getStartOffset();
-                if (declarationOffset > captureOffset && declarationOffset <= comparisonOffset) {
-                    shadowed = true; // redeclared between capture and comparison — different variable
-                    break;
-                }
-            }
-            if (!shadowed) return true;
         }
         return false;
+    }
+
+    /**
+     * The same-name declaration in effect (visible) at {@code atOffset}: among {@code declarations}
+     * positioned at/before {@code atOffset} whose lexical {@link #scopeOf scope} contains
+     * {@code atOffset}, the one in the innermost (tightest) scope. Null when none applies — the name
+     * is a parameter/global, so all uses share that same (null) binding.
+     */
+    @Nullable
+    private static ASTNode declarationInEffectAt(@NotNull List<ASTNode> declarations, int atOffset) {
+        ASTNode best = null;
+        int bestScopeStart = Integer.MIN_VALUE;
+        for (ASTNode decl : declarations) {
+            if (decl.getStartOffset() > atOffset) continue; // not yet declared at this point
+            ASTNode scope = scopeOf(decl);
+            int scopeStart = (scope == null) ? -1 : scope.getStartOffset();
+            int scopeEnd = (scope == null) ? Integer.MAX_VALUE : scope.getTextRange().getEndOffset();
+            if (atOffset < scopeStart || atOffset >= scopeEnd) continue; // scope doesn't cover the use
+            if (scopeStart >= bestScopeStart) { // innermost wins; a later decl in the same scope too
+                best = decl;
+                bestScopeStart = scopeStart;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * The lexical scope of {@code node}: its nearest ancestor that introduces one — a control-flow
+     * statement (a {@code for}-header declaration is scoped to the whole {@code for} statement) or a
+     * {@code {...}} code block. Null at function/file top level.
+     */
+    @Nullable
+    private static ASTNode scopeOf(@NotNull ASTNode node) {
+        for (ASTNode ancestor = node.getTreeParent(); ancestor != null; ancestor = ancestor.getTreeParent()) {
+            IElementType t = ancestor.getElementType();
+            if (CONTROL_FLOW_STATEMENTS.contains(t) || (t == BRACKETS_BLOCK && isCodeBlock(ancestor))) {
+                return ancestor;
+            }
+        }
+        return null;
     }
 
     /** Collects every {@code IDENTIFIER} token named {@code name} that is an immediate operand of a comparison. */
