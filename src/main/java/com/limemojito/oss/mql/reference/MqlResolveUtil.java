@@ -58,7 +58,30 @@ public final class MqlResolveUtil {
             single.add(local);
             return single;
         }
+        // Enclosing-class member: a BARE use inside a method (`return value;` / `Helper();`) binds to
+        // the class's own field/method (inherited too) before any global — otherwise a field rename
+        // would update obj.field/this.field but silently miss these bare in-method uses (broken code).
+        PsiElement member = resolveEnclosingClassMember(identifier, name);
+        if (member != null) {
+            List<PsiElement> single = new ArrayList<>(1);
+            single.add(member);
+            return single;
+        }
         return resolveNonLocal(identifier, name);
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private static PsiElement resolveEnclosingClassMember(@NotNull PsiElement identifier, @NotNull String name) {
+        MQL4ClassElement cls = PsiTreeUtil.getParentOfType(identifier, MQL4ClassElement.class);
+        if (cls == null) {
+            return null;
+        }
+        ASTNode inner = cls.getInnerBlockNode();
+        if (inner == null || !PsiTreeUtil.isAncestor(inner.getPsi(), identifier, false)) {
+            return null; // only bare uses within the class body
+        }
+        List<PsiElement> members = resolveMemberInClassHierarchy(cls, name);
+        return members.isEmpty() ? null : members.get(0);
     }
 
     // ---- Tier 1: lexical scope (locals + parameters) --------------------------------------
@@ -224,7 +247,7 @@ public final class MqlResolveUtil {
         }
         for (String baseName : baseClassNames(cls)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
-            MQL4ClassElement base = findClassByName(baseName, cls.getProject());
+            MQL4ClassElement base = findClassByName(baseName, cls.getProject(), cls);
             if (base != null) {
                 collectMemberInHierarchy(base, name, out, visited, depth + 1);
                 if (!out.isEmpty()) {
@@ -294,7 +317,7 @@ public final class MqlResolveUtil {
         }
         for (String baseName : baseClassNames(cls)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
-            MQL4ClassElement base = findClassByName(baseName, cls.getProject());
+            MQL4ClassElement base = findClassByName(baseName, cls.getProject(), cls);
             if (base != null) {
                 collectAllMembers(base, out, visited, depth + 1);
             }
@@ -310,7 +333,7 @@ public final class MqlResolveUtil {
         List<MQL4ClassElement> out = new ArrayList<>();
         for (String name : baseClassNames(cls)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
-            MQL4ClassElement base = findClassByName(name, cls.getProject());
+            MQL4ClassElement base = findClassByName(name, cls.getProject(), cls);
             if (base != null) {
                 out.add(base);
             }
@@ -354,19 +377,72 @@ public final class MqlResolveUtil {
         return names;
     }
 
-    /** The single project/closure class named {@code name}, or {@code null} (also null in dumb mode). */
+    /**
+     * The single class named {@code name} unambiguously visible from {@code context}, or {@code null}.
+     * <p>
+     * Duplicate class names are common in MQL repos (MQL4/MQL5 dual trees, {@code *_old.mqh} backups,
+     * vendored library copies). To avoid a nondeterministic wrong target (and the corrupting rename
+     * that follows), this prefers the context's {@code #include} closure — the classes actually
+     * reachable from the reference site — exactly like {@link #resolveNonLocal}. It returns a match
+     * ONLY when it is unambiguous: the single class in the closure, or (if the closure has none) the
+     * single class project-wide. More than one candidate in the chosen scope → {@code null} (no jump,
+     * no rename), which is safe: a missed target beats a wrong one. Null in dumb mode.
+     */
     @org.jetbrains.annotations.Nullable
-    public static MQL4ClassElement findClassByName(@NotNull String name, @NotNull Project project) {
+    public static MQL4ClassElement findClassByName(@NotNull String name, @NotNull Project project,
+                                                   @org.jetbrains.annotations.Nullable PsiElement context) {
         if (com.intellij.openapi.project.DumbService.isDumb(project)) {
             return null;
         }
-        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, GlobalSearchScope.allScope(project))) {
-            com.intellij.openapi.progress.ProgressManager.checkCanceled();
-            if (name.equals(c.getTypeName())) {
-                return c;
+        if (context != null) {
+            PsiFile file = context.getContainingFile();
+            if (file != null) {
+                GlobalSearchScope closureScope = closureScope(project, includeClosure(file));
+                if (closureScope != null) {
+                    MQL4ClassElement inClosure = uniqueClassInScope(name, project, closureScope);
+                    if (inClosure != null) {
+                        return inClosure;
+                    }
+                    // Ambiguous within the closure -> don't fall through to an arbitrary project pick.
+                    if (anyClassInScope(name, project, closureScope)) {
+                        return null;
+                    }
+                }
             }
         }
-        return null;
+        // No context / not in the closure: accept only an unambiguous project-wide match.
+        return uniqueClassInScope(name, project, GlobalSearchScope.allScope(project));
+    }
+
+    /** Backward-compatible context-less lookup — unambiguous project-wide match only. */
+    @org.jetbrains.annotations.Nullable
+    public static MQL4ClassElement findClassByName(@NotNull String name, @NotNull Project project) {
+        return findClassByName(name, project, null);
+    }
+
+    /** The single class named {@code name} in {@code scope}, or null if there are zero or several. */
+    @org.jetbrains.annotations.Nullable
+    private static MQL4ClassElement uniqueClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
+        MQL4ClassElement found = null;
+        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            if (name.equals(c.getTypeName())) {
+                if (found != null) {
+                    return null; // ambiguous
+                }
+                found = c;
+            }
+        }
+        return found;
+    }
+
+    private static boolean anyClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
+        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
+            if (name.equals(c.getTypeName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void collectIndexed(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope, @NotNull List<PsiElement> out) {

@@ -117,7 +117,7 @@ public final class MqlTypeResolver {
             for (PsiElement member : MqlResolveUtil.resolveMemberInClassHierarchy(innerClass, qualifier.getText())) {
                 String memberType = declaredTypeNameOf(member);
                 if (memberType != null) {
-                    MQL4ClassElement c = MqlResolveUtil.findClassByName(memberType, qualifier.getProject());
+                    MQL4ClassElement c = MqlResolveUtil.findClassByName(memberType, qualifier.getProject(), qualifier);
                     if (c != null) {
                         return c;
                     }
@@ -130,25 +130,31 @@ public final class MqlTypeResolver {
         if (typeName == null) {
             return null;
         }
-        return MqlResolveUtil.findClassByName(typeName, qualifier.getProject());
+        return MqlResolveUtil.findClassByName(typeName, qualifier.getProject(), qualifier);
     }
 
     /**
-     * Declared-type name of a plain qualifier identifier: first via the normal resolver (catches a
-     * parameter -> {@link MQL4FunctionArgElement}, or a primitive-typed variable), then falling back
-     * to a scoped lexical {@code Type name} scan for the common custom-typed local
-     * ({@code CFoo v;}) that the parser doesn't wrap in a declaration node.
+     * Declared-type name of a plain qualifier identifier. The scoped lexical {@code Type name} scan
+     * runs FIRST because it finds the NEAREST in-scope declaration — so a custom-typed local
+     * ({@code CFoo v;}) correctly shadows an outer parameter of the same name ({@code void f(CBar &v)}).
+     * The resolver-based path (which sees parameters -> {@link MQL4FunctionArgElement} and primitive
+     * var-declarations, but not the bare-two-identifier custom local) is the fallback for when there
+     * is no nearer lexical declaration.
      */
     @Nullable
     private static String declaredTypeNameOfQualifier(@NotNull PsiElement qualifier) {
         String name = qualifier.getText();
+        String scanned = scanDeclaredTypeName(qualifier, name);
+        if (scanned != null) {
+            return scanned;
+        }
         for (PsiElement target : MqlResolveUtil.resolve(qualifier, name)) {
             String typeName = declaredTypeNameOf(target);
             if (typeName != null) {
                 return typeName;
             }
         }
-        return scanDeclaredTypeName(qualifier, name);
+        return null;
     }
 
     @Nullable
@@ -229,11 +235,10 @@ public final class MqlTypeResolver {
                     || meaningful.get(j).getElementType() == MQL4Elements.MUL)) {
                 j--;
             }
-            if (j < 0 || meaningful.get(j).getElementType() != MQL4Elements.IDENTIFIER) {
-                continue;
-            }
-            // Reject `a.name` (member access) being mistaken for a `Type name` declaration.
-            if (j >= 1 && meaningful.get(j - 1).getElementType() == MQL4Elements.DOT) {
+            // The type token must be the FIRST meaningful token of the statement (after any &/*
+            // modifiers). This anchors the match to a real `Type name` declaration and rejects a
+            // mid-expression pair like `total = Count * n;` mistyping `n` as class `Count`.
+            if (j != 0 || meaningful.get(j).getElementType() != MQL4Elements.IDENTIFIER) {
                 continue;
             }
             return notPrimitive(meaningful.get(j).getText());

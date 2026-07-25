@@ -233,4 +233,77 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertTrue("a known built-in must be a soft reference", ref instanceof com.limemojito.oss.mql.reference.MqlReference
                 && ((com.limemojito.oss.mql.reference.MqlReference) ref).isSoft());
     }
+
+    // ---- Phase 5 hardening (keystone review fixes) -----------------------------------------
+
+    public void testMemberPrefersNearerLocalShadowingParam() {
+        // Fix #2: a nearer custom-typed local shadows an outer same-name parameter — v.x must
+        // resolve to the LOCAL's class (CFoo), not the parameter's (CBar); else rename corrupts.
+        String code = "class CFoo { public:\n int x;\n };\n"
+                + "class CBar { public:\n int x;\n };\n"
+                + "void f(CBar &v) { CFoo v; v.x = 1; }";
+        myFixture.configureByText("test.mq4", code);
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("x = 1"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull(ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue(resolved instanceof MQL4VarDefinitionElement);
+        MQL4ClassElement owner = com.intellij.psi.util.PsiTreeUtil.getParentOfType(resolved, MQL4ClassElement.class);
+        assertNotNull(owner);
+        assertEquals("nearer local CFoo must win over outer param CBar", "CFoo", owner.getTypeName());
+    }
+
+    public void testMemberDoesNotMistypeFromMidExpression() {
+        // Fix #4: `total = Count * n;` must NOT type `n` as class Count (type token must be at
+        // statement start). `n` is an int, so `n.v` resolves to nothing.
+        String code = "class Count { public:\n int v;\n };\n"
+                + "void f() { int total; int n; total = Count * n; int y = n.v; }";
+        myFixture.configureByText("test.mq4", code);
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("v; }"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertTrue("n.v must not mistype n as class Count", ref == null || ref.resolve() == null);
+    }
+
+    public void testMemberPrefersIncludedClassOverDuplicate() {
+        // Fix #1: with a duplicate class name in an unrelated file, the receiver type resolves to
+        // the class reachable via #include, not an arbitrary stub-index pick.
+        myFixture.addFileToProject("Good.mqh", "class CPos { public:\n double lots;\n };");
+        myFixture.addFileToProject("Backup/Old.mqh", "class CPos { public:\n double lots;\n };");
+        PsiFile main = myFixture.addFileToProject("Main.mq4",
+                "#include \"Good.mqh\"\nvoid f() { CPos p; p.lots = 0.1; }");
+        myFixture.configureFromExistingVirtualFile(main.getVirtualFile());
+        myFixture.getEditor().getCaretModel().moveToOffset(main.getText().indexOf("lots = 0.1"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull(ref);
+        PsiElement resolved = ref.resolve();
+        assertNotNull("expected resolution to the #included CPos.lots", resolved);
+        assertEquals("must resolve into the #included file, not the backup",
+                "Good.mqh", resolved.getContainingFile().getName());
+    }
+
+    public void testResolveBareFieldInsideMethod() {
+        // Fix #3: a bare in-method field use (`return value;`) resolves to the class field, so a
+        // field rename updates it (previously silently missed → broken code).
+        String code = "class CFoo { public:\n int value;\n int Get() { return value; }\n };";
+        myFixture.configureByText("test.mq4", code);
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("value; }"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull(ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("bare in-method use must resolve to the field", resolved instanceof MQL4VarDefinitionElement);
+        assertEquals("value", ((MQL4VarDefinitionElement) resolved).getName());
+    }
+
+    public void testMemberAmbiguousDuplicateClassGivesNoTarget() {
+        // Fix #1: two same-named classes, neither #included → ambiguous → no (mis)resolution
+        // (safe: a missed target beats a wrong one, which would drive a corrupting rename).
+        myFixture.addFileToProject("A.mqh", "class CPos { public:\n double lots;\n };");
+        myFixture.addFileToProject("B.mqh", "class CPos { public:\n double lots;\n };");
+        PsiFile main = myFixture.addFileToProject("Main.mq4", "void f() { CPos p; p.lots = 0.1; }");
+        myFixture.configureFromExistingVirtualFile(main.getVirtualFile());
+        myFixture.getEditor().getCaretModel().moveToOffset(main.getText().indexOf("lots = 0.1"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertTrue("ambiguous duplicate class must not resolve to an arbitrary pick",
+                ref == null || ref.resolve() == null);
+    }
 }
