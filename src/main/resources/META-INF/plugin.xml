@@ -40,6 +40,9 @@
                  including across files reached via <code>#include</code>.</li>
              <li>Rename refactoring (Shift-F6 / in-place) for the same symbol kinds, updating call
                  sites project-wide.</li>
+             <li>Go to Super Method / Super Class (Ctrl-U) across the class hierarchy, Extract
+                 Variable (Ctrl-Alt-V) on a selected expression, and Safe Delete (Alt-Delete) for
+                 functions and class members (blocked while still referenced).</li>
              <li><code>#include "X.mqh"</code> and <code>#include &lt;Trade/Trade.mqh&gt;</code> are
                  navigable links.</li>
              <li>Parameter info (Ctrl-P) for built-in and project functions, and quick documentation
@@ -54,9 +57,6 @@
          <p>
            <b>Not yet supported:</b>
            <ul>
-             <li>Safe-delete refactoring</li>
-             <li>Member access resolution (<code>obj.field</code> / <code>obj.Method()</code>) &mdash;
-                 needs type inference, planned for a later phase</li>
              <li>Inline compiler diagnostics on Windows/Linux (macOS/Wine only for now) and debugging</li>
            </ul>
          </p>
@@ -629,6 +629,11 @@
         <psi.referenceContributor language="MQL4" implementation="com.limemojito.oss.mql.reference.MqlReferenceContributor"/>
         <lang.findUsagesProvider language="MQL4" implementationClass="com.limemojito.oss.mql.findusages.MqlFindUsagesProvider"/>
         <lang.refactoringSupport language="MQL4" implementationClass="com.limemojito.oss.mql.refactoring.MqlRefactoringSupportProvider"/>
+
+        <!-- Phase 6a (REVAMP_PLAN.md): Go to Super Method / Super Class (Ctrl+U) for MQL5 class
+             hierarchies, reusing the Phase-5 base-class resolution (CLASS_INHERITANCE_LIST walk). -->
+        <codeInsight.gotoSuper language="MQL4"
+                               implementationClass="com.limemojito.oss.mql.structure.MqlGotoSuperHandler"/>
 
         <!-- Phase 1 (REVAMP_PLAN.md): gutter icons, usage highlighting, names validator -->
         <codeInsight.lineMarkerProvider language="MQL4"

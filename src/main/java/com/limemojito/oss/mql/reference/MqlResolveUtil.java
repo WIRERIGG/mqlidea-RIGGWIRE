@@ -301,6 +301,40 @@ public final class MqlResolveUtil {
         }
     }
 
+    /**
+     * The direct base classes of {@code cls} that resolve to a project class (Phase 6a: Go to
+     * Super). Order mirrors the inheritance list; unresolvable base names are skipped.
+     */
+    @NotNull
+    public static List<MQL4ClassElement> directBaseClasses(@NotNull MQL4ClassElement cls) {
+        List<MQL4ClassElement> out = new ArrayList<>();
+        for (String name : baseClassNames(cls)) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            MQL4ClassElement base = findClassByName(name, cls.getProject());
+            if (base != null) {
+                out.add(base);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The overridden member(s) named {@code name} declared in a base class of {@code cls} (Phase 6a:
+     * Go to Super for an overriding method). Searches only the base hierarchy -- never {@code cls}
+     * itself -- so an overriding method jumps to the declaration it overrides, not to itself.
+     */
+    @NotNull
+    public static List<PsiElement> findSuperMembers(@NotNull MQL4ClassElement cls, @NotNull String name) {
+        List<PsiElement> out = new ArrayList<>();
+        for (MQL4ClassElement base : directBaseClasses(cls)) {
+            out.addAll(resolveMemberInClassHierarchy(base, name));
+            if (!out.isEmpty()) {
+                return out;
+            }
+        }
+        return out;
+    }
+
     /** Base-class type names read from {@code cls}'s CLASS_INHERITANCE_LIST / CLASS_INHERITANCE_ITEM. */
     @NotNull
     private static List<String> baseClassNames(@NotNull MQL4ClassElement cls) {
