@@ -63,7 +63,7 @@ src/test/                               # parser + inspection tests (219)
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
 - All existing tests must pass after changes (`./gradlew test` — 253). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
-- Stub schema version is **21** — increment when changing stub structure.
+- Stub schema version is **22** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.
 - Never swallow `ProcessCanceledException` (it extends `RuntimeException`) — always let it propagate.
 - Run `./gradlew build` to verify after every change.
