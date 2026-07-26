@@ -74,6 +74,11 @@ public final class MqlProblemsLoggerService implements Disposable {
     private static final long YIELD_SLEEP_MS = 5;
     private static final int BATCH_SIZE = 5;
 
+    // Vendored third-party MQL sources excluded from the RIGGWIRE problems report — they are
+    // not RIGGWIRE-authored and are intentionally not remediated (linter-driven refactors would
+    // diverge from upstream). Currently: EarnForex MarketProfile (standalone tool, unused by the EA).
+    private static final Set<String> REPORT_EXCLUDED_PATHS = Set.of("tools/MarketProfile.mq5");
+
     private static final Map<String, String> FIX_HINTS = Map.ofEntries(
             // Trading Safety
             Map.entry("UncheckedOrderSend", "Check OrderSend() return value: if(!OrderSend(request, result)) { Print(\"Error: \", GetLastError()); }"),
@@ -267,6 +272,10 @@ public final class MqlProblemsLoggerService implements Disposable {
 
             String basePath = project.getBasePath();
             if (basePath == null) return;
+
+            // Drop vendored third-party sources before pruning so they neither scan nor linger
+            // in the report (their stale cache entries get pruned via retainAll below).
+            allFiles.removeIf(vf -> REPORT_EXCLUDED_PATHS.contains(getRelativePath(basePath, vf)));
 
             List<LocalInspectionTool> tools = ReadAction.compute(this::discoverInspections);
 
