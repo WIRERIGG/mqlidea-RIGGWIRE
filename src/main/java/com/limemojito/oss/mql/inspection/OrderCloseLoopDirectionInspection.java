@@ -47,6 +47,8 @@ public class OrderCloseLoopDirectionInspection extends MQL5SafetyInspectionBase 
             "^\\(\\s*[^;]*=\\s*0\\s*;[^;]*<\\s*OrdersTotal\\s*\\(\\s*\\)[^;]*;[^)]*\\+\\+\\s*\\)$");
 
     private static final TokenSet FOR_STATEMENT = TokenSet.create(MQL4Elements.FOR_STATEMENT);
+    /** Runs of whitespace collapsed to a single space to normalise a loop header before matching. */
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     private static final Set<String> CLOSE_OR_DELETE = Set.of("OrderClose", "OrderDelete");
 
     @Override
@@ -78,7 +80,7 @@ public class OrderCloseLoopDirectionInspection extends MQL5SafetyInspectionBase 
     private static boolean isForwardOrdersLoop(@NotNull ASTNode forLoop) {
         ASTNode condition = StatementAst.findConditionBlock(forLoop);
         if (condition == null) return false;
-        String header = StatementAst.heuristicText(condition).replaceAll("\\s+", " ").trim();
+        String header = WHITESPACE.matcher(StatementAst.heuristicText(condition)).replaceAll(" ").trim();
         return FORWARD_ORDERS_LOOP.matcher(header).find();
     }
 }

@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * AST-based detection of loops with no obvious exit: a {@code WHILE_STATEMENT} whose condition
@@ -42,6 +43,9 @@ public class InfiniteLoopRiskInspection extends MQL5SafetyInspectionBase {
 
     /** Calls that terminate the expert/script, treated as loop exits. */
     private static final Set<String> EXIT_CALLS = Set.of("ExpertRemove", "TerminalClose");
+
+    /** Runs of whitespace stripped from a {@code for(;;)} header before the {@code ";;"} check. */
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -77,7 +81,7 @@ public class InfiniteLoopRiskInspection extends MQL5SafetyInspectionBase {
             return "true".equals(inner) || isNonZeroIntegerConstant(inner);
         }
         // FOR_STATEMENT: empty header — only the two semicolons, no condition at all.
-        return ";;".equals(inner.replaceAll("\\s+", ""));
+        return ";;".equals(WHITESPACE.matcher(inner).replaceAll(""));
     }
 
     @NotNull

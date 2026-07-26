@@ -30,7 +30,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class MqlProblemsLoggerFileListener implements BulkFileListener {
 
-    private static final Set<String> MQL_EXTENSIONS = Set.of("mq4", "mq5", "mqh", "mql4", "mql5");
+    private static final Set<String> MQL_EXTENSIONS =
+            com.intellij.util.containers.CollectionFactory.createCaseInsensitiveStringSet(
+                    java.util.List.of("mq4", "mq5", "mqh", "mql4", "mql5"));
 
     private final Project project;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -50,18 +52,21 @@ public class MqlProblemsLoggerFileListener implements BulkFileListener {
             MqlProblemsLoggerService.getInstance(project).scanAllFiles();
         }
 
-        List<String> changedUrls = new ArrayList<>();
+        List<String> changedUrls = null;
         for (VFileEvent event : events) {
             VirtualFile file = event.getFile();
             if (file != null) {
                 String ext = file.getExtension();
-                if (ext != null && MQL_EXTENSIONS.contains(ext.toLowerCase())) {
+                if (ext != null && MQL_EXTENSIONS.contains(ext)) {
+                    if (changedUrls == null) {
+                        changedUrls = new ArrayList<>();
+                    }
                     changedUrls.add(file.getUrl());
                 }
             }
         }
 
-        if (!changedUrls.isEmpty()) {
+        if (changedUrls != null) {
             MqlProblemsLoggerService service = MqlProblemsLoggerService.getInstance(project);
             service.markDirty(changedUrls);
             service.scheduleScan();

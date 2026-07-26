@@ -170,9 +170,13 @@ public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
      * is whatever raw source text follows on the rest of that line.
      */
     private static void collectRegionFolds(@NotNull ASTNode parent, @NotNull Document document, @NotNull List<FoldingDescriptor> descriptors) {
-        Deque<int[]> startOffsetStack = new ArrayDeque<>();
-        Deque<String> nameStack = new ArrayDeque<>();
         ASTNode current = parent.getFirstChildNode();
+        if (current == null) {
+            return; // leaf (no children) -- nothing to match; skip the deque allocation entirely
+        }
+        // Lazily allocated only when the first #region is seen (they are pushed nowhere else).
+        Deque<int[]> startOffsetStack = null;
+        Deque<String> nameStack = null;
         while (current != null) {
             ASTNode next = current.getTreeNext();
             if (next == null) {
@@ -186,11 +190,15 @@ public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
             if ("region".equals(keyword)) {
                 int nameStart = next.getTextRange().getEndOffset();
                 String name = restOfLine(document, nameStart);
+                if (startOffsetStack == null) {
+                    startOffsetStack = new ArrayDeque<>();
+                    nameStack = new ArrayDeque<>();
+                }
                 startOffsetStack.push(new int[]{current.getTextRange().getStartOffset()});
                 nameStack.push(name);
                 current = next.getTreeNext(); // advance by two
             } else if ("endregion".equals(keyword)) {
-                if (!startOffsetStack.isEmpty()) {
+                if (startOffsetStack != null && !startOffsetStack.isEmpty()) {
                     int startOffset = startOffsetStack.pop()[0];
                     String name = nameStack.pop();
                     int endOffset = next.getTextRange().getEndOffset();

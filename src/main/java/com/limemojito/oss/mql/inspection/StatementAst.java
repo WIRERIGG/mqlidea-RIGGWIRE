@@ -611,6 +611,9 @@ final class StatementAst implements MQL4Elements {
     /** Comparison operator tokens that indicate a value is being range/failure-tested. */
     private static final TokenSet FAILURE_COMPARISON_OPERATORS = TokenSet.create(LT, LESS_EQ, GT, GT_EQ, EQ_EQ, NOT_EQ);
 
+    /** Single whitespace char, stripped from call-arg text for whitespace-insensitive matching. */
+    private static final Pattern WHITESPACE = Pattern.compile("\\s");
+
     /**
      * True when {@code root} contains a comparison shaped like a failure-return check:
      * {@code < 0}, {@code <= 0}, {@code < 1}, {@code == -1} or {@code != -1} (as adjacent tokens,
@@ -724,9 +727,9 @@ final class StatementAst implements MQL4Elements {
         // A growth operator directly after the size (`ArraySize(a) * 4 - 1`) is NOT matched, so it
         // stays flaggable. (A pathological `ArraySize(a) - 1 + big` can slip through as a rare missed
         // flag — an accepted false negative, never a false positive.)
-        String size = sizeArg.replaceAll("\\s", "");
+        String size = WHITESPACE.matcher(sizeArg).replaceAll("");
         if ("0".equals(size)) return true;
-        String prefix = "ArraySize(" + arrayArg.replaceAll("\\s", "") + ")";
+        String prefix = "ArraySize(" + WHITESPACE.matcher(arrayArg).replaceAll("") + ")";
         if (!size.startsWith(prefix)) return false;
         String rest = size.substring(prefix.length());
         return rest.isEmpty() || rest.charAt(0) == '-';

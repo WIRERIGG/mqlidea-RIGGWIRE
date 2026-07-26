@@ -275,7 +275,7 @@ public final class MqlProblemsLoggerService implements Disposable {
             for (VirtualFile vf : allFiles) {
                 currentUrls.add(vf.getUrl());
             }
-            cache.keySet().retainAll(currentUrls);
+            boolean pruned = cache.keySet().retainAll(currentUrls);
 
             // Build batches of files that need scanning
             List<VirtualFile> filesToScan = new ArrayList<>();
@@ -290,6 +290,13 @@ public final class MqlProblemsLoggerService implements Disposable {
                     }
                 }
                 filesToScan.add(vf);
+            }
+
+            // Incremental dirty scan that scanned nothing and pruned nothing: the cache, the report
+            // files and the problem-set are all provably unchanged, so skip rewriting them. (The
+            // full/initial scan -- dirty == null -- always falls through and writes.)
+            if (dirty != null && filesToScan.isEmpty() && !pruned) {
+                return;
             }
 
             // Process files in batches of BATCH_SIZE per ReadAction

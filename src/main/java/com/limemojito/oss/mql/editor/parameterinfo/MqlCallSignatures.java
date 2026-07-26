@@ -41,6 +41,9 @@ public final class MqlCallSignatures {
     /** Any identifier token (last one in a param declaration is its name). */
     private static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
 
+    /** Array dimension suffixes (e.g. {@code [10]}, {@code []}) dropped from a param declaration. */
+    private static final Pattern ARRAY_DIMS = Pattern.compile("\\[[^\\]]*\\]");
+
     private MqlCallSignatures() {
     }
 
@@ -161,7 +164,7 @@ public final class MqlCallSignatures {
             p = p.substring(0, eq);
         }
         // drop array dimensions so "array[]" -> "array"
-        p = p.replaceAll("\\[[^\\]]*\\]", " ");
+        p = ARRAY_DIMS.matcher(p).replaceAll(" ");
         String last = null;
         Matcher m = IDENTIFIER.matcher(p);
         while (m.find()) {

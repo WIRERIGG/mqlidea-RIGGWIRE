@@ -40,6 +40,12 @@ public class MqlRunLineMarkerContributor extends RunLineMarkerContributor {
         if (!(element instanceof LeafPsiElement leaf) || leaf.getElementType() != MQL4Elements.IDENTIFIER) {
             return null;
         }
+        // Zero-allocation name precheck: only the runnable entry-point identifiers can ever yield a
+        // gutter, so bail before touching the parent PSI for every other identifier leaf. Kept in
+        // sync with RUNNABLE_ENTRY_POINTS (asserted below via contains()).
+        if (!leaf.textMatches("OnInit") && !leaf.textMatches("OnStart")) {
+            return null;
+        }
         PsiElement parent = element.getParent();
         if (!(parent instanceof MQL4FunctionElement function) || function.isDeclaration()) {
             return null;

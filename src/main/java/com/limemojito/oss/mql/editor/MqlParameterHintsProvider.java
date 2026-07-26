@@ -75,8 +75,14 @@ public class MqlParameterHintsProvider implements InlayParameterHintsProvider {
             if (paramName == null || paramName.isEmpty()) {
                 continue;
             }
-            // Don't restate what the code already says.
-            if (paramName.equals(arg.text)) {
+            // Don't restate what the code already says. The argument text can only equal a bare
+            // parameter name when the slot is a single IDENTIFIER leaf matching it (a param name is
+            // one identifier token; any multi-token slot carries an operator/space/bracket and so can
+            // never equal it) -- so check that directly instead of rebuilding the slot's text.
+            if (arg.nonTriviaCount() == 1
+                    && arg.first() != null
+                    && arg.first().getElementType() == MQL4Elements.IDENTIFIER
+                    && paramName.equals(arg.first().getText())) {
                 continue;
             }
             hints.add(new InlayInfo(paramName, arg.startOffset));
@@ -127,7 +133,8 @@ public class MqlParameterHintsProvider implements InlayParameterHintsProvider {
         ASTNode node = block.getNode();
         boolean started = false;
         int start = -1;
-        StringBuilder text = new StringBuilder();
+        ASTNode first = null;   // first non-trivia node in the current slot
+        int count = 0;          // number of non-trivia nodes in the current slot
         for (ASTNode child = node.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             IElementType t = child.getElementType();
@@ -138,35 +145,34 @@ public class MqlParameterHintsProvider implements InlayParameterHintsProvider {
                 continue;
             }
             if (t == MQL4Elements.R_ROUND_BRACKET) {
-                args.add(new Argument(start, text.toString().trim()));
-                start = -1;
-                text.setLength(0);
+                args.add(new Argument(start, first, count));
                 return args;
             }
             if (t == MQL4Elements.COMMA) {
-                args.add(new Argument(start, text.toString().trim()));
+                args.add(new Argument(start, first, count));
                 start = -1;
-                text.setLength(0);
+                first = null;
+                count = 0;
                 continue;
             }
             if (MQL4TokenSets.COMMENTS_OR_WS.contains(t)) {
-                if (start >= 0) {
-                    text.append(child.getText());
-                }
                 continue;
             }
             if (start < 0) {
                 start = child.getStartOffset();
             }
-            text.append(child.getText());
+            if (first == null) {
+                first = child;
+            }
+            count++;
         }
         // No closing paren (tolerant/broken AST): flush whatever we accumulated.
         if (started) {
-            args.add(new Argument(start, text.toString().trim()));
+            args.add(new Argument(start, first, count));
         }
         return args;
     }
 
-    private record Argument(int startOffset, @NotNull String text) {
+    private record Argument(int startOffset, @Nullable ASTNode first, int nonTriviaCount) {
     }
 }
