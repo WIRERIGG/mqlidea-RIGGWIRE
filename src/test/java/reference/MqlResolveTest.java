@@ -332,6 +332,108 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertEquals("value", ((MQL4VarDefinitionElement) resolved).getName());
     }
 
+    // ---- v22: enum / global-var stub indexes (stub-vs-AST consistency + cross-file) -----------
+
+    public void testEnumAndGlobalStubIndexesAreConsistentWithAst() {
+        // Guard against stub-creation-predicate divergence from the real parser tree shapes.
+        // Fixture: a top-level enum, an enum nested in a class, a top-level global var, and a class
+        // field of the SAME name as the global.
+        String code = "enum EColor { RED, GREEN };\n"
+                + "int shared;\n"
+                + "class CBox {\n"
+                + "   enum EMode { ON, OFF };\n"
+                + "   int shared;\n"
+                + "   void set() { shared = 1; }\n"
+                + "};\n"
+                + "void f() { EColor c; shared = 2; }";
+        myFixture.addFileToProject("Idx.mq4", code);
+        com.intellij.psi.search.GlobalSearchScope all = com.intellij.psi.search.GlobalSearchScope.allScope(getProject());
+
+        // (a) BOTH enums are indexed -- the top-level one and the class-nested one.
+        assertFalse("top-level enum EColor must be in the enum index",
+                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().get("EColor", getProject(), all).isEmpty());
+        assertFalse("class-nested enum EMode must be in the enum index",
+                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().get("EMode", getProject(), all).isEmpty());
+
+        // (b) the global-var index finds the GLOBAL but NOT the class field of the same name.
+        java.util.Collection<MQL4VarDefinitionElement> shared =
+                com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex.getInstance().get("shared", getProject(), all);
+        assertEquals("exactly one 'shared' (the global) must be indexed -- never the class field",
+                1, shared.size());
+        MQL4VarDefinitionElement indexed = shared.iterator().next();
+        assertNull("the indexed 'shared' must be a file-level global, not a class field",
+                com.intellij.psi.util.PsiTreeUtil.getParentOfType(indexed, MQL4ClassElement.class));
+
+        // (c) resolving each usage still lands on the correct element.
+        PsiFile main = myFixture.configureByText("Use.mq4", code);
+        // global 'shared = 2' inside f() -> the top-level global (not the class field)
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("shared = 2"));
+        PsiReference gRef = myFixture.getReferenceAtCaretPosition();
+        assertNotNull(gRef);
+        PsiElement g = gRef.resolve();
+        assertTrue(g instanceof MQL4VarDefinitionElement);
+        assertNull("global use must resolve to the file-level global, not a class field",
+                com.intellij.psi.util.PsiTreeUtil.getParentOfType(g, MQL4ClassElement.class));
+        // enum type 'EColor c' -> the enum element
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("EColor c"));
+        PsiReference eRef = myFixture.getReferenceAtCaretPosition();
+        assertNotNull(eRef);
+        PsiElement e = eRef.resolve();
+        assertTrue("enum type use must resolve to the enum element",
+                e instanceof com.limemojito.oss.mql.psi.impl.MQL4EnumElement);
+        assertEquals("EColor", ((com.limemojito.oss.mql.psi.impl.MQL4EnumElement) e).getTypeName());
+    }
+
+    public void testEnumTypeAndGlobalResolveCrossFileViaInclude() {
+        // The index + #include-closure path must resolve an enum type and a global variable that
+        // are declared in an #included header from the main file.
+        myFixture.addFileToProject("Lib.mqh", "enum ELib { X, Y };\nint gLib;");
+        PsiFile main = myFixture.addFileToProject("Main.mq4",
+                "#include \"Lib.mqh\"\nvoid f() { ELib e; gLib = 1; }");
+        myFixture.configureFromExistingVirtualFile(main.getVirtualFile());
+
+        myFixture.getEditor().getCaretModel().moveToOffset(main.getText().indexOf("ELib e"));
+        PsiReference enumRef = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on the cross-file enum type", enumRef);
+        PsiElement enumResolved = enumRef.resolve();
+        assertTrue(enumResolved instanceof com.limemojito.oss.mql.psi.impl.MQL4EnumElement);
+        assertEquals("ELib", ((com.limemojito.oss.mql.psi.impl.MQL4EnumElement) enumResolved).getTypeName());
+        assertEquals("Lib.mqh", enumResolved.getContainingFile().getName());
+
+        myFixture.getEditor().getCaretModel().moveToOffset(main.getText().indexOf("gLib = 1"));
+        PsiReference varRef = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on the cross-file global variable", varRef);
+        PsiElement varResolved = varRef.resolve();
+        assertTrue(varResolved instanceof MQL4VarDefinitionElement);
+        assertEquals("gLib", ((MQL4VarDefinitionElement) varResolved).getName());
+        assertEquals("Lib.mqh", varResolved.getContainingFile().getName());
+    }
+
+    public void testIfdefDuplicateGlobalSingleResolvesToFirst() {
+        // A cross-platform #ifdef/#else pair declares the SAME global twice. Preprocessor parsing is
+        // line-based, so BOTH declarations are direct file children and both land in the global stub
+        // index. resolveNonLocal must collapse them to the document-first one (one per file) so a
+        // usage still has a single navigable target -- not a poly-resolve chooser (regression guard
+        // for the stub-index global path replacing the old per-file putIfAbsent map).
+        String code = "#ifdef __MQL5__\n"
+                + "int gMode = 1;\n"
+                + "#else\n"
+                + "int gMode = 2;\n"
+                + "#endif\n"
+                + "void f() { gMode = 3; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("gMode = 3"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on the #ifdef-duplicated global", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("duplicate same-file global must single-resolve, not poly-resolve",
+                resolved instanceof MQL4VarDefinitionElement);
+        assertEquals("gMode", ((MQL4VarDefinitionElement) resolved).getName());
+        // The document-first declaration (the #ifdef branch, `gMode = 1`) wins.
+        assertTrue("expected the first (document-order) declaration to win",
+                resolved.getTextOffset() < code.indexOf("gMode = 2"));
+    }
+
     public void testMemberAmbiguousDuplicateClassGivesNoTarget() {
         // Fix #1: two same-named classes, neither #included → ambiguous → no (mis)resolution
         // (safe: a missed target beats a wrong one, which would drive a corrupting rename).

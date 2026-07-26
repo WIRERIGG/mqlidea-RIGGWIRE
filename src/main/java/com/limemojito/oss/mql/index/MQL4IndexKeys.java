@@ -7,12 +7,16 @@ package com.limemojito.oss.mql.index;
 
 import com.intellij.psi.stubs.StubIndexKey;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
+import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
+import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
 
 public class MQL4IndexKeys {
 
     public static final StubIndexKey<String, MQL4ClassElement> CLASS_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.className.index");
     public static final StubIndexKey<String, MQL4FunctionElement> FUNCTION_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.functionName.index");
+    public static final StubIndexKey<String, MQL4EnumElement> ENUM_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.enumName.index");
+    public static final StubIndexKey<String, MQL4VarDefinitionElement> GLOBAL_VAR_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.globalVarName.index");
 
 
 }

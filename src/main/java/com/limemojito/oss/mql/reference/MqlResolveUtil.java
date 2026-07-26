@@ -19,18 +19,20 @@ import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.index.MQL4ClassNameIndex;
+import com.limemojito.oss.mql.index.MQL4EnumNameIndex;
 import com.limemojito.oss.mql.index.MQL4FunctionNameIndex;
+import com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4File;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock;
+import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -168,25 +170,49 @@ public final class MqlResolveUtil {
         if (!(file instanceof MQL4File)) {
             return java.util.Collections.emptyList();
         }
-        Set<PsiFile> closure = includeClosure(file);
         List<PsiElement> hits = new ArrayList<>();
         Project project = identifier.getProject();
 
+        // Tier 2: same file + #include closure. All three symbol kinds (functions/classes, then
+        // enum types, then -- only if nothing matched -- global variables) are resolved by querying
+        // the stub indexes over the ALREADY-COMPUTED closure scope, replacing the former full-AST
+        // walk of every closure file. The category order (and the global-only-if-empty gate) matches
+        // the previous closure loops, and this whole block still sits BEFORE the built-in-doc
+        // short-circuit below so a project symbol shadowing a built-in name still wins.
         GlobalSearchScope closureScope = closureScopeFor(file);
         if (closureScope != null) {
             collectIndexed(name, project, closureScope, hits);
-        }
-        for (PsiFile f : closure) {
-            List<PsiElement> enums = enumsByName(f).get(name);
-            if (enums != null) {
-                hits.addAll(enums);
+            for (MQL4EnumElement e : MQL4EnumNameIndex.getInstance().get(name, project, closureScope)) {
+                com.intellij.openapi.progress.ProgressManager.checkCanceled();
+                if (name.equals(e.getName())) {
+                    hits.add(e);
+                }
             }
-        }
-        if (hits.isEmpty()) {
+            if (hits.isEmpty()) {
+                collectClosureGlobals(name, project, closureScope, hits);
+            }
+        } else {
+            // Non-physical PSI (intention-preview copies, code fragments) has no VirtualFile-backed
+            // closure scope, so the stub indexes can't serve it. Fall back to the exact AST walk the
+            // old code ran unconditionally, over this file's #include closure, so enum/global
+            // resolution keeps working in previews. (Functions/classes were index-only even in the
+            // old code, so -- as before -- they aren't resolved here and fall through to tier 3.)
+            Set<PsiFile> closure = includeClosure(file);
             for (PsiFile f : closure) {
-                PsiElement v = topLevelVarsByName(f).get(name);
-                if (v != null) {
-                    hits.add(v);
+                for (MQL4EnumElement e : PsiTreeUtil.findChildrenOfType(f, MQL4EnumElement.class)) {
+                    com.intellij.openapi.progress.ProgressManager.checkCanceled();
+                    if (name.equals(e.getName())) {
+                        hits.add(e);
+                    }
+                }
+            }
+            if (hits.isEmpty()) {
+                for (PsiFile f : closure) {
+                    ASTNode fNode = f.getNode();
+                    PsiElement v = fNode == null ? null : findVarInBlockChildren(fNode, name);
+                    if (v != null) {
+                        hits.add(v);
+                    }
                 }
             }
         }
@@ -205,6 +231,32 @@ public final class MqlResolveUtil {
         // project-wide global-variable index, sketched in REVAMP_PLAN.md #3b, is a TODO).
         collectIndexed(name, project, GlobalSearchScope.allScope(project), hits);
         return hits;
+    }
+
+    /**
+     * Adds the closure's matching top-level global-variable definitions to {@code hits}, keeping at
+     * most ONE per file -- the document-first one -- exactly like the old per-file {@code putIfAbsent}
+     * map. The stub index yields every top-level definition of {@code name} (including both branches
+     * of an {@code #ifdef}/{@code #else} pair, which are direct file children), so without this
+     * collapse a same-file duplicate would flip a single navigable target into a poly-resolve chooser.
+     */
+    private static void collectClosureGlobals(@NotNull String name,
+                                              @NotNull Project project,
+                                              @NotNull GlobalSearchScope scope,
+                                              @NotNull List<PsiElement> hits) {
+        Map<PsiFile, MQL4VarDefinitionElement> firstPerFile = new java.util.LinkedHashMap<>();
+        for (MQL4VarDefinitionElement v : MQL4GlobalVarNameIndex.getInstance().get(name, project, scope)) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            if (!name.equals(v.getName())) {
+                continue;
+            }
+            PsiFile vf = v.getContainingFile();
+            MQL4VarDefinitionElement prev = firstPerFile.get(vf);
+            if (prev == null || v.getTextOffset() < prev.getTextOffset()) {
+                firstPerFile.put(vf, v);
+            }
+        }
+        hits.addAll(firstPerFile.values());
     }
 
     // ---- Phase 5: member-access support (fields + methods inside a class, incl. inheritance) ------
@@ -511,60 +563,6 @@ public final class MqlResolveUtil {
                 out.add(c);
             }
         }
-    }
-
-    /**
-     * Per-file map of enum type name → enum element(s), cached until the file itself changes.
-     * Replaces a full {@code findChildrenOfType} tree walk of every closure file on every resolve.
-     */
-    @NotNull
-    private static Map<String, List<PsiElement>> enumsByName(@NotNull PsiFile file) {
-        return CachedValuesManager.getCachedValue(file, () -> {
-            Map<String, List<PsiElement>> map = new HashMap<>();
-            for (MQL4EnumElement e : PsiTreeUtil.findChildrenOfType(file, MQL4EnumElement.class)) {
-                String n = e.getName();
-                if (n != null) {
-                    map.computeIfAbsent(n, k -> new ArrayList<>()).add(e);
-                }
-            }
-            return CachedValueProvider.Result.create(map, file);
-        });
-    }
-
-    /**
-     * Per-file map of top-level variable name → its (first) definition, cached until the file changes.
-     * Replaces a per-name top-level scan of every closure file on every resolve.
-     */
-    @NotNull
-    private static Map<String, PsiElement> topLevelVarsByName(@NotNull PsiFile file) {
-        return CachedValuesManager.getCachedValue(file, () -> {
-            Map<String, PsiElement> map = new HashMap<>();
-            ASTNode fileNode = file.getNode();
-            if (fileNode != null) {
-                for (ASTNode child = fileNode.getFirstChildNode(); child != null; child = child.getTreeNext()) {
-                    if (child.getElementType() != MQL4Elements.VAR_DECLARATION_STATEMENT) {
-                        continue;
-                    }
-                    ASTNode list = child.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
-                    if (list == null) {
-                        continue;
-                    }
-                    for (ASTNode def = list.getFirstChildNode(); def != null; def = def.getTreeNext()) {
-                        if (def.getElementType() != MQL4Elements.VAR_DEFINITION) {
-                            continue;
-                        }
-                        PsiElement psi = def.getPsi();
-                        if (psi instanceof com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement varDef) {
-                            String n = varDef.getName();
-                            if (n != null) {
-                                map.putIfAbsent(n, psi);
-                            }
-                        }
-                    }
-                }
-            }
-            return CachedValueProvider.Result.create(map, file);
-        });
     }
 
     /**

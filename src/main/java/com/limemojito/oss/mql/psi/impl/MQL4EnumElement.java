@@ -5,6 +5,7 @@
 
 package com.limemojito.oss.mql.psi.impl;
 
+import com.intellij.extapi.psi.StubBasedPsiElementBase;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiNameIdentifierOwner;
@@ -13,20 +14,28 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
+import com.limemojito.oss.mql.psi.stub.MQL4EnumElementStub;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
-public class MQL4EnumElement extends MQL4PsiElement implements PsiNameIdentifierOwner {
+public class MQL4EnumElement extends StubBasedPsiElementBase<MQL4EnumElementStub> implements PsiNameIdentifierOwner {
 
     public MQL4EnumElement(@NotNull ASTNode node) {
         super(node);
     }
 
+    public MQL4EnumElement(@NotNull MQL4EnumElementStub stub) {
+        super(stub, MQL4Elements.ENUM_STATEMENT);
+    }
+
     @Nullable
     public String getTypeName() {
+        MQL4EnumElementStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.getName();
+        }
         ASTNode typeNameElement = getTypeNameNode();
         return typeNameElement == null ? null : typeNameElement.getText();
     }
@@ -58,10 +67,14 @@ public class MQL4EnumElement extends MQL4PsiElement implements PsiNameIdentifier
     }
 
     public List<MQL4EnumFieldElement> getFields() {
-        PsiElement list = findChildByType(MQL4Elements.ENUM_FIELDS_LIST);
-        if (list == null) {
+        ASTNode listNode = getNode().findChildByType(MQL4Elements.ENUM_FIELDS_LIST);
+        if (listNode == null) {
             return Collections.emptyList();
         }
-        return Arrays.stream(list.getChildren()).map(e -> (MQL4EnumFieldElement) e).collect(Collectors.toList());
+        List<MQL4EnumFieldElement> fields = new ArrayList<>();
+        for (PsiElement child : listNode.getPsi().getChildren()) {
+            fields.add((MQL4EnumFieldElement) child);
+        }
+        return fields;
     }
 }

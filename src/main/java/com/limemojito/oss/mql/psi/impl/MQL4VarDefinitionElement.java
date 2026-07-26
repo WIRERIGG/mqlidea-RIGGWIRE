@@ -5,6 +5,7 @@
 
 package com.limemojito.oss.mql.psi.impl;
 
+import com.intellij.extapi.psi.StubBasedPsiElementBase;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiNameIdentifierOwner;
@@ -13,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
+import com.limemojito.oss.mql.psi.stub.MQL4GlobalVarElementStub;
 
 /**
  * PSI for a single VAR_DEFINITION -- one name inside a VAR_DEFINITION_LIST of a
@@ -22,11 +24,21 @@ import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
  * {@link com.limemojito.oss.mql.parser.MQL4Parser} and
  * {@link com.limemojito.oss.mql.parser.parsing.ClassParsing} were wired to reuse the same
  * tolerant var-declaration parse.
+ *
+ * <p>v22: only TOP-LEVEL (file-scope) global var definitions are stub-backed (a green stub carries
+ * the name for the global-var stub index); class fields and locals share the VAR_DEFINITION
+ * element type but are never stubbed (see
+ * {@link com.limemojito.oss.mql.psi.stub.type.MQL4GlobalVarElementStubType#shouldCreateStub}), so
+ * {@link #getStub()} is {@code null} for them and every accessor falls back to the AST.
  */
-public class MQL4VarDefinitionElement extends MQL4PsiElement implements PsiNameIdentifierOwner {
+public class MQL4VarDefinitionElement extends StubBasedPsiElementBase<MQL4GlobalVarElementStub> implements PsiNameIdentifierOwner {
 
     public MQL4VarDefinitionElement(@NotNull ASTNode node) {
         super(node);
+    }
+
+    public MQL4VarDefinitionElement(@NotNull MQL4GlobalVarElementStub stub) {
+        super(stub, MQL4Elements.VAR_DEFINITION);
     }
 
     @Nullable
@@ -43,6 +55,12 @@ public class MQL4VarDefinitionElement extends MQL4PsiElement implements PsiNameI
 
     @Override
     public String getName() {
+        // Global (stub-backed) fast path: return the indexed name without forcing an AST parse of
+        // the declaring file -- this is exactly what the resolve-by-index path needs.
+        MQL4GlobalVarElementStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.getName();
+        }
         PsiElement id = getNameIdentifier();
         return id == null ? null : id.getText();
     }

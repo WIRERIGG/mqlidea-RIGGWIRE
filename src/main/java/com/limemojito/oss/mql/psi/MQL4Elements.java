@@ -20,7 +20,7 @@ public interface MQL4Elements extends MQL4StubElements, MQL4LexerElements {
     IElementType FUNCTION_ARG = new MQL4ElementType("FUNCTION_ARG");
     IElementType FUNCTION_ARGS_LIST = new MQL4ElementType("FUNCTION_ARGS_LIST");
 
-    IElementType ENUM_STATEMENT = new MQL4ElementType("ENUM_STATEMENT");
+    // ENUM_STATEMENT is a stub element type declared in MQL4StubElements (inherited here).
     IElementType ENUM_FIELDS_LIST = new MQL4ElementType("ENUM_FIELDS_LIST");
     IElementType ENUM_FIELD = new MQL4ElementType("ENUM_FIELD");
 
@@ -46,7 +46,7 @@ public interface MQL4Elements extends MQL4StubElements, MQL4LexerElements {
 
     IElementType VAR_DECLARATION_STATEMENT = new MQL4ElementType("VAR_DECLARATION_STATEMENT");
     IElementType VAR_DEFINITION_LIST = new MQL4ElementType("VAR_DEFINITION_LIST");
-    IElementType VAR_DEFINITION = new MQL4ElementType("VAR_DEFINITION");
+    // VAR_DEFINITION is a stub element type declared in MQL4StubElements (inherited here).
 
     // Special element types for syntax highlighter only
     IElementType SYNTAX_BUILT_IN_CONSTANT = new MQL4ElementType("SYNTAX_BUILT_IN_CONSTANT");
