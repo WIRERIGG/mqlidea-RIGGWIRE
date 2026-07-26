@@ -138,7 +138,7 @@ class MQL4CompilerCommandLineState extends CommandLineState {
 
             protected void onOSProcessTerminated(int exitCode) {
                 super.onOSProcessTerminated(exitCode);
-                String logFileName = copiedFileToCompile.getName().replace(".mq4", ".log");
+                String logFileName = deriveLogFileName(copiedFileToCompile.getName());
                 File logFile = new File(copiedFileToCompile.getParent(), logFileName);
                 if (!logFile.exists() || console == null) {
                     return;
@@ -165,6 +165,20 @@ class MQL4CompilerCommandLineState extends CommandLineState {
         return processHandler;
     }
 
+
+    /**
+     * The MetaEditor log file name for a compiled source: its base name with the extension replaced
+     * by {@code .log}. MetaEditor's bare {@code /log} writes {@code <basename>.log} regardless of the
+     * source extension, so this must strip whatever extension the source has — the old
+     * {@code name.replace(".mq4", ".log")} silently produced no log file for {@code .mq5}/{@code .mqh}
+     * sources (no {@code .mq4} substring to replace), leaving the run console empty for every MQL5
+     * compile.
+     */
+    @NotNull
+    static String deriveLogFileName(@NotNull String compiledFileName) {
+        int dot = compiledFileName.lastIndexOf('.');
+        return (dot >= 0 ? compiledFileName.substring(0, dot) : compiledFileName) + ".log";
+    }
 
     private static void copyFile(@NotNull File srcFile, @NotNull Charset srcCharset, @NotNull File dstFile, @NotNull Charset dstCharset) throws IOException {
         Path fromPath = Paths.get(srcFile.toURI());

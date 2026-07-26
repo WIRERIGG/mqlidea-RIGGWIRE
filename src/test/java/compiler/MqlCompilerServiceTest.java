@@ -14,8 +14,6 @@ import com.limemojito.oss.mql.compiler.MqlCompilerLauncher;
 import com.limemojito.oss.mql.compiler.MqlCompilerService;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,7 +42,8 @@ public class MqlCompilerServiceTest extends BasePlatformTestCase {
         Files.writeString(sourceFile.toPath(), "void OnInit() {}\n");
         String name = sourceFile.getName();
         logFile = new File(sourceFile.getParentFile(), name.substring(0, name.lastIndexOf('.')) + ".log");
-        writeLogFixture();
+        // No pre-planted log fixture: the service now deletes any stale log before running, so the
+        // fake compiler (CompileLogWriterMain) writes the log DURING its run, exactly like the real one.
         virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(sourceFile);
         assertNotNull("expected a VirtualFile for " + sourceFile, virtualFile);
     }
@@ -59,11 +58,6 @@ public class MqlCompilerServiceTest extends BasePlatformTestCase {
         }
     }
 
-    private void writeLogFixture() throws IOException {
-        String content = sourceFile.getName() + "(2,3) : error 5: fake error\n"
-                + "Result: 1 error(s), 0 warning(s), 1 msec elapsed\n";
-        Files.write(logFile.toPath(), content.getBytes(StandardCharsets.UTF_16));
-    }
 
     public void testUnavailableWhenNoLauncherIsAvailable() {
         MqlCompilerService service = new MqlCompilerService(List.of(unavailable(), unavailable()));
@@ -79,7 +73,7 @@ public class MqlCompilerServiceTest extends BasePlatformTestCase {
         AtomicInteger skippedCalls = new AtomicInteger();
         AtomicInteger usedCalls = new AtomicInteger();
         MqlCompilerLauncher skipped = counting(skippedCalls, null);
-        MqlCompilerLauncher used = counting(usedCalls, realJavaCommand());
+        MqlCompilerLauncher used = counting(usedCalls, logWritingCommand());
         MqlCompilerService service = new MqlCompilerService(List.of(skipped, used));
 
         MqlCompilerService.CompileResult first = service.compile(virtualFile);
@@ -98,7 +92,7 @@ public class MqlCompilerServiceTest extends BasePlatformTestCase {
 
     public void testRecompileBypassesTheCache() {
         AtomicInteger calls = new AtomicInteger();
-        MqlCompilerLauncher launcher = counting(calls, realJavaCommand());
+        MqlCompilerLauncher launcher = counting(calls, logWritingCommand());
         MqlCompilerService service = new MqlCompilerService(List.of(launcher));
 
         service.compile(virtualFile);
@@ -136,8 +130,16 @@ public class MqlCompilerServiceTest extends BasePlatformTestCase {
         };
     }
 
-    private static GeneralCommandLine realJavaCommand() {
+    /**
+     * A real subprocess that writes the compile log to {@link #logFile} during its run (via
+     * {@link CompileLogWriterMain} on the test classpath), so the service — which deletes any stale
+     * log before launching — finds a genuinely fresh log afterwards. Also exercises the LE-no-BOM
+     * decode path end-to-end.
+     */
+    private GeneralCommandLine logWritingCommand() {
         String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
-        return new GeneralCommandLine(javaBin, "-version");
+        String classpath = System.getProperty("java.class.path");
+        return new GeneralCommandLine(javaBin, "-cp", classpath,
+                CompileLogWriterMain.class.getName(), logFile.getAbsolutePath());
     }
 }

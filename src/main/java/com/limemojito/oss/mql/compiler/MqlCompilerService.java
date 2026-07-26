@@ -126,6 +126,18 @@ public final class MqlCompilerService {
     @NotNull
     private CompileResult runCompile(@NotNull GeneralCommandLine cmd, @NotNull File source) {
         try {
+            // Delete any log left by a PREVIOUS compile before launching. MetaEditor writes the log
+            // during a real compile, so after the run a present log is necessarily fresh; if the
+            // compiler didn't actually (re)compile — e.g. metaeditor64.exe handed the request to an
+            // already-open GUI instance and exited immediately — the log stays absent and we fall
+            // back to stdout instead of silently reporting a STALE previous result (or a false
+            // "0 errors" clean bill).
+            File staleLog = logFileFor(source);
+            try {
+                Files.deleteIfExists(staleLog.toPath());
+            } catch (Exception e) {
+                LOG.warn("Could not clear stale compile log " + staleLog, e);
+            }
             CapturingProcessHandler handler = new CapturingProcessHandler(cmd);
             // Honour daemon cancellation: with an indicator the Wine/MetaEditor process is
             // destroyed when the annotation pass is cancelled, instead of blocking the thread and
@@ -154,23 +166,49 @@ public final class MqlCompilerService {
         }
     }
 
-    /** Reads the UTF-16 {@code <basename>.log} MetaEditor writes next to the source, or null if absent. */
-    @Nullable
-    private static String readLog(@NotNull File source) {
+    /** The {@code <basename>.log} MetaEditor writes next to {@code source} (whether or not it exists). */
+    @NotNull
+    static File logFileFor(@NotNull File source) {
         String name = source.getName();
         int dot = name.lastIndexOf('.');
         String logName = (dot >= 0 ? name.substring(0, dot) : name) + ".log";
-        File log = new File(source.getParentFile(), logName);
+        return new File(source.getParentFile(), logName);
+    }
+
+    /** Reads the {@code <basename>.log} MetaEditor writes next to the source, or null if absent. */
+    @Nullable
+    private static String readLog(@NotNull File source) {
+        File log = logFileFor(source);
         if (!log.isFile()) {
             return null;
         }
         try {
-            byte[] bytes = Files.readAllBytes(log.toPath());
-            // MetaEditor logs are UTF-16 (LE with BOM); StandardCharsets.UTF_16 honours the BOM.
-            return new String(bytes, StandardCharsets.UTF_16);
+            return decodeMqlLog(Files.readAllBytes(log.toPath()));
         } catch (Exception e) {
             LOG.warn("Failed to read compile log " + log, e);
             return null;
         }
+    }
+
+    /**
+     * Decodes a MetaEditor compile log. MetaEditor writes UTF-16 <b>little-endian</b>, sometimes with
+     * a BOM and sometimes without. {@link StandardCharsets#UTF_16} would silently default a BOM-less
+     * log to big-endian and produce byte-swapped mojibake — which the diagnostic regexes then match
+     * nothing in, reporting a false "0 errors". So: honour an explicit BOM if present, otherwise
+     * assume little-endian (MetaEditor's actual output) rather than the JVM default.
+     */
+    @NotNull
+    public static String decodeMqlLog(@NotNull byte[] bytes) {
+        if (bytes.length >= 2) {
+            int b0 = bytes[0] & 0xFF;
+            int b1 = bytes[1] & 0xFF;
+            if (b0 == 0xFF && b1 == 0xFE) {
+                return new String(bytes, 2, bytes.length - 2, StandardCharsets.UTF_16LE);
+            }
+            if (b0 == 0xFE && b1 == 0xFF) {
+                return new String(bytes, 2, bytes.length - 2, StandardCharsets.UTF_16BE);
+            }
+        }
+        return new String(bytes, StandardCharsets.UTF_16LE);
     }
 }
