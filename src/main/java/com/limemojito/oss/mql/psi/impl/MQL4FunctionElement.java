@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.MQL4Icons;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4ElementsFactory;
+import com.limemojito.oss.mql.psi.stub.MQL4ClassElementStub;
 import com.limemojito.oss.mql.psi.stub.MQL4FunctionElementStub;
 import com.limemojito.oss.mql.util.ASTUtils;
 
@@ -40,7 +41,7 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
 
     @NotNull
     public String getFunctionName() {
-        MQL4FunctionElementStub stub = getStub();
+        MQL4FunctionElementStub stub = getGreenStub();
         if (stub != null) {
             return stub.getName();
         }
@@ -85,7 +86,7 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
     }
 
     public boolean isDeclaration() {
-        MQL4FunctionElementStub stub = getStub();
+        MQL4FunctionElementStub stub = getGreenStub();
         if (stub != null) {
             return stub.isDeclaration();
         }
@@ -94,7 +95,7 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
 
     @NotNull
     public String getSignature() {
-        MQL4FunctionElementStub stub = getStub();
+        MQL4FunctionElementStub stub = getGreenStub();
         if (stub != null) {
             return stub.getSignature();
         }
@@ -124,11 +125,23 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
 
             public Icon getIcon(boolean open) {
                 boolean declaration = isDeclaration();
-                PsiElement p = getParent();
-                if (p != null) {
-                    if (p.getNode().getElementType() == MQL4Elements.CLASS_INNER_BLOCK) {
-                        return declaration ? MQL4Icons.MethodDeclaration : MQL4Icons.MethodDefinition;
-                    }
+                // Method-vs-function is decided by whether this function sits inside a class body.
+                // Prefer the stub: a method's parent stub is the enclosing class stub (the
+                // CLASS_INNER_BLOCK wrapper is not stubbed, so the stub tree collapses to it),
+                // while a top-level function's parent stub is the file stub. Reading the stub avoids
+                // getParent().getNode(), which forces a full AST parse of the file per goto-symbol
+                // row. When there is no stub (AST already loaded) fall back to the AST parent check;
+                // both paths yield the identical method/function decision.
+                boolean method;
+                MQL4FunctionElementStub stub = getGreenStub();
+                if (stub != null) {
+                    method = stub.getParentStub() instanceof MQL4ClassElementStub;
+                } else {
+                    PsiElement p = getParent();
+                    method = p != null && p.getNode().getElementType() == MQL4Elements.CLASS_INNER_BLOCK;
+                }
+                if (method) {
+                    return declaration ? MQL4Icons.MethodDeclaration : MQL4Icons.MethodDefinition;
                 }
                 return declaration ? MQL4Icons.FunctionDeclaration : MQL4Icons.FunctionDefinition;
             }

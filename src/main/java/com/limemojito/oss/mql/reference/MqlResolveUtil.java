@@ -7,7 +7,9 @@ package com.limemojito.oss.mql.reference;
 
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootModificationTracker;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -614,13 +616,58 @@ public final class MqlResolveUtil {
         while (!queue.isEmpty()) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
             PsiFile current = queue.poll();
-            for (MQL4PreprocessorIncludeBlock include : PsiTreeUtil.findChildrenOfType(current, MQL4PreprocessorIncludeBlock.class)) {
-                PsiFile target = include.resolveIncludedFile();
-                if (target != null && visited.add(target)) {
+            // B-Stage-1: union the cached per-file "direct includes" edge list instead of re-walking
+            // the PSI tree + regex-resolving each #include here. Only files whose OWN edges were
+            // invalidated (normally just the one being typed in) recompute; every other closure file
+            // is an O(1) cache hit. The visited-set cycle guard preserves the exact same closure
+            // contents AND document-order as the former inline BFS.
+            for (PsiFile target : directIncludes(current)) {
+                if (visited.add(target)) {
                     queue.add(target);
                 }
             }
         }
         return visited;
+    }
+
+    /**
+     * The files that {@code file} directly {@code #include}s (resolved, nulls skipped), in document
+     * order, cached per file. This isolates the expensive per-file work — the
+     * {@link PsiTreeUtil#findChildrenOfType} tree walk plus a regex/reference
+     * {@link MQL4PreprocessorIncludeBlock#resolveIncludedFile()} per include — from the cheap
+     * closure assembly in {@link #computeIncludeClosure}. It rarely changes, so it recomputes only
+     * when its own inputs change, not on every keystroke anywhere in the project.
+     *
+     * <p>Dependencies are exactly the three inputs that can change a file's resolved edge set:</p>
+     * <ol>
+     *   <li>{@code file} itself — its PSI, so editing/adding/removing an {@code #include} line (or
+     *       any text change that shifts the include paths) re-derives the edges;</li>
+     *   <li>{@link VirtualFileManager#VFS_STRUCTURE_MODIFICATIONS} — any create/delete/rename/move
+     *       of a file in the VFS, so a formerly-missing include target appearing (or a target being
+     *       removed/renamed) changes how a path resolves and re-derives the edges;</li>
+     *   <li>{@link ProjectRootModificationTracker} for the project — mirrors how
+     *       {@code MqlIncludeRoots.candidateIncludeRoots} caches, so an Include-root / SDK change
+     *       (which changes angle-bracket {@code <...>} resolution) re-derives the edges.</li>
+     * </ol>
+     * This edge list therefore always equals what an inline resolve would produce at that moment;
+     * the closure cache above still keys on {@code MODIFICATION_COUNT}, so WHEN the closure rebuilds
+     * is unchanged — only the per-rebuild cost drops. No new staleness class is introduced.
+     */
+    @NotNull
+    private static List<PsiFile> directIncludes(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> {
+            List<PsiFile> out = new ArrayList<>();
+            for (MQL4PreprocessorIncludeBlock include : PsiTreeUtil.findChildrenOfType(file, MQL4PreprocessorIncludeBlock.class)) {
+                com.intellij.openapi.progress.ProgressManager.checkCanceled();
+                PsiFile target = include.resolveIncludedFile();
+                if (target != null) {
+                    out.add(target);
+                }
+            }
+            return CachedValueProvider.Result.create(out,
+                    file,
+                    VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
+                    ProjectRootModificationTracker.getInstance(file.getProject()));
+        });
     }
 }

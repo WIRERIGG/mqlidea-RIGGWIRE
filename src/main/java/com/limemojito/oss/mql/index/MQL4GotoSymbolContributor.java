@@ -7,9 +7,11 @@ package com.limemojito.oss.mql.index;
 
 import com.intellij.navigation.ChooseByNameContributor;
 import com.intellij.navigation.NavigationItem;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.stubs.StubIndex;
 import com.intellij.util.ArrayUtil;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,11 +29,20 @@ public class MQL4GotoSymbolContributor implements ChooseByNameContributor {
         if (DumbService.isDumb(project)) {
             return ArrayUtil.EMPTY_STRING_ARRAY;
         }
-        Collection<String> allClasses = MQL4ClassNameIndex.getInstance().getAllKeys(project);
-        Set<String> results = new HashSet<>(allClasses);
-
-        Collection<String> allFunctions = MQL4FunctionNameIndex.getInstance().getAllKeys(project);
-        results.addAll(allFunctions);
+        // Stream the index keys via processAllKeys rather than materializing each index's full key
+        // Collection first (getAllKeys) — same set of names collected, one fewer intermediate list.
+        Set<String> results = new HashSet<>();
+        StubIndex stubIndex = StubIndex.getInstance();
+        stubIndex.processAllKeys(MQL4ClassNameIndex.getInstance().getKey(), project, key -> {
+            ProgressManager.checkCanceled();
+            results.add(key);
+            return true;
+        });
+        stubIndex.processAllKeys(MQL4FunctionNameIndex.getInstance().getKey(), project, key -> {
+            ProgressManager.checkCanceled();
+            results.add(key);
+            return true;
+        });
 
         return ArrayUtil.toStringArray(results);
     }

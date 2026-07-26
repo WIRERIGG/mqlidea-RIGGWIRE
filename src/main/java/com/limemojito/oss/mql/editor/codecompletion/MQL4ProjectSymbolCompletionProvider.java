@@ -16,7 +16,10 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.stubs.StubIndex;
 import com.intellij.util.ProcessingContext;
+import java.util.ArrayList;
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.MQL4Icons;
 import com.limemojito.oss.mql.index.MQL4ClassNameIndex;
@@ -48,12 +51,24 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
         // result set would discard the non-matches anyway.
         PrefixMatcher prefixMatcher = result.getPrefixMatcher();
 
+        StubIndex stubIndex = StubIndex.getInstance();
+
         MQL4FunctionNameIndex functionIndex = MQL4FunctionNameIndex.getInstance();
-        for (String name : functionIndex.getAllKeys(project)) {
+        // Stream the index keys via processAllKeys and keep only the prefix-matching ones, instead
+        // of materializing the whole key Collection (getAllKeys) per keystroke. The index itself may
+        // not be re-queried (index.get) from inside the key iteration — it throws — so the matching
+        // keys are collected first and their elements built afterwards. The keys kept and the
+        // elements built for each are identical to the former getAllKeys + prefix-filter loop.
+        List<String> functionNames = new ArrayList<>();
+        stubIndex.processAllKeys(functionIndex.getKey(), project, name -> {
             ProgressManager.checkCanceled();
-            if (!prefixMatcher.prefixMatches(name)) {
-                continue;
+            if (prefixMatcher.prefixMatches(name)) {
+                functionNames.add(name);
             }
+            return true;
+        });
+        for (String name : functionNames) {
+            ProgressManager.checkCanceled();
             for (MQL4FunctionElement function : functionIndex.get(name, project, scope)) {
                 if (!name.equals(function.getFunctionName())) {
                     continue;
@@ -74,11 +89,16 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
         }
 
         MQL4ClassNameIndex classIndex = MQL4ClassNameIndex.getInstance();
-        for (String name : classIndex.getAllKeys(project)) {
+        List<String> classNames = new ArrayList<>();
+        stubIndex.processAllKeys(classIndex.getKey(), project, name -> {
             ProgressManager.checkCanceled();
-            if (!prefixMatcher.prefixMatches(name)) {
-                continue;
+            if (prefixMatcher.prefixMatches(name)) {
+                classNames.add(name);
             }
+            return true;
+        });
+        for (String name : classNames) {
+            ProgressManager.checkCanceled();
             for (MQL4ClassElement cls : classIndex.get(name, project, scope)) {
                 if (!name.equals(cls.getTypeName())) {
                     continue;

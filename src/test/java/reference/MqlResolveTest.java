@@ -100,6 +100,44 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertEquals("Lib.mqh", resolved.getContainingFile().getName());
     }
 
+    public void testIncludeChainEdgeCacheSurvivesUnrelatedEditToRootBody() {
+        // B-Stage-1 per-file include-edge cache: A includes B includes C, and a call in A resolves
+        // to a function declared in C (a 2-level #include chain). Editing A's *body* (not its
+        // #include line) must leave the closure and the resolution byte-identical — B's and C's
+        // cached edge lists stay valid; only A's own edges are re-derived (and they are unchanged).
+        myFixture.addFileToProject("C.mqh", "void Deep() { }");
+        myFixture.addFileToProject("B.mqh", "#include \"C.mqh\"\n");
+        PsiFile main = myFixture.addFileToProject("A.mq4",
+                "#include \"B.mqh\"\nvoid f() { Deep(); }");
+        myFixture.configureFromExistingVirtualFile(main.getVirtualFile());
+
+        int offset = main.getText().indexOf("Deep();");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset);
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference to the chained cross-file call", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue(resolved instanceof MQL4FunctionElement);
+        assertEquals("Deep", ((MQL4FunctionElement) resolved).getFunctionName());
+        assertEquals("C.mqh", resolved.getContainingFile().getName());
+
+        // Edit only A's body (append a statement inside f()): invalidates A's PSI, not its includes.
+        com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(getProject(), () -> {
+            com.intellij.openapi.editor.Document doc = myFixture.getEditor().getDocument();
+            int insertAt = doc.getText().indexOf("Deep();") + "Deep();".length();
+            doc.insertString(insertAt, " int z = 0;");
+            com.intellij.psi.PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+        });
+
+        int offset2 = myFixture.getFile().getText().indexOf("Deep();");
+        myFixture.getEditor().getCaretModel().moveToOffset(offset2);
+        PsiReference ref2 = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("reference still present after the unrelated body edit", ref2);
+        PsiElement resolved2 = ref2.resolve();
+        assertTrue("resolution unchanged after the unrelated body edit", resolved2 instanceof MQL4FunctionElement);
+        assertEquals("Deep", ((MQL4FunctionElement) resolved2).getFunctionName());
+        assertEquals("C.mqh", resolved2.getContainingFile().getName());
+    }
+
     public void testIncludeDirectiveResolvesToFile() {
         PsiFile lib = myFixture.addFileToProject("Lib.mqh", "void Shared() { }");
         PsiFile main = myFixture.addFileToProject("Main.mq4",

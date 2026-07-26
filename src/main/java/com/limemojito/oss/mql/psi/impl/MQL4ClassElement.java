@@ -35,7 +35,7 @@ public class MQL4ClassElement extends StubBasedPsiElementBase<MQL4ClassElementSt
 
     @NotNull
     public String getTypeName() {
-        MQL4ClassElementStub stub = getStub();
+        MQL4ClassElementStub stub = getGreenStub();
         if (stub != null) {
             return stub.getName();
         }
