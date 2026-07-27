@@ -10,6 +10,8 @@ build
 .idea
 mql-problems.log
 mql-problems.log.tmp
+mql-tasks.md
+mql-tasks.md.tmp
 gradle/caches/
 gradle/daemon/
 gradle/kotlin-profile/
