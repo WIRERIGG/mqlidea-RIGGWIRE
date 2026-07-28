@@ -1,21 +1,35 @@
-<img src="src/main/resources/META-INF/pluginIcon.svg" width="96" alt="RIGGWIRE MQL" />
+<div align="center">
+
+<img src="src/main/resources/META-INF/pluginIcon.svg" width="104" alt="RIGGWIRE MQL" />
 
 # RIGGWIRE MQL
 
-MQL4/MQL5 language support for IntelliJ IDEA and CLion, with inline MetaEditor compiler diagnostics.
+**MQL4/MQL5 language support for IntelliJ IDEA & CLion — with inline MetaEditor compiler diagnostics.**
 
 ![Version](https://img.shields.io/badge/version-2026.1.0-2381C4?style=flat-square)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
+![Inspections](https://img.shields.io/badge/inspections-80-3ddc84?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-421%20passing-3ddc84?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--3.0-777777?style=flat-square)
 
-Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL mistakes early — from the lexer, from static inspections, and from the real MetaEditor compiler — directly in the editor.
+</div>
+
+> Focused on one thing: **catching MQL mistakes early** — from the lexer, from static inspections, and from the real MetaEditor compiler — directly in the editor.
+
+Plugin id: `io.riggwire.mql`
+
+|  |  |
+| :-- | :-- |
+| 🛡️ **80 inspections** across 13 categories — safety checks on by default, with quick-fixes | ✍️ **Member-aware rename** & Find Usages across the `#include` closure |
+| 🔎 **Real resolution** — go-to, members, base classes, 4 stub indexes | ⚙️ **MetaEditor compile** inline — macOS · Windows · Linux |
+| 💡 **Completion + parameter hints** + EN/RU quick docs | 🎨 **Formatter · folding · templates · structure view** |
 
 ---
 
-## Features
+## ✨ Features
 
-### Language support
+### 🧩 Language support
 
 - **Three file types** — `MQL4 File` (`.mq4`, `.mql4`), `MQL5 File` (`.mq5`, `.mql5`), and `MQL Header` (`.mqh`) — each with its own icon, resolved from the view provider so the icon never flickers before settling
 - JFlex lexer and hand-written parser with error recovery — a syntax error does not break highlighting or navigation for the rest of the file
@@ -27,7 +41,7 @@ Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL m
 - Gutter icons marking MT5 entry points (`OnInit`/`OnTick`/…) and a ▶ run marker (one-click compile)
 - **New → MQL5 Expert Advisor / Indicator / Script** and **MQL4 Expert** from templates pre-filled with `#property` blocks and event-handler skeletons
 
-### Error detection
+### 🛡️ Error detection
 
 - **80 local inspections** across 13 categories — Trading Safety, Advanced Patterns, Performance, Memory & Allocation, Function Signature, Control Flow, Class Structure, Security & Data, Code Complexity, Trading-Specific, Naming & Style, Type Safety, and Preprocessor
 - The **Trading Safety** group (13 checks) covers unchecked `OrderSend()` results, unchecked / double-released indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, unchecked `CopyRates`/`CopyBuffer`, `delete` without a null guard, and more
@@ -39,7 +53,7 @@ Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL m
 - A background problems logger (`MqlProblemsLoggerService`) that writes a structured Markdown/log report of the current, *profile-enabled* findings for the open project, refreshed on file events
 - **Tools → Generate MQL Inspection Catalog** — an AI-free triage document (`docs/MQL_INSPECTION_CATALOG.md`) enumerating every inspection
 
-### Navigation and refactoring
+### 🔎 Navigation and refactoring
 
 - Real reference resolution: go-to-declaration (Ctrl-click) and Find Usages for functions, classes/structs, enums, enum constants, parameters, and variables — local, global, and member (`obj.field` / `obj.Method()`, including through base classes) — across files reached via `#include`
 - Rename refactoring (Shift-F6, in-place) for the same symbol kinds, updating call sites project-wide **including member accesses**
@@ -47,7 +61,7 @@ Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL m
 - `#include "X.mqh"` and `#include <Trade/Trade.mqh>` are navigable links; the include closure is computed with cycle protection and cached per file so it isn't rebuilt on every keystroke
 - **Four stub indexes** — classes, functions, enum types, and top-level global variables — powering Go to Class, Go to Symbol, and fast cross-file resolution without re-parsing every included file
 
-### Editing and formatting
+### ✍️ Editing and formatting
 
 - Code completion: tiered, dialect-filtered, with insert handlers for parentheses and arguments — including members of project-defined classes after `.`
 - Parameter info (Ctrl-P) with real signatures for built-in and project functions, and inline **parameter-name hints** on positional calls (`OrderSend(sym, /*cmd:*/ OP_BUY, /*volume:*/ 0.1, …)`)
@@ -56,7 +70,7 @@ Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL m
 - Brace matching, quote handling, code folding, and line/block commenting
 - 9 live templates for common trading patterns (`oninit`, `ontick`, `ondeinit`, `ordersend`, `input`, `indicator`, `fileop`, `class`, `pool`)
 
-### Compiler integration
+### ⚙️ Compiler integration
 
 - An **ExternalAnnotator** runs the real MetaEditor compiler and shows genuine compile errors and warnings as inline editor squiggles
 - **Cross-platform launcher strategy** (`MqlCompilerService` tries each in order and uses the first available):
@@ -73,7 +87,7 @@ Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL m
 
 ---
 
-## Requirements
+## 📋 Requirements
 
 | | Requirement |
 | :-- | :-- |
@@ -86,7 +100,7 @@ Everything except compile checking works with no external tools installed. **Com
 
 ---
 
-## Installation
+## 📦 Installation
 
 ### From disk
 
@@ -117,13 +131,13 @@ Without any of these, all editor features still work — only inline compiler di
 
 ---
 
-## How the compiler integration works
+## 🔧 How the compiler integration works
 
 When you stop typing (or trigger **Compile Check Now**), the ExternalAnnotator hands the current file to `MqlCompilerService`, which asks each launcher — `Mt5CliLauncher` (macOS/Wine), `MetaEditorLauncher` (native Windows), then `WineLauncher` (Linux) — for a command and uses the first that reports itself available. MetaEditor writes a `<basename>.log` next to the source; the service deletes any prior log before launching (so a no-op compile can't feed back a stale result), reads the fresh one as BOM-aware UTF-16, and parses each `file(line,col) : error|warning code : message` line into a line-accurate diagnostic rendered as a standard editor annotation. Results are cached per document modification stamp, so the compiler only runs when the file has actually changed. If no launcher succeeds, the status-bar widget reports "compiler N/A" instead of showing a false green state.
 
 ---
 
-## Roadmap
+## 🗺️ Roadmap
 
 Known limitations, tracked as upcoming work:
 
@@ -132,11 +146,11 @@ Known limitations, tracked as upcoming work:
 - **Trading Safety quick-fixes cover a subset** — more mechanical remediations planned for the flagship group
 - **Member-access resolution is declared-type + bounded inheritance/chain**, not full expression type inference — function-return types, casts, templates and array-element types are out of scope, so member navigation/rename on those forms is not yet resolved
 
-Note: earlier versions shipped an experimental AI "code healing" pipeline. It was removed in the 2026.1.0 revamp and is not part of this plugin. The AI-free **Generate MQL Inspection Catalog** action is its only surviving artifact.
+> **Note** — earlier versions shipped an experimental AI "code healing" pipeline. It was removed in the 2026.1.0 revamp and is not part of this plugin. The AI-free **Generate MQL Inspection Catalog** action is its only surviving artifact.
 
 ---
 
-## Project structure
+## 🗂️ Project structure
 
 ```
 src/main/java/com/limemojito/oss/mql/
@@ -168,7 +182,7 @@ src/main/resources/
 
 ---
 
-## License
+## 📄 License
 
 GPL-3.0 — see [LICENSE.txt](LICENSE.txt).
 
