@@ -19,6 +19,7 @@ import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.index.MQL4ClassNameIndex;
+import com.limemojito.oss.mql.index.MQL4EnumFieldNameIndex;
 import com.limemojito.oss.mql.index.MQL4EnumNameIndex;
 import com.limemojito.oss.mql.index.MQL4FunctionNameIndex;
 import com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex;
@@ -26,6 +27,7 @@ import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4File;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
+import com.limemojito.oss.mql.psi.impl.MQL4EnumFieldElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock;
 import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
@@ -191,6 +193,16 @@ public final class MqlResolveUtil {
             if (hits.isEmpty()) {
                 collectClosureGlobals(name, project, closureScope, hits);
             }
+            // Enum-constant tier (LAST closure tier): a bare use of a constant (`RED`, or `Color::RED`
+            // whose member leaf is still `RED`) binds to its enum-field declaration. Gated on an empty
+            // result so it never overrides a function/class/enum-type/global/local that already claimed
+            // the name; poly-resolves if two enums in the closure both declare it (safe, never a pick).
+            if (hits.isEmpty()) {
+                for (MQL4EnumElement e : MQL4EnumFieldNameIndex.getInstance().get(name, project, closureScope)) {
+                    com.intellij.openapi.progress.ProgressManager.checkCanceled();
+                    collectEnumFieldsNamed(e, name, hits);
+                }
+            }
         } else {
             // Non-physical PSI (intention-preview copies, code fragments) has no VirtualFile-backed
             // closure scope, so the stub indexes can't serve it. Fall back to the exact AST walk the
@@ -212,6 +224,16 @@ public final class MqlResolveUtil {
                     PsiElement v = fNode == null ? null : findVarInBlockChildren(fNode, name);
                     if (v != null) {
                         hits.add(v);
+                    }
+                }
+            }
+            // Enum-constant tier (last), mirroring the index path above: scan the closure enums'
+            // fields directly since the stub index can't serve non-physical PSI.
+            if (hits.isEmpty()) {
+                for (PsiFile f : closure) {
+                    for (MQL4EnumElement e : PsiTreeUtil.findChildrenOfType(f, MQL4EnumElement.class)) {
+                        com.intellij.openapi.progress.ProgressManager.checkCanceled();
+                        collectEnumFieldsNamed(e, name, hits);
                     }
                 }
             }
@@ -257,6 +279,28 @@ public final class MqlResolveUtil {
             }
         }
         hits.addAll(firstPerFile.values());
+    }
+
+    /**
+     * Adds every {@code ENUM_FIELD} of {@code enumElement} whose name equals {@code name} to
+     * {@code hits}. Scans the ENUM_FIELDS_LIST node children by element type (rather than the PSI
+     * {@code getFields()} cast) so a malformed enum containing a stray error element can't throw.
+     * An enum normally declares a name at most once, but all matches are added so a duplicate stays a
+     * visible poly-resolve rather than an arbitrary pick.
+     */
+    private static void collectEnumFieldsNamed(@NotNull MQL4EnumElement enumElement, @NotNull String name, @NotNull List<PsiElement> hits) {
+        ASTNode list = enumElement.getNode().findChildByType(MQL4Elements.ENUM_FIELDS_LIST);
+        if (list == null) {
+            return;
+        }
+        for (ASTNode field = list.getFirstChildNode(); field != null; field = field.getTreeNext()) {
+            if (field.getElementType() == MQL4Elements.ENUM_FIELD) {
+                PsiElement psi = field.getPsi();
+                if (psi instanceof MQL4EnumFieldElement fld && name.equals(fld.getName())) {
+                    hits.add(fld);
+                }
+            }
+        }
     }
 
     // ---- Phase 5: member-access support (fields + methods inside a class, incl. inheritance) ------

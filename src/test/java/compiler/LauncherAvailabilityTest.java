@@ -110,6 +110,31 @@ class LauncherAvailabilityTest {
         assertThat(new WineLauncher().commandFor(new File("Test.mq5"))).isNull();
     }
 
+    @Test
+    void findWineBinaryHonoursTheConfiguredSystemProperty(@TempDir Path dir) throws IOException {
+        // The run configuration (MQL4CompilerCommandLineState) resolves its Wine binary through this
+        // extracted helper instead of guessing a bare `wine` on PATH. An explicitly-configured,
+        // executable path must be returned verbatim.
+        Path fakeWine = dir.resolve("wine64");
+        Files.writeString(fakeWine, "#!/bin/sh\n");
+        makeExecutable(fakeWine);
+        System.setProperty("mql.wine.path", fakeWine.toString());
+
+        assertThat(WineLauncher.findWineBinary()).isEqualTo(fakeWine.toString());
+    }
+
+    @Test
+    void findWineBinaryReturnsNullWhenConfiguredPathIsNotExecutable(@TempDir Path dir) throws IOException {
+        // A non-executable configured path must not be handed back (and, on a machine with no Wine at
+        // the common install locations, the helper then reports null so the caller can fail loudly).
+        Path notExecutable = dir.resolve("wine-notexec");
+        Files.writeString(notExecutable, "text\n");
+        Files.setPosixFilePermissions(notExecutable, Set.of(PosixFilePermission.OWNER_READ));
+        System.setProperty("mql.wine.path", notExecutable.toString());
+
+        assertThat(WineLauncher.findWineBinary()).isNotEqualTo(notExecutable.toString());
+    }
+
     private static void makeExecutable(Path path) throws IOException {
         Files.setPosixFilePermissions(path, Set.of(
                 PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE));

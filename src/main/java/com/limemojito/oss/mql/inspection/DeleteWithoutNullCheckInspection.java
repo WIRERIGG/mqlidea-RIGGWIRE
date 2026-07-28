@@ -28,7 +28,12 @@ public class DeleteWithoutNullCheckInspection extends MQL5SafetyInspectionBase {
     // pointer AFTER deletion — see DanglingObjectReferenceInspection). MQL5 does not require a null check
     // before `delete`, but validating a pointer with CheckPointer(p) == POINTER_DYNAMIC first is a
     // reasonable defensive habit, so this is surfaced only as a weak, optional suggestion.
-    private static final String MESSAGE = "'delete' without a prior CheckPointer()/NULL guard — consider validating the pointer (CheckPointer(p) == POINTER_DYNAMIC) before deleting";
+    // Message describes what the quick fix (NullifyAfterDeleteFix) actually does — set the pointer to
+    // NULL AFTER the delete so a later reuse is a safe null-deref, not a dangling-pointer access — as
+    // the primary guidance, with the CheckPointer(p) == POINTER_DYNAMIC pre-delete validation offered
+    // as the alternative. (The old message told the user to validate BEFORE delete while the fix acted
+    // AFTER, a mismatch between the advice and the applied change.)
+    private static final String MESSAGE = "'delete' without a null guard — set the pointer to NULL after deleting to prevent reuse of a dangling pointer (or validate it first with CheckPointer(p) == POINTER_DYNAMIC before deleting)";
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {

@@ -16,6 +16,9 @@ public class MQL4IndexKeys {
     public static final StubIndexKey<String, MQL4ClassElement> CLASS_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.className.index");
     public static final StubIndexKey<String, MQL4FunctionElement> FUNCTION_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.functionName.index");
     public static final StubIndexKey<String, MQL4EnumElement> ENUM_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.enumName.index");
+    // Keyed by CONSTANT (field) name; the value is the enclosing enum (fields are not stub PSI, so the
+    // enum carries them). Lets a bare enum-constant use resolve to its declaration across the closure.
+    public static final StubIndexKey<String, MQL4EnumElement> ENUM_FIELD_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.enumFieldName.index");
     public static final StubIndexKey<String, MQL4VarDefinitionElement> GLOBAL_VAR_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.globalVarName.index");
 
 

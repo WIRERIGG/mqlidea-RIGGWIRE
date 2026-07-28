@@ -6,12 +6,23 @@
 package com.limemojito.oss.mql.psi.stub;
 
 import com.intellij.psi.stubs.StubElement;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
+
+import java.util.List;
 
 public interface MQL4EnumElementStub extends StubElement<MQL4EnumElement> {
 
     /** The enum TYPE name, or {@code null} for an anonymous enum ({@code enum { ... }}). */
     @Nullable
     String getName();
+
+    /**
+     * The declared constant (field) names of this enum, in document order. Stored on the stub so the
+     * enum-constant stub index can be built without an AST parse, exactly like the enum TYPE name.
+     * Never {@code null}; empty for an enum with no (parseable) fields.
+     */
+    @NotNull
+    List<String> getFieldNames();
 }

@@ -36,6 +36,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.limemojito.oss.mql.compiler.MqlCompilerService;
+import com.limemojito.oss.mql.compiler.WineLauncher;
 import com.limemojito.oss.mql.util.TextUtils;
 
 import static com.limemojito.oss.mql.util.OSUtils.isWine;
@@ -121,9 +123,21 @@ class MQL4CompilerCommandLineState extends CommandLineState {
             }
         }
 
-        // Run MetaEditor compiler
+        // Run MetaEditor compiler. On Windows we invoke metaeditor(64).exe directly. Off Windows we
+        // must shell through a REAL Wine binary — never a bare `wine` on PATH, which does not exist on
+        // macOS (Wine lives inside MetaTrader 5.app) and isn't guaranteed on Linux. Resolve it the
+        // same way the ExternalAnnotator's WineLauncher does; if none can be found, fail loudly.
+        String wineBinary = null;
+        if (isWine()) {
+            wineBinary = WineLauncher.findWineBinary();
+            if (wineBinary == null) {
+                throw new ExecutionException("No Wine binary found to run MetaEditor. Set the "
+                        + "'mql.wine.path' system property or the MQL_WINE_PATH environment variable to "
+                        + "your Wine executable, or install Wine to a standard location.");
+            }
+        }
         GeneralCommandLine cmd = new GeneralCommandLine();
-        cmd.setExePath(isWine() ? "wine" : metaeditorExePath);
+        cmd.setExePath(isWine() ? wineBinary : metaeditorExePath);
         cmd.setWorkDirectory(buildDir);
         if (isWine()) {
             cmd.addParameter(metaeditorExePath);
@@ -145,11 +159,15 @@ class MQL4CompilerCommandLineState extends CommandLineState {
                 }
                 try {
                     byte[] outputBytes = Files.readAllBytes(Paths.get(logFile.toURI()));
-                    String rawLogInCp1252 = new String(outputBytes, StandardCharsets.UTF_16);
-                    String rawLog = rawLogInCp1252;
+                    // MetaEditor writes the log as UTF-16 little-endian (usually BOM-less). Decode it
+                    // BOM-aware via the shared MqlCompilerService.decodeMqlLog instead of raw UTF_16,
+                    // which silently defaulted a BOM-less log to big-endian and produced mojibake (plus
+                    // a lossy Cp1252 round-trip). Only when the user explicitly configured a build-log
+                    // encoding do we decode the raw bytes with that charset instead.
+                    String rawLog = MqlCompilerService.decodeMqlLog(outputBytes);
                     if (!TextUtils.isEmpty(runConfig.buildLogEncoding)) {
                         try {
-                            rawLog = new String(rawLogInCp1252.getBytes("Cp1252"), runConfig.buildLogEncoding);
+                            rawLog = new String(outputBytes, runConfig.buildLogEncoding);
                         } catch (Exception ignored) {
                             //todo: use logger
                         }

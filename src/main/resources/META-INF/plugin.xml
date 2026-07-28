@@ -626,6 +626,7 @@
         <stubIndex implementation="com.limemojito.oss.mql.index.MQL4ClassNameIndex"/>
         <stubIndex implementation="com.limemojito.oss.mql.index.MQL4FunctionNameIndex"/>
         <stubIndex implementation="com.limemojito.oss.mql.index.MQL4EnumNameIndex"/>
+        <stubIndex implementation="com.limemojito.oss.mql.index.MQL4EnumFieldNameIndex"/>
         <stubIndex implementation="com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex"/>
 
         <gotoClassContributor implementation="com.limemojito.oss.mql.index.MQL4GotoClassContributor"/>

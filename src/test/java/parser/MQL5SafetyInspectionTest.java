@@ -123,6 +123,24 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "test.mq5");
     }
 
+    public void testUncheckedHandleSecondCreationFlaggedWhenOnlyFirstChecked() {
+        // M1 regression: iterate EVERY handle creation, each against its own guard. The old
+        // first-call-only + body-wide guard reported nothing here (h1's INVALID_HANDLE check marked
+        // both creations safe). h2 is unchecked and must now be flagged — and only it.
+        ProblemDescriptor[] problems = runInspection(new UncheckedHandleInspection(),
+                "int h1; int h2;\n" +
+                "int OnInit() {\n" +
+                "  h1 = iMA(_Symbol, PERIOD_H1, 14, 0, MODE_SMA, PRICE_CLOSE);\n" +
+                "  if(h1 == INVALID_HANDLE) return INIT_FAILED;\n" +
+                "  h2 = iRSI(_Symbol, PERIOD_H1, 14, PRICE_CLOSE);\n" +
+                "  return 0; }",
+                "test.mq5");
+        assertNotNull(problems);
+        assertEquals("only the unchecked second handle should be flagged", 1, problems.length);
+        assertEquals("the flagged creation must be the unchecked iRSI, not the checked iMA",
+                "iRSI", problems[0].getPsiElement().getText());
+    }
+
     public void testUncheckedHandleQuickFixInsertsInvalidHandleCheck() {
         String result = applyFirstQuickFix(new UncheckedHandleInspection(),
                 "int handle;\n" +
@@ -256,6 +274,21 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testUncheckedCopyRatesClean() {
         assertNoProblems(new UncheckedCopyRatesInspection(),
                 "void foo() { MqlRates rates[]; if(CopyRates(_Symbol, PERIOD_H1, 0, 100, rates) < 0) return; }");
+    }
+
+    public void testUncheckedCopyRatesCheckedThenUncheckedBothConsidered() {
+        // M1 regression: iterate EVERY copy call, not just the first. A checked CopyBuffer followed
+        // by an unchecked CopyRates must flag the CopyRates — the old first-call-only findAnyCall
+        // stopped at the checked CopyBuffer and reported nothing.
+        ProblemDescriptor[] problems = runInspection(new UncheckedCopyRatesInspection(),
+                "void foo() { double a[]; MqlRates r[];\n" +
+                "  if(CopyBuffer(h, 0, 0, 10, a) < 0) return;\n" +
+                "  CopyRates(_Symbol, PERIOD_H1, 0, 100, r); }",
+                "test.mq5");
+        assertNotNull(problems);
+        assertEquals("only the unchecked second copy call should be flagged", 1, problems.length);
+        assertEquals("the flagged call must be the unchecked CopyRates, not the checked CopyBuffer",
+                "CopyRates", problems[0].getPsiElement().getText());
     }
 
     public void testUncheckedCopyRatesCountComparisonClean() {

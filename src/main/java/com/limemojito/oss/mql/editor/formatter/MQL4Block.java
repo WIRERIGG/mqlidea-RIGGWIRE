@@ -148,6 +148,14 @@ final class MQL4Block extends AbstractBlock implements MQL4Elements {
     @Nullable
     @Override
     public Spacing getSpacing(@Nullable Block child1, Block child2) {
+        if (myNode.getElementType() == PREPROCESSOR_INCLUDE_BLOCK) {
+            // Never re-space the children of an `#include <...>` directive: the angle brackets are
+            // raw LT/GT leaves that the SpacingBuilder's relational-operator rule would otherwise pad
+            // into `#include < Trade\Trade.mqh >`, which MetaEditor cannot resolve. Returning null
+            // leaves the directive's existing (space-free) layout untouched. (Quote-form includes
+            // have no LT/GT tokens and were never affected.)
+            return null;
+        }
         if (child1 instanceof MQL4Block && child2 instanceof MQL4Block) {
             ASTNode rightNode = ((MQL4Block) child2).getNode();
             if (isCodeBlock(rightNode)) {

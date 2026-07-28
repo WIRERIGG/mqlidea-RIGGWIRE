@@ -10,6 +10,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
+import com.limemojito.oss.mql.psi.impl.MQL4EnumFieldElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionArgElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
@@ -233,19 +234,80 @@ public class MqlResolveTest extends BasePlatformTestCase {
     }
 
     public void testEnumConstantIsNotTreatedAsMemberAccess() {
-        // `EnumType::CONST` uses COLON_COLON, not DOT -> must NOT be routed through member access;
-        // existing (free-identifier) behavior is unchanged and must not throw.
+        // `EnumType::CONST` uses COLON_COLON, not DOT -> must NOT be routed through member access.
+        // RED after `::` is a free usage identifier: it resolves to the enum-field declaration via the
+        // closure enum-constant tier (NOT via MqlTypeResolver, which only handles DOT member access).
         String code = "enum Color { RED, GREEN };\nvoid f() { Color c = Color::RED; }";
         PsiFile file = myFixture.configureByText("test.mq4", code);
         int offset = code.indexOf("RED; }");
         myFixture.getEditor().getCaretModel().moveToOffset(offset);
         PsiReference ref = myFixture.getReferenceAtCaretPosition();
-        // The reference exists (RED is a usage identifier); the point of the test is that resolving
-        // it doesn't crash and isn't hijacked by member-access logic. (RED after `::` is not a DOT
-        // member, so MqlTypeResolver is never consulted.)
-        if (ref != null) {
-            ref.resolve();
-        }
+        assertNotNull("expected a reference on the scoped enum constant Color::RED", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("scoped enum constant must resolve to the enum-field declaration",
+                resolved instanceof MQL4EnumFieldElement);
+        assertEquals("RED", ((MQL4EnumFieldElement) resolved).getName());
+    }
+
+    // ---- v23: enum-constant resolution (bare + scoped) -----------------------------------------
+
+    public void testResolveEnumConstantBareUsage() {
+        // A bare use of an enum constant resolves to its MQL4EnumFieldElement declaration.
+        String code = "enum Color { RED, GREEN };\nvoid f() { Color c = RED; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        // "RED;" is unique to the usage; the declaration is "RED," in the enum body.
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("RED;"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference at the bare usage of RED", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("expected resolution to the enum-field declaration", resolved instanceof MQL4EnumFieldElement);
+        assertEquals("RED", ((MQL4EnumFieldElement) resolved).getName());
+    }
+
+    public void testResolveEnumConstantCrossFileViaInclude() {
+        // Constant declared in a .mqh, used in the .mq4 -> resolves across the #include closure.
+        myFixture.addFileToProject("Colors.mqh", "enum Color { RED, GREEN };");
+        PsiFile main = myFixture.addFileToProject("Main.mq4",
+                "#include \"Colors.mqh\"\nvoid f() { int c = RED; }");
+        myFixture.configureFromExistingVirtualFile(main.getVirtualFile());
+        myFixture.getEditor().getCaretModel().moveToOffset(main.getText().indexOf("RED;"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull("expected a reference on the cross-file enum constant", ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue(resolved instanceof MQL4EnumFieldElement);
+        assertEquals("RED", ((MQL4EnumFieldElement) resolved).getName());
+        assertEquals("Colors.mqh", resolved.getContainingFile().getName());
+    }
+
+    public void testLocalVariableShadowsEnumConstant() {
+        // A local named the same as an enum constant must still resolve to the LOCAL: the enum-constant
+        // tier runs after resolveLocal and never shadows a local.
+        String code = "enum Color { RED, GREEN };\nvoid f() { int RED = 1; int y = RED; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        // "RED;" is the usage (`int y = RED;`); "RED," is the enum decl, "RED = 1" is the local decl.
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("RED;"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull(ref);
+        PsiElement resolved = ref.resolve();
+        assertTrue("local must win over the enum constant of the same name",
+                resolved instanceof MQL4VarDefinitionElement);
+        assertEquals("RED", ((MQL4VarDefinitionElement) resolved).getName());
+    }
+
+    public void testEnumConstantReferenceIsReferenceToDeclaration() {
+        // isReferenceTo: from a usage, the reference points back to the declaration (so rename updates
+        // usages and safe-delete's ReferencesSearch finds them).
+        String code = "enum Color { RED, GREEN };\nvoid f() { Color c = RED; }";
+        PsiFile file = myFixture.configureByText("test.mq4", code);
+        // The first "RED" is the declaration identifier inside the enum body.
+        PsiElement declLeaf = file.findElementAt(code.indexOf("RED"));
+        MQL4EnumFieldElement decl = com.intellij.psi.util.PsiTreeUtil.getParentOfType(declLeaf, MQL4EnumFieldElement.class);
+        assertNotNull("expected the enum-field declaration element", decl);
+        myFixture.getEditor().getCaretModel().moveToOffset(code.indexOf("RED;"));
+        PsiReference ref = myFixture.getReferenceAtCaretPosition();
+        assertNotNull(ref);
+        assertTrue("the usage reference must recognise the enum-field declaration as its target",
+                ref.isReferenceTo(decl));
     }
 
     public void testFindUsagesOfMethodFindsMemberCallSite() {

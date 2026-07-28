@@ -35,7 +35,10 @@ public interface MQL4StubElements {
     // v22: ENUM_STATEMENT and top-level VAR_DEFINITION became stub-backed (enum-name + global-var
     // stub indexes) so enum/global resolution no longer parses the #include-closure AST; bump forces
     // a one-time rebuild of the persisted stub indexes.
-    int STUB_SCHEMA_VERSION = 22;
+    // v23: the ENUM_STATEMENT stub now also carries its constant (field) names, indexed into the new
+    // enum-field-name stub index so a bare enum-constant use resolves to its declaration; the changed
+    // stub serialization forces a one-time rebuild.
+    int STUB_SCHEMA_VERSION = 23;
 
     ILightStubFileElementType FILE = new ILightStubFileElementType(MQL4Language.INSTANCE) {
         @Override
@@ -50,6 +53,15 @@ public interface MQL4StubElements {
         @Override
         public String getDebugName() {
             return "RIGGWIRE MQL File";
+        }
+
+        @Override
+        public int getStubVersion() {
+            // Tie the stub-tree format version to STUB_SCHEMA_VERSION — the SDK-canonical
+            // invalidation point. Whenever the serialized stub structure changes (e.g. the enum
+            // stub gaining field names in v23), bumping the constant discards persisted stub trees
+            // and re-indexes from source, so a v22 stub is never deserialized with a v23 reader.
+            return STUB_SCHEMA_VERSION;
         }
 
         public FlyweightCapableTreeStructure<LighterASTNode> parseContentsLight(ASTNode chameleon) {

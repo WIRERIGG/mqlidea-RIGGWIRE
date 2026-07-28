@@ -29,16 +29,23 @@ public class UncheckedCopyRatesInspection extends MQL5SafetyInspectionBase {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
-                ASTNode call = StatementAst.findAnyCall(body, MQL5_COPY_FUNCS);
-                if (call != null && !StatementAst.callReturnChecked(body, call)) {
-                    PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());
+                PsiElement navElement = child.getNavigationElement();
+                // Evaluate EVERY copy/resize call, each against its own guard: a checked call followed
+                // by an unchecked one (or vice-versa) must still flag the unchecked one — the old
+                // first-call-only findAnyCall reported nothing whenever the FIRST call happened to be
+                // checked.
+                StatementAst.forEachCall(body, MQL5_COPY_FUNCS, call -> {
+                    if (StatementAst.callReturnChecked(body, call)) {
+                        return;
+                    }
+                    PsiElement anchor = StatementAst.anchor(call, navElement);
                     // Offer the wrap-in-check fix only for a bare call statement (safe to rewrite).
                     if (StatementAst.isBareCallStatement(call)) {
                         problems.add(createWarning(manager, anchor, MESSAGE, new WrapCallInFailureCheckFix(call.getText())));
                     } else {
                         problems.add(createWarning(manager, anchor, MESSAGE));
                     }
-                }
+                });
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);

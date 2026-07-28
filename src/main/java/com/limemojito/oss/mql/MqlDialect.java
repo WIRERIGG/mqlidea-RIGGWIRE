@@ -13,6 +13,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
+import com.intellij.psi.util.PsiModificationTracker;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -76,7 +77,14 @@ public final class MqlDialect {
             boolean hasMql5 = hasExt(project, "mq5") || hasExt(project, "mql5");
             boolean hasMql4 = hasExt(project, "mq4") || hasExt(project, "mql4");
             Kind kind = (hasMql4 && !hasMql5) ? Kind.MQL4 : Kind.MQL5;
-            return CachedValueProvider.Result.create(kind, ProjectRootModificationTracker.getInstance(project));
+            // Depend on BOTH trackers. The dialect is computed from file CONTENT (which .mq4/.mq5
+            // extensions exist via FilenameIndex), but ProjectRootModificationTracker alone does not
+            // bump when the first .mq5 is merely ADDED to a .mq4-only project — so a stale MQL4
+            // classification would stick on .mqh headers until restart. PsiModificationTracker.
+            // MODIFICATION_COUNT invalidates the cache on any file add/remove/edit.
+            return CachedValueProvider.Result.create(kind,
+                    ProjectRootModificationTracker.getInstance(project),
+                    PsiModificationTracker.MODIFICATION_COUNT);
         });
     }
 

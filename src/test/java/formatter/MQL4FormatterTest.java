@@ -112,6 +112,15 @@ public class MQL4FormatterTest extends BasePlatformTestCase {
         assertEquals("brace-less body formatting must be idempotent", once, twice);
     }
 
+    public void testAngleBracketIncludeNotPaddedBySpacing() {
+        // Regression (H2): the SpacingBuilder's SPACE_AROUND_RELATIONAL_OPERATORS rule matches the
+        // raw LT/GT leaves the parser emits for `<...>`, so Reformat used to turn
+        // `#include <Trade\Trade.mqh>` into `#include < Trade\Trade.mqh >`, which MetaEditor can't
+        // resolve. It must now be left byte-identical.
+        String code = "#include <Trade\\Trade.mqh>\n";
+        assertEquals(code, reformat("test.mq5", code));
+    }
+
     public void testCommaSpacingAndNoSpaceBeforeSemicolon() {
         String before = "void OnTick()\n{\n    OrderSelect(1,SELECT_BY_POS) ;\n}\n";
         String after = reformat("test.mq4", before);

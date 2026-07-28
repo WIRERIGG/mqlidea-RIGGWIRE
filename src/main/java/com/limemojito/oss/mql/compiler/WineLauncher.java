@@ -61,8 +61,15 @@ public final class WineLauncher implements MqlCompilerLauncher {
         return cmd;
     }
 
+    /**
+     * Resolves a real Wine binary the run configuration can shell {@code metaeditor64.exe} through:
+     * the {@code mql.wine.path} system property or {@code MQL_WINE_PATH} environment variable if it
+     * points at an executable, otherwise the first of a handful of common install locations that
+     * exists. Null when none can be found — callers must then fail loudly rather than guess a bare
+     * {@code wine} on {@code PATH} (which does not exist on macOS and isn't guaranteed on Linux).
+     */
     @Nullable
-    private static String findWineBinary() {
+    public static String findWineBinary() {
         String configured = System.getProperty("mql.wine.path");
         if (configured == null) {
             configured = System.getenv("MQL_WINE_PATH");

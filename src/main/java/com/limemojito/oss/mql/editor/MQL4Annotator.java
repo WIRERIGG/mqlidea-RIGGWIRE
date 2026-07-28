@@ -64,14 +64,18 @@ public class MQL4Annotator implements Annotator {
 
         ASTNode defList = node.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
         if (defList == null) return;
-        ASTNode def = defList.findChildByType(MQL4Elements.VAR_DEFINITION);
-        if (def == null) return;
-        ASTNode id = def.findChildByType(MQL4Elements.IDENTIFIER);
-        if (id == null) return;
 
-        holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                .range(id)
-                .textAttributes(INPUT_PARAMETER)
-                .create();
+        // Annotate EVERY declarator in the list, not just the first. `input int a, b, c;` parses as a
+        // single VAR_DECLARATION_STATEMENT whose VAR_DEFINITION_LIST holds one VAR_DEFINITION per name;
+        // findChildByType returned only `a`, leaving b/c un-highlighted.
+        for (ASTNode def = defList.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+            if (def.getElementType() != MQL4Elements.VAR_DEFINITION) continue;
+            ASTNode id = def.findChildByType(MQL4Elements.IDENTIFIER);
+            if (id == null) continue;
+            holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+                    .range(id)
+                    .textAttributes(INPUT_PARAMETER)
+                    .create();
+        }
     }
 }
