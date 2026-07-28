@@ -82,7 +82,7 @@ Plugin id: `io.riggwire.mql`. The plugin is focused on one thing: catching MQL m
 | **Compile checking** | MetaEditor, reached per-platform: macOS via the `mt5` wrapper + Wine · Windows via native `metaeditor64.exe` (registered MQL SDK) · Linux via an explicit Wine binary + exe |
 | **File types** | `.mq4` `.mql4` `.mq5` `.mql5` `.mqh` |
 
-Everything except compile checking works with no external tools installed. The compiler launchers for macOS, Windows, and Linux are all wired; macOS (`mt5`/Wine) is the actively-exercised path, and the native Windows path is newly added.
+Everything except compile checking works with no external tools installed. **Compile checking is supported on macOS, Windows, and Linux.** Windows and Linux support is inherited from the upstream plugin (which shipped native `metaeditor64.exe` / Wine compilation via the Run configuration) and extended here — refactored into the launcher strategy, wired into the inline annotator, and fixed for MQL5 (`.mq5`) sources.
 
 ---
 
@@ -127,7 +127,7 @@ When you stop typing (or trigger **Compile Check Now**), the ExternalAnnotator h
 
 Known limitations, tracked as upcoming work:
 
-- **Native Windows / Linux compile paths are newly wired but not yet field-validated** — the launcher, SDK discovery, stale-log handling, and log decoding are implemented and unit-tested, but macOS (`mt5`/Wine) remains the path exercised day-to-day; a real Windows/Linux smoke test is pending. Debugging is unsupported everywhere (no public MetaTrader debug protocol).
+- **Inline (ExternalAnnotator) compile diagnostics on Windows/Linux are freshly extended and not yet field-validated** — Windows/Linux compilation via the **Run configuration** is inherited from upstream (native `metaeditor64.exe` / Wine) and now also corrected for MQL5 (`.mq5`) sources; wiring those same launchers into the *inline* annotator is the new part, and macOS (`mt5`/Wine) remains the path exercised day-to-day, so a Windows/Linux inline smoke test is pending. Debugging is unsupported everywhere (no public MetaTrader debug protocol).
 - **Header (`.mqh`) compile errors are not yet surfaced** — the compiler integration currently reports diagnostics for the compiled `.mq4`/`.mq5` file only
 - **Trading Safety quick-fixes cover a subset** — more mechanical remediations planned for the flagship group
 - **Member-access resolution is declared-type + bounded inheritance/chain**, not full expression type inference — function-return types, casts, templates and array-element types are out of scope, so member navigation/rename on those forms is not yet resolved
