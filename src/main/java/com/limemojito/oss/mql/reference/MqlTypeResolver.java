@@ -98,7 +98,30 @@ public final class MqlTypeResolver {
         }
         IElementType type = qualifier.getNode().getElementType();
         if (type == MQL4Elements.THIS_KEYWORD) {
-            return PsiTreeUtil.getParentOfType(qualifier, MQL4ClassElement.class);
+            MQL4ClassElement inBody = PsiTreeUtil.getParentOfType(qualifier, MQL4ClassElement.class);
+            return inBody != null ? inBody : MqlResolveUtil.enclosingClass(qualifier); // X::Method body
+        }
+        if (type == MQL4Elements.R_SQUARE_BRACKET) {
+            // arr[i].m: an array's declared type is its element type
+            PsiElement array = prevMeaningfulLeaf(matchingOpen(qualifier, MQL4Elements.L_SQUARE_BRACKET, MQL4Elements.R_SQUARE_BRACKET));
+            return array == null ? null : resolveQualifierClass(array, chainDepth - 1);
+        }
+        if (type == MQL4Elements.R_ROUND_BRACKET) {
+            // Get().m and obj.Get().m: the called function's return type
+            PsiElement callee = prevMeaningfulLeaf(matchingOpen(qualifier, MQL4Elements.L_ROUND_BRACKET, MQL4Elements.R_ROUND_BRACKET));
+            if (!isType(callee, MQL4Elements.IDENTIFIER)) {
+                return null; // a cast or a parenthesized expression
+            }
+            for (com.intellij.psi.ResolveResult result : new MqlReference(callee).multiResolve(false)) {
+                if (result.getElement() instanceof MQL4FunctionElement function) {
+                    String returnType = notPrimitive(MqlPsiUtil.returnTypeName(function));
+                    MQL4ClassElement c = returnType == null ? null : MqlResolveUtil.findClassByName(returnType, qualifier.getProject(), qualifier);
+                    if (c != null) {
+                        return c;
+                    }
+                }
+            }
+            return null;
         }
         if (type != MQL4Elements.IDENTIFIER) {
             return null;
@@ -170,7 +193,8 @@ public final class MqlTypeResolver {
 
     @Nullable
     private static String notPrimitive(@Nullable String typeName) {
-        if (typeName == null || typeName.isEmpty() || PRIMITIVE_TYPES.contains(typeName)) {
+        if (typeName == null || typeName.isEmpty() || PRIMITIVE_TYPES.contains(typeName)
+                || com.limemojito.oss.mql.MqlBuiltinTypes.MQL5_TYPES.contains(typeName)) {
             return null;
         }
         return typeName;
@@ -242,6 +266,25 @@ public final class MqlTypeResolver {
                 continue;
             }
             return notPrimitive(meaningful.get(j).getText());
+        }
+        return null;
+    }
+
+    /** Bounds the backward scan for a matching bracket. */
+    private static final int MAX_BRACKET_SCAN = 256;
+
+    /** The bracket that opens {@code close}, scanning leaves backwards, or null. */
+    @Nullable
+    private static PsiElement matchingOpen(@NotNull PsiElement close, @NotNull IElementType open, @NotNull IElementType closeType) {
+        int depth = 0;
+        PsiElement e = close;
+        for (int i = 0; e != null && i < MAX_BRACKET_SCAN; i++, e = prevMeaningfulLeaf(e)) {
+            IElementType t = e.getNode().getElementType();
+            if (t == closeType) {
+                depth++;
+            } else if (t == open && --depth == 0) {
+                return e;
+            }
         }
         return null;
     }

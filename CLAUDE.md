@@ -13,7 +13,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.0) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (505 pass)
+./gradlew test           # tests only (516 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
 ```
 
@@ -62,7 +62,7 @@ src/test/                               # parser + inspection tests (219)
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 505). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 516). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **26** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.
@@ -75,7 +75,7 @@ src/test/                               # parser + inspection tests (219)
 (from the 2026 architecture review — being worked through)
 - Quick-fixes cover a growing subset; the Trading Safety group now has three (wrap unchecked `CopyRates`/`CopyBuffer`/`ArrayResize` in a `< 0` check via `WrapCallInFailureCheckFix`; `INVALID_HANDLE` guard via `CheckHandleAfterCreationFix`). More flagship checks (UncheckedOrderSend, MissingIndicatorRelease) still report-only.
 - Inspection suppression uses the modern `SuppressQuickFix` API (`MQL5SafetyInspectionBase.getBatchSuppressActions` → `MqlSuppressFix`), which is also a `LocalQuickFix` and so works in **both** the editor and batch **Inspect Code** (Suppress-for-function / Suppress-for-file via `//noinspection <id>`). Remaining gap: no statement/line-level scope.
-- Member-access (`obj.field`/`obj.Method()`) **is** type-resolved (`reference/MqlTypeResolver`: declared-type / param / `this` / base-class / bounded chain), so rename, find-usages, and dot-completion cover project-defined classes. Out of scope: full expression type inference (function-return types, casts, templates, array-element types).
+- Member-access (`obj.field`/`obj.Method()`) **is** type-resolved (`reference/MqlTypeResolver`: declared-type / param / `this` / base-class / bounded chain / array element `a[i].m` / call return type `Get().m`), so rename, find-usages, and dot-completion cover project-defined classes. `::name`, `Class::member`, `Namespace::name`, out-of-line `X::Method` bodies, `offsetof(S, m)`, `#define` names and typedefs resolve too. Out of scope: casts and templates.
 - Header (`.mqh`) compile errors from the ExternalAnnotator are not yet surfaced.
 - Compile-checking runs on macOS (`mt5`/Wine), Windows (native `metaeditor64.exe` via a registered MQL SDK), and Linux (explicit Wine) through the `MqlCompilerService` launcher strategy; macOS is the actively-exercised path.
 - Plugin Verifier: Compatible on IU 2025.3.2 and CL 2026.3, with no experimental or internal API. One deprecated usage is unavoidable: `MQL4SdkType.suggestHomePath()`, which is still abstract on 2025.3. `suggestHomePaths(Project)` is overridden alongside it, so SDK suggestions keep working after the platform removes it. Drop the override once since-build passes 253.
