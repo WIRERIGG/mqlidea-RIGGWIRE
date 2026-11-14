@@ -139,6 +139,15 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertEquals("C.mqh", resolved2.getContainingFile().getName());
     }
 
+    public void testBackslashIncludePathResolves() {
+        PsiFile lib = myFixture.addFileToProject("Sub/Lib.mqh", "void Shared() { }");
+        PsiFile main = myFixture.addFileToProject("Main.mq5", "#include \"Sub\\Lib.mqh\"\nvoid f() { Shared(); }");
+        com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock include = com.intellij.psi.util.PsiTreeUtil
+                .findChildOfType(main, com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock.class);
+        assertNotNull(include);
+        assertEquals(lib, include.resolveIncludedFile());
+    }
+
     public void testIncludeDirectiveResolvesToFile() {
         PsiFile lib = myFixture.addFileToProject("Lib.mqh", "void Shared() { }");
         PsiFile main = myFixture.addFileToProject("Main.mq4",
