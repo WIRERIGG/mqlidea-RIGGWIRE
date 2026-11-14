@@ -609,7 +609,8 @@
         <externalAnnotator language="MQL4"
                            implementationClass="com.limemojito.oss.mql.compiler.MqlCompilerExternalAnnotator"/>
         <notificationGroup id="MQL Compiler" displayType="BALLOON"/>
-        <statusBarWidgetFactory implementation="com.limemojito.oss.mql.compiler.MqlCompileStatusBarWidgetFactory"/>
+        <statusBarWidgetFactory id="com.limemojito.oss.mql.compiler.status"
+                                implementation="com.limemojito.oss.mql.compiler.MqlCompileStatusBarWidgetFactory"/>
 
         <!--File icons-->
         <iconProvider implementation="com.limemojito.oss.mql.MQL4FileIconProvider"/>
