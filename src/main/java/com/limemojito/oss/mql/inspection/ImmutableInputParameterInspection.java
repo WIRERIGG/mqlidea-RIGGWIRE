@@ -51,8 +51,7 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
             ProgressManager.checkCanceled();
             if (child.getNode().getElementType() == com.limemojito.oss.mql.psi.MQL4Elements.VAR_DECLARATION_STATEMENT
                     && isInputVariable(child)) {
-                String name = getVariableName(child);
-                if (name != null) inputNames.add(name);
+                inputNames.addAll(getVariableNames(child)); // input int A=1, B=2; -> A and B
             }
         }
         if (inputNames.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;

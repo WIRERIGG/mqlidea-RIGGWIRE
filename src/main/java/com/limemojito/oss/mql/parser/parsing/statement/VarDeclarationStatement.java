@@ -12,7 +12,6 @@ import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.parser.parsing.BracketBlockParsing;
 import com.limemojito.oss.mql.parser.parsing.util.ParsingUtils;
-import com.limemojito.oss.mql.parser.parsing.util.TokenAdvanceMode;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
@@ -36,6 +35,11 @@ public class VarDeclarationStatement implements MQL4Elements {
             TokenSet.create(IDENTIFIER, COMMA, MUL, AND, COLON_COLON, CONST_KEYWORD, LT, GT, SH_RIGHT));
 
     private static final int MAX_TEMPLATE_ARG_TOKENS = 32;
+
+    /** Keywords that can't appear in an initializer: meeting one means the {@code ;} is missing. */
+    private static final TokenSet STATEMENT_KEYWORDS = TokenSet.create(IF_KEYWORD, ELSE_KEYWORD, FOR_KEYWORD,
+            WHILE_KEYWORD, DO_KEYWORD, SWITCH_KEYWORD, RETURN_KEYWORD, BREAK_KEYWORD, CONTINUE_KEYWORD,
+            CASE_KEYWORD, DEFAULT_KEYWORD);
 
     /**
      * Lookahead-only recogniser for a variable declaration starting at the current token. Returns
@@ -143,8 +147,9 @@ public class VarDeclarationStatement implements MQL4Elements {
             b.advanceLexer();
         }
         skipComments(b);
-        if (parseVarDefinitionList(b, l + 1) == ListEnd.INITIALIZER) {
-            ParsingUtils.advanceLexerUntil(b, SEMICOLON, TokenAdvanceMode.ADVANCE);
+        if (parseVarDefinitionList(b, l + 1) == ListEnd.INITIALIZER
+                && consumeInitializer(b) && b.getTokenType() == SEMICOLON) {
+            b.advanceLexer(); // ';'
         }
         m.done(VAR_DECLARATION_STATEMENT);
         return true;
@@ -155,8 +160,9 @@ public class VarDeclarationStatement implements MQL4Elements {
         /** The terminating {@code ;} was consumed. */
         TERMINATED,
         /**
-         * Stopped before the LAST name's initializer, which the caller consumes flat up to {@code ;}
-         * ({@code int x = ...;} keeps its established shape, initializer tokens after the list).
+         * Stopped before the LAST name's initializer, which the caller consumes flat through its
+         * {@code ;} ({@code int x = ...;} keeps its established shape, initializer tokens after the
+         * list). An unfinished initializer stops where {@link #consumeInitializer} stops.
          */
         INITIALIZER,
         /** Stopped at an unexpected token, left for the enclosing parser (nothing is swallowed). */
@@ -235,19 +241,27 @@ public class VarDeclarationStatement implements MQL4Elements {
 
     /**
      * Consumes initializer tokens flat (no bracket blocks, matching the established initializer
-     * shape) up to, not including, the top-level {@code ,} or {@code ;}. Returns false if it stopped
-     * at anything else: an unmatched right bracket, a preprocessor line or end of file.
+     * shape) up to, not including, the top-level {@code ,} or {@code ;}. Returns false, leaving the
+     * stop token for the enclosing parser, when the initializer is unfinished: at an unmatched right
+     * bracket ({@code for(int i = 0)} or a missing {@code ;} before {@code }}), a statement keyword,
+     * a {@code {} that isn't the initializer's first token, or a preprocessor line at the top level
+     * (one inside {@code {1, #ifdef X 2, #endif 3}} is part of the initializer), or end of file.
      */
     private static boolean consumeInitializer(@NotNull PsiBuilder b) {
         int depth = 0;
+        boolean first = true;
         while (!b.eof()) {
             IElementType t = b.getTokenType();
-            if (depth == 0 && (t == COMMA || t == SEMICOLON)) {
-                return true;
+            if (depth == 0) {
+                if (t == COMMA || t == SEMICOLON) {
+                    return true;
+                }
+                if (STATEMENT_KEYWORDS.contains(t) || MQL4TokenSets.PREPROCESSOR.contains(t)
+                        || (t == L_CURLY_BRACKET && !first)) {
+                    return false;
+                }
             }
-            if (MQL4TokenSets.PREPROCESSOR.contains(t)) {
-                return false;
-            }
+            first = false;
             if (t == L_ROUND_BRACKET || t == L_SQUARE_BRACKET || t == L_CURLY_BRACKET) {
                 depth++;
             } else if (MQL4TokenSets.RIGHT_BRACKETS.contains(t)) {

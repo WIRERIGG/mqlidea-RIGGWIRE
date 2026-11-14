@@ -410,6 +410,23 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
         return false;
     }
 
+    /**
+     * Every declared name of a {@code VAR_DECLARATION_STATEMENT}, in order: {@code int a, b=1, *c;}
+     * gives a, b, c. Empty when the statement has no definition list.
+     */
+    @NotNull
+    protected List<String> getVariableNames(@NotNull PsiElement varDecl) {
+        List<String> names = new ArrayList<>();
+        ASTNode defList = varDecl.getNode().findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
+        if (defList == null) return names;
+        for (ASTNode def = defList.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+            if (def.getElementType() != MQL4Elements.VAR_DEFINITION) continue;
+            ASTNode id = def.findChildByType(MQL4Elements.IDENTIFIER);
+            if (id != null) names.add(id.getText());
+        }
+        return names;
+    }
+
     @Nullable
     protected String getVariableName(@NotNull PsiElement varDecl) {
         ASTNode defList = varDecl.getNode().findChildByType(MQL4Elements.VAR_DEFINITION_LIST);

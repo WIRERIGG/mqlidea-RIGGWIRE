@@ -466,6 +466,12 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "class CTest { CObj *m_obj; public: CTest() { m_obj = new CObj(); } };");
     }
 
+    public void testMissingDestructorSeesEveryFieldOfACommaList() {
+        // Only the second pointer of the list acquires the resource; it must still be collected.
+        assertHasProblems(new MissingDestructorInspection(),
+                "class CTest { CObj *m_a, *m_b; public: CTest() { m_b = new CObj(); } };");
+    }
+
     public void testMissingDestructorValueClassIsFine() {
         // A plain value class with a constructor but no owned resource needs no destructor in MQL5.
         assertNoProblems(new MissingDestructorInspection(),
@@ -540,6 +546,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertInspectionRuns(new ImmutableInputParameterInspection(),
                 "input int InpPeriod = 14;\n" +
                 "void OnInit() { InpPeriod = 20; }");
+    }
+
+    public void testImmutableInputParameterSeesEveryNameOfACommaList() {
+        ProblemDescriptor[] problems = runInspection(new ImmutableInputParameterInspection(),
+                "input int A = 1, B = 2;\n" +
+                "void OnTick() { B = 5; }");
+        assertEquals(1, problems.length);
+        assertTrue(problems[0].getDescriptionTemplate().contains("'B'"));
     }
 
     public void testImmutableInputParameterMemberAccessClean() {
@@ -1683,5 +1697,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     /** PreprocessorPropertyInspection no longer implements the deprecated CustomSuppressableInspectionTool. */
     public void testPreprocessorPropertyInspectionIsPlainLocalInspectionTool() {
         assertFalse(new PreprocessorPropertyInspection() instanceof com.intellij.codeInspection.CustomSuppressableInspectionTool);
+    }
+
+    public void testPropertyNumericValueRejectsDatetimeLiteral() {
+        // D'...' is a datetime constant, not a number, so a numeric #property must still be flagged.
+        assertHasProblems(new PreprocessorPropertyInspection(),
+                "#property indicator_buffers D'2024.01.01'\n", "test.mq5");
+        assertNoProblems(new PreprocessorPropertyInspection(),
+                "#property indicator_buffers 2\n", "test.mq5");
     }
 }

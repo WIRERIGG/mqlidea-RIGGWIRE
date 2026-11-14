@@ -53,6 +53,8 @@ public class MQL4SyntaxHighlighter extends SyntaxHighlighterBase {
 
         put(MQL4Elements.COLOR_STRING_LITERAL, DefaultLanguageHighlighterColors.CONSTANT);
         put(MQL4Elements.COLOR_CONSTANT_LITERAL, DefaultLanguageHighlighterColors.CONSTANT);
+        // a datetime constant D'...' reads as a number, but isn't one for #property numeric checks
+        put(MQL4Elements.DATETIME_LITERAL, DefaultLanguageHighlighterColors.NUMBER);
 
     }
 

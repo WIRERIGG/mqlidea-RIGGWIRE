@@ -803,9 +803,9 @@ final class StatementAst implements MQL4Elements {
      *   <li>{@code int copied; while(copied<needed){copied=CopyBuffer(...);}} retry idiom — the
      *       outer {@code copied} is in effect at both, so the header check counts → clean.</li>
      * </ul>
-     * Declarations are recognised structurally in both parse shapes (see {@link #isDeclarationOf}),
-     * including the flat-token {@code for(int i = 0; ...)} header, which the parser never wraps in a
-     * {@code VAR_DEFINITION}. When {@code name} has no recognised local declaration (parameter /
+     * Declarations are recognised structurally (see {@link #isDeclarationOf}): the
+     * {@code VAR_DEFINITION} the parser builds, including in a {@code for(int i = 0; ...)} header,
+     * and a flat {@code <type> name} token pair as a fallback. When {@code name} has no recognised local declaration (parameter /
      * global), the binding is null at every use, so uses still match — lenient, never a false positive.
      */
     static boolean capturedResultCompared(@Nullable ASTNode body, @NotNull String name, int captureOffset) {

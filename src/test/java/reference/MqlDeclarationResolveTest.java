@@ -140,6 +140,49 @@ public class MqlDeclarationResolveTest extends BasePlatformTestCase {
         assertEquals("OnStart", onStart.getFunctionName());
     }
 
+    /** The {@code BRACKETS_BLOCK} children of the first {@code FOR_STATEMENT}: header, then body. */
+    private static java.util.List<String> forBlocks(PsiFile file) {
+        PsiElement forStmt = PsiTreeUtil.collectElements(file, e -> e.getNode().getElementType()
+                == com.limemojito.oss.mql.psi.MQL4Elements.FOR_STATEMENT)[0];
+        java.util.List<String> blocks = new java.util.ArrayList<>();
+        for (PsiElement c = forStmt.getFirstChild(); c != null; c = c.getNextSibling()) {
+            if (c.getNode().getElementType() == com.limemojito.oss.mql.psi.MQL4Elements.BRACKETS_BLOCK) {
+                blocks.add(c.getText());
+            }
+        }
+        return blocks;
+    }
+
+    public void testUnfinishedForHeaderStopsAtItsBracket() {
+        // Mid-typing, no ';' yet: the initializer must not run through ')' into the loop body.
+        PsiFile file = myFixture.configureByText("test.mq5", "void f() { for(int i = 0) { Foo(); } int z; z=1; }");
+        assertEquals(java.util.List.of("(int i = 0)", "{ Foo(); }"), forBlocks(file));
+    }
+
+    public void testUnfinishedPointerForHeaderStopsAtItsBracket() {
+        PsiFile file = myFixture.configureByText("test.mq5", "void f() { for(CFoo *p = head) { p.Run(); } }");
+        assertEquals(java.util.List.of("(CFoo *p = head)", "{ p.Run(); }"), forBlocks(file));
+    }
+
+    public void testMissingSemicolonBeforeClosingBraceStaysInsideTheBlock() {
+        String code = "void f() { CTrade t = Make() }\nvoid g() { int k; k=2; }";
+        PsiFile file = myFixture.configureByText("test.mq5", code);
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (MQL4FunctionElement fn : PsiTreeUtil.findChildrenOfType(file, MQL4FunctionElement.class)) {
+            names.add(fn.getFunctionName());
+        }
+        assertEquals(java.util.List.of("f", "g"), names);
+        assertEquals("k", definitionAt(code, "k=2").getName());
+    }
+
+    public void testMissingSemicolonBeforeNextStatement() {
+        // `int a = 1` then `if`: the initializer stops at the keyword, the if still parses.
+        String code = "void f() { int a = 1\n if(a>0) { int b; b=a; } }";
+        PsiFile file = myFixture.configureByText("test.mq5", code);
+        assertTrue(PsiTreeUtil.collectElements(file, e -> e.getNode().getElementType()
+                == com.limemojito.oss.mql.psi.MQL4Elements.IF_STATEMENT).length == 1);
+    }
+
     public void testTypedefAndPrototypesAreNotVariables() {
         String code = "class CFoo { };\ntypedef CFoo CBar;\nCFoo Make(int seed);\nvoid f() { }";
         PsiFile file = myFixture.configureByText("test.mq5", code);

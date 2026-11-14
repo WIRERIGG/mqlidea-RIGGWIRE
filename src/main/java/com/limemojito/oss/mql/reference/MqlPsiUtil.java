@@ -70,11 +70,15 @@ public final class MqlPsiUtil {
     }
 
     /**
-     * The {@code (...)} header block of a {@code FOR_STATEMENT} node, or null. Its direct children
+     * The {@code (...)} header block when {@code element} is a {@code FOR_STATEMENT}, otherwise null. Its direct children
      * hold the init-clause {@code VAR_DECLARATION_STATEMENT} when the loop declares its variable.
      */
     @org.jetbrains.annotations.Nullable
-    public static ASTNode forHeaderOf(@NotNull ASTNode forStatement) {
+    public static ASTNode forHeaderOf(@org.jetbrains.annotations.Nullable PsiElement element) {
+        ASTNode forStatement = element == null ? null : element.getNode();
+        if (forStatement == null || forStatement.getElementType() != MQL4Elements.FOR_STATEMENT) {
+            return null;
+        }
         for (ASTNode child = forStatement.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             if (child.getElementType() == MQL4Elements.BRACKETS_BLOCK) {
                 ASTNode first = child.getFirstChildNode();

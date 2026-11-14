@@ -71,10 +71,8 @@ public class MQL4VarDefinitionElement extends StubBasedPsiElementBase<MQL4Global
      * enclosing {@code VAR_DECLARATION_STATEMENT} (the child before the {@code VAR_DEFINITION_LIST}).
      * Returns {@code null} when that type is a built-in primitive keyword (never a class) or the
      * enclosing shape is unexpected. Used by
-     * {@link com.limemojito.oss.mql.reference.MqlTypeResolver} to type-resolve {@code v.member};
-     * today the tolerant parser only builds a {@code VAR_DECLARATION_STATEMENT} for primitive-typed
-     * declarations, so this returns {@code null} in practice, but it is kept general so a future
-     * custom-type declaration node resolves without further change.
+     * {@link com.limemojito.oss.mql.reference.MqlTypeResolver} to type-resolve {@code v.member} for
+     * user-typed declarations ({@code CTrade t;}, {@code CItem *p;}, {@code Risk::CGuard g;}).
      */
     @Nullable
     public String getDeclaredTypeName() {

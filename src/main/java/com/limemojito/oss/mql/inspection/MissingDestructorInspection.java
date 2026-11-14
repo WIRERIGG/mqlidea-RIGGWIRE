@@ -33,13 +33,11 @@ import java.util.List;
  * call ANYWHERE in the class body, including ones fully scoped to (and released within) a single
  * method.
  * <p>
- * Field names are collected two ways. {@code parseLocalVarDeclaration}'s narrow gate (reused for
- * class members) only produces a named {@code VAR_DECLARATION_STATEMENT} for a <em>primitive</em>
- * keyword type ({@code int}/{@code double}/...); a custom class/pointer-typed field —
- * {@code CObj *m_obj;}, the overwhelmingly common shape for a resource-owning member — is not a
- * {@code DATA_TYPES} token, so it falls through the parser's tolerant per-token fallback as raw,
- * unwrapped sibling tokens directly inside the class's inner block. Those are recognised here by a
- * small raw-token scan: {@code IDENTIFIER} [{@code *}|{@code &}] {@code IDENTIFIER} ({@code ;}|{@code =}|{@code ,}).
+ * Field names come from every {@code VAR_DEFINITION} of a member {@code VAR_DECLARATION_STATEMENT},
+ * which covers built-in, class and pointer types and comma lists ({@code CObj *m_a, *m_b;}). A
+ * small raw-token scan, {@code IDENTIFIER} [{@code *}|{@code &}] {@code IDENTIFIER}
+ * ({@code ;}|{@code =}|{@code ,}), remains as a fallback for field shapes the declaration parser
+ * leaves as flat tokens.
  */
 public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
 
@@ -72,8 +70,7 @@ public class MissingDestructorInspection extends MQL5SafetyInspectionBase {
                 } else if (child.getElementType() == MQL4Elements.VAR_DECLARATION_STATEMENT) {
                     PsiElement psi = child.getPsi();
                     if (psi != null) {
-                        String name = getVariableName(psi);
-                        if (name != null) fieldNames.add(name);
+                        fieldNames.addAll(getVariableNames(psi)); // CObj *m_a, *m_b; -> both fields
                     }
                 } else if (child.getElementType() == MQL4Elements.IDENTIFIER) {
                     String name = rawFieldNameStartingAt(child);

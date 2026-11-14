@@ -45,11 +45,8 @@ public class MQL4LocalScopeCompletionProvider extends CompletionProvider<Complet
                 addParams(function, result);
             } else if (MqlPsiUtil.isCodeBlock(parent)) {
                 addVarsInBlockChildren(parent.getNode(), result);
-            } else if (parent.getNode() != null && parent.getNode().getElementType() == MQL4Elements.FOR_STATEMENT) {
-                ASTNode header = MqlPsiUtil.forHeaderOf(parent.getNode());
-                if (header != null) {
-                    addVarsInBlockChildren(header, result); // for(int i=0; ...) loop variable
-                }
+            } else if (MqlPsiUtil.forHeaderOf(parent) != null) {
+                addVarsInBlockChildren(MqlPsiUtil.forHeaderOf(parent), result); // for(int i=0; ...) loop variable
             }
             parent = parent.getParent();
         }
