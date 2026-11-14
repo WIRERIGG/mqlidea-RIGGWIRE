@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "com.limemojito.oss.mqlidea"
-version = "2026.1.0"
+version = "2026.1.1"
 
 repositories {
     mavenCentral()

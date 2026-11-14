@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.0</version>
+    <version>2026.1.1</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,11 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.1</b> &ndash; undeclared-name checks: calls to undefined functions, undeclared
+               variables, constants and types, members a class doesn't have, and MQL4-only functions
+               (<code>OrderLots</code>, <code>TimeHour</code>, ...) called in MQL5 files. Fixes: a parameter
+               with a default value is named correctly, <code>#ifdef</code> inside a function no longer hides
+               the next declaration, and <code>#include</code> paths with backslashes resolve.</p>
             <p><b>2026.1.0 &ndash; major revamp</b> (see docs/REVAMP_PLAN.md). RIGGWIRE MQL is now
                focused on honest, everyday help for MQL4/MQL5 projects, especially catching errors early.</p>
             <p><b>New:</b></p>
