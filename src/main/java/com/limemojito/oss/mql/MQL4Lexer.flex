@@ -37,7 +37,11 @@ escape_sequence_spec_char = "\\\'" | "\\\"" | "\\\?" | "\\\\" | "\\a" | "\\b"  |
 escape_sequence_hex = "\\" [xX] [0-9a-fA-F]{1,4}
 escape_sequence_decimal = "\\" [0-9]{1,5}
 
-char_literal = \' ( [^\r\n\t\f\\] | {escape_sequence} ) \'
+// A char literal takes any number of code digits so an out-of-range code ('\99999', '\x10000') stays
+// one CHAR_LITERAL; MQL4Annotator reports what MetaEditor reports (error 239). In strings the digit
+// limits above apply, because extra digits there are ordinary characters.
+char_escape_code = "\\" [xX] [0-9a-fA-F]+ | "\\" [0-9]+
+char_literal = \' ( [^\r\n\t\f\\] | {escape_sequence_spec_char} | {char_escape_code} ) \'
 integer_literal = ({decimal_integer} | {hexadecimal_integer}) {integer_suffix}?
 
 integer_suffix =  L | u | U | Lu | LU | uL | UL
@@ -45,10 +49,12 @@ decimal_integer = [0-9]+
 hexadecimal_integer = 0[xX] [0-9a-fA-F] [0-9a-fA-F]*
 
 float_literal = {decimal_float}
-decimal_float = ( {decimal_float_simple} | {decimal_float_exponent} | {decimal_float_no_dot_exponent} )
+decimal_float = ( {decimal_float_simple} | {decimal_float_exponent} | {decimal_float_no_dot_exponent} | {decimal_float_trailing_dot} )
 decimal_float_simple = [0-9]* \. ([0-9]+)
 decimal_float_exponent = [0-9]* \. [0-9_]+ {decimal_exponent}
 decimal_float_no_dot_exponent = [0-9]+ {decimal_exponent}
+// 5. and 5.e2 (MetaEditor accepts both)
+decimal_float_trailing_dot = [0-9]+ \. {decimal_exponent}?
 decimal_exponent = [eE][\+\-]? [0-9_]+
 
 color_prefix = clr

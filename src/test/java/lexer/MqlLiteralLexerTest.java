@@ -140,4 +140,22 @@ class MqlLiteralLexerTest {
         // pack is not reserved in MQL5
         assertThat(only("pack").type()).isEqualTo(MQL4Elements.IDENTIFIER);
     }
+
+    /** T-3: {@code 5.} and {@code 5.e2} are doubles (MetaEditor compiles both), not an integer and a dot. */
+    @Test
+    void trailingDotFloatIsOneDouble() {
+        for (String literal : new String[]{"5.", "5.e2", "5.E-1", "10."}) {
+            assertThat(only(literal).type()).as(literal).isEqualTo(MQL4Elements.DOUBLE_LITERAL);
+        }
+        assertThat(lex("1.+2.")).extracting(Token::type).containsExactly(
+                MQL4Elements.DOUBLE_LITERAL, MQL4Elements.PLUS, MQL4Elements.DOUBLE_LITERAL);
+    }
+
+    /** An out-of-range character code stays one CHAR_LITERAL so the annotator can report it. */
+    @Test
+    void outOfRangeCharacterCodeIsStillOneToken() {
+        for (String literal : new String[]{"'\\99999'", "'\\65536'", "'\\x10000'"}) {
+            assertThat(only(literal).type()).as(literal).isEqualTo(MQL4Elements.CHAR_LITERAL);
+        }
+    }
 }

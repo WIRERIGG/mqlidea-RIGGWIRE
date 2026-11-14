@@ -89,6 +89,13 @@ public class MQL4TokenSets implements MQL4Elements {
 
     public static final TokenSet CLASS_STRUCT_INTERFACE = TokenSet.create(CLASS_KEYWORD, STRUCT_KEYWORD, INTERFACE_KEYWORD);
 
+    /** The keyword that opens a CLASS node, including a {@code union} remapped by the parser. */
+    public static final TokenSet CLASS_KIND_KEYWORDS = TokenSet.create(CLASS_KEYWORD, STRUCT_KEYWORD, INTERFACE_KEYWORD, UNION_KEYWORD);
+
+    /** Keywords the parser remaps from IDENTIFIER in their one position (see MQL4LexerElements). */
+    public static final TokenSet CONTEXTUAL_KEYWORDS = TokenSet.create(UNION_KEYWORD, TYPEDEF_KEYWORD, PACK_KEYWORD,
+            GROUP_KEYWORD, OFFSETOF_KEYWORD);
+
     @NotNull
     public static IElementType getLeftBracketFor(@NotNull IElementType rightBracket) {
         IElementType result = rightBracket == R_CURLY_BRACKET ? L_CURLY_BRACKET

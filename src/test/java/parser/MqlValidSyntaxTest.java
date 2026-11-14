@@ -124,4 +124,94 @@ public class MqlValidSyntaxTest extends BasePlatformTestCase {
             fail("unexpected error: " + h.getDescription());
         }
     }
+
+    // T-4/N-1/O-2/S-5: union, typedef, namespace, operator methods, input group
+
+    public void testUnionIsAClassOfKindUnion() {
+        PsiFile file = parse("union LongDouble { long l; double d; };\n"
+                + "union UP pack(4) { int i; char c[4]; };\n"
+                + "void OnStart() { LongDouble u; u.d = 1.0; Print(u.l); }\n");
+        assertEquals(List.of("LongDouble", "UP"), classNames(file));
+        for (MQL4ClassElement c : PsiTreeUtil.findChildrenOfType(file, MQL4ClassElement.class)) {
+            assertEquals(MQL4ClassElement.ClassType.Union, c.getClassType());
+        }
+    }
+
+    public void testUnionStaysAnOrdinaryNameInMql4() {
+        String code = "int union = 1;\nvoid OnStart() { Print(union); }\n";
+        PsiFile file = parse(code);
+        assertEquals(List.of(), classNames(file));
+    }
+
+    public void testInterfaceKindFromAst() {
+        PsiFile file = parse("interface IShape { double Area(); };\nabstract class CBase { };\n");
+        List<MQL4ClassElement> classes = new ArrayList<>(PsiTreeUtil.findChildrenOfType(file, MQL4ClassElement.class));
+        assertEquals(MQL4ClassElement.ClassType.Interface, classes.get(0).getClassType());
+        assertEquals(MQL4ClassElement.ClassType.Class, classes.get(1).getClassType());
+    }
+
+    public void testFunctionPointerTypedef() {
+        String code = "typedef int (*TBinaryOp)(int, int);\n"
+                + "int Add(int a, int b) { return a + b; }\n"
+                + "class CCalc { public: TBinaryOp m_op; };\n"
+                + "void OnStart() { TBinaryOp op = Add; Print(op(1, 2)); }\n";
+        PsiFile file = parse(code);
+        com.limemojito.oss.mql.psi.impl.MQL4TypedefElement typedef =
+                PsiTreeUtil.findChildOfType(file, com.limemojito.oss.mql.psi.impl.MQL4TypedefElement.class);
+        assertNotNull(typedef);
+        assertEquals("TBinaryOp", typedef.getName());
+        assertEquals(List.of("CCalc"), classNames(file));
+    }
+
+    public void testNamespaceBodyHoldsDeclarations() {
+        PsiFile file = parse("namespace Outer\n  {\n   int g_count = 0;\n"
+                + "   namespace Inner { int Twice(int x) { return 2 * x; } }\n"
+                + "   class CItem { public: int id; };\n  }\n"
+                + "namespace Outer { void Bump() { g_count++; } }\n"
+                + "void OnStart() { Print(Outer::Inner::Twice(3)); }\n");
+        List<String> ns = new ArrayList<>();
+        for (com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement n
+                : PsiTreeUtil.findChildrenOfType(file, com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement.class)) {
+            ns.add(String.join("::", n.getPath()));
+        }
+        assertEquals(List.of("Outer", "Outer::Inner", "Outer"), ns);
+        assertEquals(List.of("CItem"), classNames(file));
+        assertTrue(functionNames(file).containsAll(List.of("Twice", "Bump", "OnStart")));
+    }
+
+    public void testOperatorMethods() {
+        PsiFile file = parse("class CVec\n  {\npublic:\n   double x;\n"
+                + "   bool operator==(const CVec &o) { return x == o.x; }\n"
+                + "   double operator[](int i) { return x; }\n"
+                + "   void operator=(const CVec &o) { x = o.x; }\n"
+                + "   CVec *Clone(void) { return GetPointer(this); }\n"
+                + "   CVec *operator!(void);\n  };\n"
+                + "CVec *CVec::operator!(void) { return GetPointer(this); }\n");
+        assertEquals(List.of("operator==", "operator[]", "operator=", "Clone", "operator!", "operator!"), functionNames(file));
+    }
+
+    public void testInputGroup() {
+        PsiFile file = parse("input group \"Risk\";\ninput double InpLots = 0.1;\n"
+                + "input group \"Signals\"\ninput int InpPeriod = 14;\n");
+        int groups = 0;
+        for (PsiElement e : PsiTreeUtil.collectElements(file, e -> e.getNode().getElementType() == MQL4Elements.INPUT_GROUP)) {
+            groups++;
+        }
+        assertEquals(2, groups);
+    }
+
+    public void testMultiNameDeclarationWithInitializers() {
+        String code = "void OnStart() { int a = 1, b = a + 2, c = b * 3; Print(a + b + c); }\n";
+        parse(code);
+        assertNotNull(resolveAt(code, "c);"));
+        assertNotNull(resolveAt(code, "b * 3"));
+    }
+
+    private static List<String> functionNames(PsiFile file) {
+        List<String> names = new ArrayList<>();
+        for (MQL4FunctionElement f : PsiTreeUtil.findChildrenOfType(file, MQL4FunctionElement.class)) {
+            names.add(f.getName());
+        }
+        return names;
+    }
 }

@@ -147,9 +147,8 @@ public class VarDeclarationStatement implements MQL4Elements {
             b.advanceLexer();
         }
         skipComments(b);
-        if (parseVarDefinitionList(b, l + 1) == ListEnd.INITIALIZER
-                && consumeInitializer(b) && b.getTokenType() == SEMICOLON) {
-            b.advanceLexer(); // ';'
+        if (parseVarDefinitionList(b, l + 1) == ListEnd.INITIALIZER) {
+            b.advanceLexer(); // ';' after the last initializer
         }
         m.done(VAR_DECLARATION_STATEMENT);
         return true;
@@ -160,11 +159,13 @@ public class VarDeclarationStatement implements MQL4Elements {
         /** The terminating {@code ;} was consumed. */
         TERMINATED,
         /**
-         * Stopped before the LAST name's initializer, which the caller consumes flat through its
-         * {@code ;} ({@code int x = ...;} keeps its established shape, initializer tokens after the
-         * list). An unfinished initializer stops where {@link #consumeInitializer} stops.
+         * The LAST name's initializer was consumed flat after the list ({@code int x = ...;} keeps its
+         * established shape, initializer tokens after the list), stopping at the {@code ;}, which the
+         * caller consumes.
          */
         INITIALIZER,
+        /** As {@link #INITIALIZER}, but the initializer is unfinished and stopped where {@link #consumeInitializer} stops. */
+        UNFINISHED,
         /** Stopped at an unexpected token, left for the enclosing parser (nothing is swallowed). */
         ABORTED
     }
@@ -177,6 +178,7 @@ public class VarDeclarationStatement implements MQL4Elements {
     public static ListEnd parseVarDefinitionList(PsiBuilder b, int l) {
         assert b.getTokenType() == IDENTIFIER;
         PsiBuilder.Marker m0 = b.mark();
+        boolean listDone = false;
         try {
             while (true) {
                 PsiBuilder.Marker m1 = b.mark();
@@ -210,32 +212,29 @@ public class VarDeclarationStatement implements MQL4Elements {
                 if (t == EQ) {
                     b.advanceLexer();
                     m1.done(VAR_DEFINITION);
-                    if (!initializerEndsWithComma(b)) {
-                        return ListEnd.INITIALIZER;
+                    // One pass over the initializer: when it ends at ',' another name follows and it
+                    // stays inside the list; otherwise the list ends before it (doneBefore), giving
+                    // the same tree as stopping first and consuming it afterwards.
+                    PsiBuilder.Marker initializer = b.mark();
+                    boolean finished = consumeInitializer(b);
+                    if (finished && b.getTokenType() == COMMA) {
+                        initializer.drop();
+                        b.advanceLexer(); // ','
+                        skipComments(b);
+                        continue;
                     }
-                    consumeInitializer(b);
-                    b.advanceLexer(); // ','
-                    skipComments(b);
-                    continue;
+                    m0.doneBefore(VAR_DEFINITION_LIST, initializer);
+                    initializer.drop();
+                    listDone = true;
+                    return finished ? ListEnd.INITIALIZER : ListEnd.UNFINISHED;
                 }
                 m1.done(VAR_DEFINITION);
                 return ListEnd.ABORTED;
             }
         } finally {
-            m0.done(VAR_DEFINITION_LIST);
-        }
-    }
-
-    /**
-     * True when the initializer at the current token ends at a top-level {@code ,} (another name
-     * follows) rather than at {@code ;}. Lookahead only: the builder is rolled back.
-     */
-    private static boolean initializerEndsWithComma(@NotNull PsiBuilder b) {
-        PsiBuilder.Marker probe = b.mark();
-        try {
-            return consumeInitializer(b) && b.getTokenType() == COMMA;
-        } finally {
-            probe.rollbackTo();
+            if (!listDone) {
+                m0.done(VAR_DEFINITION_LIST);
+            }
         }
     }
 

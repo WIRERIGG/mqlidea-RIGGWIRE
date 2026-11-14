@@ -91,7 +91,9 @@ public class MQL4ClassElement extends StubBasedPsiElementBase<MQL4ClassElementSt
             }
 
             public Icon getIcon(boolean open) {
-                return getClassType() == ClassType.Interface ? MQL4Icons.Interface : getClassType() == ClassType.Struct ? MQL4Icons.Struct : MQL4Icons.Class;
+                ClassType type = getClassType();
+                return type == ClassType.Interface ? MQL4Icons.Interface
+                        : type == ClassType.Struct || type == ClassType.Union ? MQL4Icons.Struct : MQL4Icons.Class;
             }
         };
     }
@@ -106,31 +108,28 @@ public class MQL4ClassElement extends StubBasedPsiElementBase<MQL4ClassElementSt
         if (stub != null) {
             return stub.getClassType();
         }
-        IElementType t = getNode().getFirstChildNode().getElementType();
-        if (t == MQL4Elements.STRUCT_KEYWORD) {
-            return ClassType.Struct;
-        } else if (t == MQL4Elements.INCLUDE_PP_KEYWORD) {
-            return ClassType.Struct;
-        }
-        return ClassType.Class;
+        // the kind keyword, after an optional 'abstract' (same rule as the stub, so both agree)
+        ASTNode kind = getNode().findChildByType(com.limemojito.oss.mql.psi.MQL4TokenSets.CLASS_KIND_KEYWORDS);
+        return ClassType.fromTokenType(kind == null ? null : kind.getElementType());
     }
 
     public enum ClassType {
-        Struct, Interface, Class;
+        Struct, Interface, Class, Union;
 
         @NotNull
         public String serialize() {
-            return this == Struct ? "s" : this == Interface ? "i" : "c";
+            return this == Struct ? "s" : this == Interface ? "i" : this == Union ? "u" : "c";
         }
 
         @NotNull
         public static ClassType deserialize(@Nullable String s) {
-            return "i".equals(s) ? Interface : "s".equals(s) ? Struct : Class;
+            return "i".equals(s) ? Interface : "s".equals(s) ? Struct : "u".equals(s) ? Union : Class;
         }
 
         @NotNull
         public static ClassType fromTokenType(@Nullable IElementType t) {
-            return t == MQL4Elements.STRUCT_KEYWORD ? Struct : t == MQL4Elements.INTERFACE_KEYWORD ? Interface : Class;
+            return t == MQL4Elements.STRUCT_KEYWORD ? Struct : t == MQL4Elements.INTERFACE_KEYWORD ? Interface
+                    : t == MQL4Elements.UNION_KEYWORD ? Union : Class;
         }
     }
 }

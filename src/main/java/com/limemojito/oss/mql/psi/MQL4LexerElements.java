@@ -173,4 +173,13 @@ public interface MQL4LexerElements {
     IElementType THIS_KEYWORD = new MQL4ElementType("THIS_KEYWORD");
     IElementType TRUE_KEYWORD = new MQL4ElementType("TRUE_KEYWORD");
     IElementType WHILE_KEYWORD = new MQL4ElementType("WHILE_KEYWORD");
+
+    // Contextual keywords. The lexer returns IDENTIFIER (none is reserved in MQL4, and pack, group
+    // and offsetof aren't reserved in MQL5 either); the parser remaps the token where the word acts
+    // as a keyword, and MQL4Annotator colors it.
+    IElementType UNION_KEYWORD = new MQL4ElementType("UNION_KEYWORD");
+    IElementType TYPEDEF_KEYWORD = new MQL4ElementType("TYPEDEF_KEYWORD");
+    IElementType PACK_KEYWORD = new MQL4ElementType("PACK_KEYWORD");
+    IElementType GROUP_KEYWORD = new MQL4ElementType("GROUP_KEYWORD");
+    IElementType OFFSETOF_KEYWORD = new MQL4ElementType("OFFSETOF_KEYWORD");
 }

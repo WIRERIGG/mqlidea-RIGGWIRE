@@ -204,9 +204,8 @@ public class StatementParsing implements MQL4Elements {
      * untouched to the caller's fallback.
      */
     public static boolean parseLocalVarDeclaration(PsiBuilder b, int l) {
-        if (b.getTokenType() == IDENTIFIER && "typedef".equals(b.getTokenText())) {
-            skipTypedef(b); // `typedef CFoo Bar;` is a type alias (T-4), not a variable named Bar
-            return true;
+        if (parseTypedef(b, l)) {
+            return true; // `typedef int (*TOp)(int);` declares a type (T-4), not a variable
         }
         // VarDeclarationStatement.declarationNameIndex is the gate: user/qualified/template types,
         // '*'/'&', array sizes and comma lists, but only when the name is followed by ; = , or [.
@@ -216,22 +215,45 @@ public class StatementParsing implements MQL4Elements {
     }
 
     /**
-     * Consumes a {@code typedef ...;} flat through its {@code ;} so the declaration gate never sees
-     * its tail ({@code CFoo Bar;}). Stops before a brace so an unfinished line can't swallow a block.
+     * Form: typedef returnType (*Name)(params); -- MQL5's only typedef, a function-pointer type. The
+     * return type goes in a TYPEDEF_RETURN_TYPE node so Name is the TYPEDEF's first direct
+     * IDENTIFIER. {@code typedef} isn't reserved in MQL4, so it's recognized by text. A malformed
+     * typedef is consumed through its {@code ;} (stopping before a brace) as a TYPEDEF without a name.
      */
-    private static void skipTypedef(PsiBuilder b) {
+    private static boolean parseTypedef(PsiBuilder b, int l) {
+        if (b.getTokenType() != IDENTIFIER || !"typedef".equals(b.getTokenText())) {
+            return false;
+        }
+        PsiBuilder.Marker m = b.mark();
+        b.remapCurrentToken(TYPEDEF_KEYWORD);
         b.advanceLexer(); // 'typedef'
-        while (!b.eof()) {
-            IElementType t = b.getTokenType();
-            if (t == L_CURLY_BRACKET || t == R_CURLY_BRACKET) {
-                return;
-            }
+        PsiBuilder.Marker ret = b.mark();
+        while (!b.eof() && !TYPEDEF_STOP.contains(b.getTokenType())) {
             b.advanceLexer();
-            if (t == SEMICOLON) {
-                return;
+        }
+        ret.done(TYPEDEF_RETURN_TYPE);
+        if (b.getTokenType() == L_ROUND_BRACKET && b.lookAhead(1) == MUL && b.lookAhead(2) == IDENTIFIER
+                && b.lookAhead(3) == R_ROUND_BRACKET) {
+            b.advanceLexer(); // '('
+            b.advanceLexer(); // '*'
+            b.advanceLexer(); // name
+            b.advanceLexer(); // ')'
+            if (b.getTokenType() == L_ROUND_BRACKET) {
+                parseBracketsBlock(b, l + 1); // (params)
             }
         }
+        while (!b.eof() && b.getTokenType() != SEMICOLON
+                && b.getTokenType() != L_CURLY_BRACKET && b.getTokenType() != R_CURLY_BRACKET) {
+            b.advanceLexer();
+        }
+        if (b.getTokenType() == SEMICOLON) {
+            b.advanceLexer();
+        }
+        m.done(TYPEDEF);
+        return true;
     }
+
+    private static final TokenSet TYPEDEF_STOP = TokenSet.create(L_ROUND_BRACKET, SEMICOLON, L_CURLY_BRACKET, R_CURLY_BRACKET);
 
     /**
      * Nested {} code block used as a statement.

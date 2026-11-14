@@ -31,9 +31,12 @@ public class ClassParsing implements MQL4Elements {
     public static final TokenSet ON_ERROR_CLASS_DO_NOT_ADVANCE_TOKENS = TokenSet.create(SEMICOLON);
 
     /**
-     * Form: [abstract] (class|struct) name [pack(n)] [final] [pack(n)] [: inheritance] { }
+     * Form: [abstract] (class|struct|interface|union) name [pack(n)] [final] [pack(n)] [: inheritance] { }
      */
     public static boolean parseClassOrStruct(PsiBuilder b, int l) {
+        if (isUnionStart(b)) {
+            return parseUnion(b, l);
+        }
         IElementType t1 = b.getTokenType();
         boolean hasAbstract = false;
         if (t1 == MQL4Elements.ABSTRACT_KEYWORD) {
@@ -97,13 +100,55 @@ public class ClassParsing implements MQL4Elements {
     }
 
     /**
+     * {@code union Name} followed by its body, {@code pack(n)} or {@code ;}. {@code union} is reserved
+     * in MQL5 but not in MQL4, so the lexer returns an IDENTIFIER and it is recognized here by text.
+     */
+    private static boolean isUnionStart(PsiBuilder b) {
+        if (b.getTokenType() != IDENTIFIER || !"union".equals(b.getTokenText()) || b.lookAhead(1) != IDENTIFIER) {
+            return false;
+        }
+        IElementType after = b.lookAhead(2);
+        return after == L_CURLY_BRACKET || after == SEMICOLON || after == IDENTIFIER; // IDENTIFIER: pack(n)
+    }
+
+    /** Form: union name [pack(n)] { members } -- a CLASS node of kind Union (no inheritance, MQL5 reference). */
+    private static boolean parseUnion(PsiBuilder b, int l) {
+        Marker m = b.mark();
+        try {
+            b.remapCurrentToken(UNION_KEYWORD);
+            b.advanceLexer(); // 'union'
+            b.advanceLexer(); // name
+            parsePackSpecifier(b, l);
+            if (b.getTokenType() == SEMICOLON) {
+                return true; // forward declaration
+            }
+            if (b.getTokenType() != L_CURLY_BRACKET) {
+                error(b, ParsingErrors.UNEXPECTED_TOKEN);
+                b.mark().done(MQL4Elements.CLASS_INNER_BLOCK);
+                return true;
+            }
+            b.advanceLexer(); // '{'
+            if (!parseClassInnerBlock(b, l)) {
+                advanceLexerUntil(b, ON_ERROR_CLASS_ADVANCE_TOKENS, ON_ERROR_CLASS_DO_NOT_ADVANCE_TOKENS);
+                return true;
+            }
+            b.advanceLexer(); // '}'
+        } finally {
+            m.done(MQL4Elements.CLASS);
+        }
+        return true;
+    }
+
+    /**
      * The alignment specifier {@code pack(n)} after a class, struct or union name (either side of
      * {@code final}). {@code pack} is not a reserved word in MQL5 ({@code int pack = 1;} compiles),
-     * so it is matched by its text in this one position and left an IDENTIFIER everywhere else.
+     * so it is matched by its text in this one position (and remapped to PACK_KEYWORD there) and left
+     * an IDENTIFIER everywhere else.
      */
     private static void parsePackSpecifier(PsiBuilder b, int l) {
         if (b.getTokenType() == IDENTIFIER && "pack".equals(b.getTokenText())
                 && b.lookAhead(1) == L_ROUND_BRACKET) {
+            b.remapCurrentToken(PACK_KEYWORD);
             b.advanceLexer(); // 'pack'
             parseBracketsBlock(b, l + 1); // (n)
         }

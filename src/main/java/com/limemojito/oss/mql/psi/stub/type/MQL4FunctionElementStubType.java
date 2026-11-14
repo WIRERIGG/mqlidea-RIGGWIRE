@@ -42,9 +42,15 @@ public class MQL4FunctionElementStubType extends ILightStubElementType<MQL4Funct
         // Malformed function (no name / no args list): fall back to empty strings rather than
         // returning null — createStub is @NotNull by contract and a null return can break stub
         // indexing on incomplete code.
-        LighterASTNode argsListStartNode = LightTreeUtil.firstChildOfType(tree, node, MQL4Elements.L_ROUND_BRACKET);
-        LighterASTNode nameNode = argsListStartNode != null ? LightTreeUtilEx.prevSiblingOfType(tree, node, argsListStartNode, MQL4Elements.IDENTIFIER) : null;
-        String name = nameNode == null ? "" : ((LighterASTTokenNode) nameNode).getText().toString();
+        LighterASTNode operatorName = LightTreeUtil.firstChildOfType(tree, node, MQL4Elements.OPERATOR_NAME);
+        String name;
+        if (operatorName != null) {
+            name = MQL4FunctionElement.operatorNameText(LightTreeUtil.toFilteredString(tree, operatorName, null));
+        } else {
+            LighterASTNode argsListStartNode = LightTreeUtil.firstChildOfType(tree, node, MQL4Elements.L_ROUND_BRACKET);
+            LighterASTNode nameNode = argsListStartNode != null ? LightTreeUtilEx.prevSiblingOfType(tree, node, argsListStartNode, MQL4Elements.IDENTIFIER) : null;
+            name = nameNode == null ? "" : ((LighterASTTokenNode) nameNode).getText().toString();
+        }
 
         // signature
         LighterASTNode argsListNode = LightTreeUtil.firstChildOfType(tree, node, MQL4Elements.FUNCTION_ARGS_LIST);

@@ -46,6 +46,10 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
             return stub.getName();
         }
 
+        ASTNode operatorName = getNode().findChildByType(MQL4Elements.OPERATOR_NAME);
+        if (operatorName != null) {
+            return operatorNameText(operatorName.getText());
+        }
         ASTNode argsListStartNode = getNode().findChildByType(MQL4Elements.L_ROUND_BRACKET);
         ASTNode nameNode = argsListStartNode == null ? null : ASTUtils.findLastPrevByType(argsListStartNode, MQL4Elements.IDENTIFIER);
         if (nameNode == null) {
@@ -65,6 +69,9 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
      */
     @Nullable
     private ASTNode getNameIdentifierNode() {
+        if (getNode().findChildByType(MQL4Elements.OPERATOR_NAME) != null) {
+            return null; // an operator has no renamable identifier
+        }
         ASTNode argsListStartNode = getNode().findChildByType(MQL4Elements.L_ROUND_BRACKET);
         return argsListStartNode == null ? null : ASTUtils.findLastPrevByType(argsListStartNode, MQL4Elements.IDENTIFIER);
     }
@@ -83,6 +90,12 @@ public class MQL4FunctionElement extends StubBasedPsiElementBase<MQL4FunctionEle
             getNode().replaceChild(nameNode, MQL4ElementsFactory.createIdentifierNode(getProject(), name));
         }
         return this;
+    }
+
+    /** {@code operator ==} (any spacing) as {@code operator==}, the name stubs and inspections use. */
+    @NotNull
+    public static String operatorNameText(@NotNull CharSequence text) {
+        return text.toString().replaceAll("\\s+", "");
     }
 
     public boolean isDeclaration() {
