@@ -199,6 +199,42 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
         return MqlDialect.isMql5(file);
     }
 
+    /**
+     * The file's top-level children followed by every function defined or declared inside a class or
+     * struct body, nested classes included. Inspections that check function bodies iterate this
+     * instead of {@code file.getChildren()} so a method written in the class body is checked like
+     * a top-level function or an out-of-line {@code CFoo::Method}. Only functions are added: member
+     * fields stay out, so global-variable checks are unaffected.
+     */
+    @NotNull
+    protected static List<PsiElement> childrenAndClassMethods(@NotNull PsiFile file) {
+        List<PsiElement> result = new ArrayList<>();
+        for (PsiElement child : file.getChildren()) {
+            result.add(child);
+            if (child instanceof MQL4ClassElement) {
+                addClassMethods(child.getNode(), result);
+            }
+        }
+        return result;
+    }
+
+    private static void addClassMethods(@NotNull ASTNode cls, @NotNull List<PsiElement> result) {
+        ASTNode inner = cls.findChildByType(MQL4Elements.CLASS_INNER_BLOCK);
+        if (inner == null) return;
+        for (ASTNode n = inner.getFirstChildNode(); n != null; n = n.getTreeNext()) {
+            if (n.getPsi() instanceof MQL4FunctionElement) {
+                result.add(n.getPsi());
+            } else if (n.getElementType() == MQL4Elements.CLASS) {
+                addClassMethods(n, result);
+            }
+        }
+    }
+
+    /** True for a function written at file level (including an out-of-line {@code CFoo::Method}). */
+    protected static boolean isTopLevel(@NotNull MQL4FunctionElement function) {
+        return function.getParent() instanceof PsiFile;
+    }
+
     @NotNull
     protected List<MQL4FunctionElement> findFunctions(@NotNull PsiFile file) {
         List<MQL4FunctionElement> result = new ArrayList<>();
@@ -337,7 +373,8 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
     }
 
     protected boolean isEventHandler(@NotNull MQL4FunctionElement function) {
-        return MQL5_EVENT_HANDLERS.contains(function.getFunctionName());
+        // a method named OnTick in a class body is not the terminal's event handler
+        return isTopLevel(function) && MQL5_EVENT_HANDLERS.contains(function.getFunctionName());
     }
 
     @Nullable

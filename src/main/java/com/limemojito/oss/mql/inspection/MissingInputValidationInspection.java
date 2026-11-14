@@ -52,7 +52,9 @@ public class MissingInputValidationInspection extends MQL5SafetyInspectionBase {
             // false positive on nearly every EA with non-numeric inputs, so this branch is dropped
             // rather than approximated further.
         }
-        if (hasInputVars && onInitFuncs.isEmpty() && isMqlSourceFile(file)) {
+        // A script or service starts in OnStart() and has no OnInit() to add (I-1).
+        boolean startsInOnStart = !findFunctionsByName(file, "OnStart").isEmpty();
+        if (hasInputVars && onInitFuncs.isEmpty() && !startsInOnStart && isMqlSourceFile(file)) {
             problems.add(createWarning(manager, file,
                     "File has input parameters but no OnInit() to validate them", isOnTheFly));
         }

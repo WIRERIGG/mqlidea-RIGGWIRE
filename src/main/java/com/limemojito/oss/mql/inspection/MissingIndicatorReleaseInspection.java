@@ -29,7 +29,7 @@ public class MissingIndicatorReleaseInspection extends MQL5SafetyInspectionBase 
         boolean hasHandleCreation = false;
         boolean hasRelease = false;
 
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);

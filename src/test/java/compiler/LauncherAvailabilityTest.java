@@ -13,6 +13,8 @@ import com.limemojito.oss.mql.compiler.WineLauncher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -69,6 +71,7 @@ class LauncherAvailabilityTest {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "sets POSIX file permissions; the mt5/Wine launchers are macOS/Linux only")
     void mt5CliLauncherFindsTheWrapperUnderUserHome(@TempDir Path fakeHome) throws IOException {
         System.setProperty("user.home", fakeHome.toString());
         Path mt5 = fakeHome.resolve(".local/bin/mt5");
@@ -111,6 +114,7 @@ class LauncherAvailabilityTest {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "sets POSIX file permissions; the mt5/Wine launchers are macOS/Linux only")
     void findWineBinaryHonoursTheConfiguredSystemProperty(@TempDir Path dir) throws IOException {
         // The run configuration (MQL4CompilerCommandLineState) resolves its Wine binary through this
         // extracted helper instead of guessing a bare `wine` on PATH. An explicitly-configured,
@@ -124,6 +128,7 @@ class LauncherAvailabilityTest {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "sets POSIX file permissions; the mt5/Wine launchers are macOS/Linux only")
     void findWineBinaryReturnsNullWhenConfiguredPathIsNotExecutable(@TempDir Path dir) throws IOException {
         // A non-executable configured path must not be handed back (and, on a machine with no Wine at
         // the common install locations, the helper then reports null so the caller can fail loudly).

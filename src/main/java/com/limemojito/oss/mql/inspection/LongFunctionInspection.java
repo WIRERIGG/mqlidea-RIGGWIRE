@@ -32,7 +32,7 @@ public class LongFunctionInspection extends MQL5SafetyInspectionBase {
         // Get the document once and count lines from offsets (O(log n)) instead of copying each
         // function body to a String (the largest strings in the file) on every daemon pass.
         Document document = file.getViewProvider().getDocument();
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(func);

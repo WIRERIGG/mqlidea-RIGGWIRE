@@ -238,6 +238,22 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "test.mqh");
     }
 
+    public void testMissingInputValidationScriptClean() {
+        // I-1: a script's entry point is OnStart(); it has no OnInit() to validate inputs in
+        assertNoProblems(new MissingInputValidationInspection(),
+                "#property script_show_inputs\n" +
+                "input int InpCount = 5;\n" +
+                "void OnStart() { Print(InpCount); }",
+                "test.mq5");
+    }
+
+    public void testMissingInputValidationExpertWithoutOnInitFlagged() {
+        assertHasProblems(new MissingInputValidationInspection(),
+                "input int InpPeriod = 14;\n" +
+                "void OnTick() { Print(InpPeriod); }",
+                "test.mq5");
+    }
+
     public void testMissingInputValidationOnInitNoIfNotEmptyClean() {
         // A non-empty OnInit() that does real setup (e.g. a timer) without an if-statement is not
         // "missing validation" — plenty of legitimate inputs (string/enum/bool) need no range check.
@@ -1046,6 +1062,27 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { delete obj; obj = new CFoo(); }");
     }
 
+    public void testNullAfterDeleteInDestructorClean() {
+        // ~CFoo() frees its members; they die with the object, so no `= NULL` is needed after each.
+        assertNoProblems(new NullAfterDeleteInspection(),
+                "class CFoo { CObj *m_a; CObj *m_b; public: ~CFoo() { delete m_a; delete m_b; } };",
+                "test.mq5");
+    }
+
+    public void testNullAfterDeleteInClassMethodFlagged() {
+        // an ordinary in-class method is checked (I-3) and the pointer stays dangling there
+        assertHasProblems(new NullAfterDeleteInspection(),
+                "class CFoo { CObj *m_a; public: void Reset() { delete m_a; } };",
+                "test.mq5");
+    }
+
+    public void testUnusedParameterOfMethodNamedLikeAHandlerIsReported() {
+        // a class method called OnTick is not the terminal's event handler, so it is not exempt
+        assertHasProblems(new UnusedParameterInspection(),
+                "class CBot { public: void OnTick(int unused) { Print(1); } };",
+                "test.mq5");
+    }
+
     public void testNullAfterDeleteOnDeinitLastStatementClean() {
         // Nothing dangles once OnDeinit finishes tearing down — a bare delete as the last statement
         // there is not a leaked/dangling pointer.
@@ -1358,6 +1395,24 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testNewKeywordInLoopBody() {
         assertHasProblems(new NewKeywordInLoopInspection(),
                 "void f() { for(int i=0; i<10; i++) { CObj* o = new CObj(); } }");
+    }
+
+    public void testNewKeywordInLoopIntoOwnersClean() {
+        // I-4: filling a pointer array, a member, a container or returning: the object is kept
+        assertNoProblems(new NewKeywordInLoopInspection(),
+                "class CItem { public: int v; CItem(int x) : v(x) {} };\n"
+                        + "void f() {\n"
+                        + "  CItem *items[3];\n"
+                        + "  for(int i=0; i<3; i++) items[i] = new CItem(i);\n"
+                        + "  for(int i=0; i<3; i++) { list.Add(new CItem(i)); holder.m_last = new CItem(i); }\n"
+                        + "  while(true) { return new CItem(1); }\n"
+                        + "}", "test.mq5");
+    }
+
+    public void testNewKeywordInLoopIntoPlainVariableFlagged() {
+        // overwritten every iteration: the previous object leaks
+        assertHasProblems(new NewKeywordInLoopInspection(),
+                "void f() { CItem *last; for(int i=0; i<3; i++) last = new CItem(i); }", "test.mq5");
     }
 
     public void testNewKeywordOutsideLoopBodyClean() {

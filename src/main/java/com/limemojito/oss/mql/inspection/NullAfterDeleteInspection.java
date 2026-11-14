@@ -26,7 +26,8 @@ import java.util.List;
  * ({@link StatementAst#hasAssignmentAfter}) — not just the literal {@code = NULL} guard, since the
  * delete-then-recreate idiom {@code delete obj; obj = new CFoo();} equally ends the dangling window.
  * Also does not flag a delete that is the last statement directly in {@code OnDeinit()}'s body:
- * nothing dangles once the handler (and usually the program) has finished tearing down.
+ * nothing dangles once the handler (and usually the program) has finished tearing down. Nor a
+ * delete directly in a destructor's body: the deleted members die with the object.
  */
 public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
 
@@ -36,12 +37,14 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean isOnDeinit = "OnDeinit".equals(func.getFunctionName());
+                boolean isOnDeinit = isTopLevel(func) && "OnDeinit".equals(func.getFunctionName());
+                String fn = func.getFunctionName();
+                boolean isDestructor = fn != null && fn.startsWith("~");
                 // One problem per function (preserves the original cardinality): the message names
                 // the first delete found whose variable is never subsequently reassigned. Anchor at
                 // that delete's identifier, not the function header.
@@ -52,6 +55,9 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
                     if (offenderNode[0] != null) return;
                     ASTNode idNode = StatementAst.deletedIdentifier(stmt);
                     if (idNode == null) return;
+                    if (isDestructor && stmt.getTreeParent() == body) {
+                        return; // ~CFoo() { delete m_a; delete m_b; }: the members die with the object
+                    }
                     if (isOnDeinit && stmt.getTreeParent() == body) {
                         ASTNode after = StatementAst.nextNonTrivia(stmt);
                         if (after == null || after.getElementType() == MQL4Elements.R_CURLY_BRACKET) {
