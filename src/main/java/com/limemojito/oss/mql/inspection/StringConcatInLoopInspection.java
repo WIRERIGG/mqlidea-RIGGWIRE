@@ -39,7 +39,7 @@ import java.util.Set;
  */
 public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase implements MQL4Elements {
 
-    private static final String MESSAGE = "String concatenation inside loop — use StringConcatenate() or StringAdd() for better performance";
+    private static final String MESSAGE = "String built up with + inside a loop — StringAdd(s, x) appends in place";
 
     // Value-returning MQL string builtins. A self-accumulation RHS calling one of these
     // (json += FileReadString(h); s += IntegerToString(i);) is genuine string accumulation even
@@ -61,7 +61,7 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase imple
                 if (body == null) continue;
                 StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
                     ASTNode loopBody = StatementAst.findLoopBody(loop);
-                    if (loopBody == null || findSelfAccumulatingConcat(loopBody) == null) {
+                    if (loopBody == null || hasSmallConstantBound(loop) || findSelfAccumulatingConcat(loopBody) == null) {
                         return;
                     }
                     PsiElement psi = loop.getPsi();
@@ -92,7 +92,10 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase imple
             if (t == PLUS_EQ || t == EQ) {
                 ASTNode lhs = StatementAst.prevNonTrivia(child);
                 if (lhs != null && lhs.getElementType() == IDENTIFIER) {
-                    boolean selfAccumulates = (t == PLUS_EQ) || rhsHasIdentifier(child, lhs.getText());
+                    // `s = s + x`: a plain `=` accumulates only with a `+` on the right
+                    // (`when = StringSubstr(when, 0, 19)` reassigns, it doesn't append).
+                    boolean selfAccumulates = (t == PLUS_EQ)
+                            || (rhsHasTopLevelPlus(child) && rhsHasIdentifier(child, lhs.getText()));
                     if (selfAccumulates && (rhsHasStringLiteral(child) || rhsHasStringReturningCall(child))) {
                         return child;
                     }
@@ -102,6 +105,30 @@ public class StringConcatInLoopInspection extends MQL5SafetyInspectionBase imple
             if (found != null) return found;
         }
         return null;
+    }
+
+    /** Small enough that a loop running this many times can't make string building slow. */
+    private static final int SMALL_TRIP_COUNT = 32;
+
+    /** {@code for(...; i < 5; ...)} or {@code i <= 5}: the loop runs at most a handful of times. */
+    private static boolean hasSmallConstantBound(@NotNull ASTNode loop) {
+        if (loop.getElementType() != FOR_STATEMENT) return false;
+        ASTNode header = StatementAst.findConditionBlock(loop);
+        if (header == null) return false;
+        String[] parts = StatementAst.heuristicText(header).split(";");
+        if (parts.length != 3) return false;
+        java.util.regex.Matcher m = SMALL_BOUND.matcher(parts[1].strip());
+        return m.matches() && Long.parseLong(m.group(1)) <= SMALL_TRIP_COUNT;
+    }
+
+    private static final java.util.regex.Pattern SMALL_BOUND = java.util.regex.Pattern.compile("[A-Za-z_]\\w*\\s*<=?\\s*(\\d{1,9})");
+
+    /** True when a {@code +} is one of the right-hand side's own tokens (not inside a call's arguments). */
+    private static boolean rhsHasTopLevelPlus(@NotNull ASTNode operator) {
+        for (ASTNode sib = operator.getTreeNext(); sib != null && sib.getElementType() != SEMICOLON; sib = sib.getTreeNext()) {
+            if (sib.getElementType() == PLUS) return true;
+        }
+        return false;
     }
 
     /**

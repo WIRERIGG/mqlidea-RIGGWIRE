@@ -34,8 +34,11 @@ public class ArrayResizeReturnCheckInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 StatementAst.forEachCall(body, ARRAY_RESIZE, call -> {
                     // Skip a resize whose return is already checked, and one that provably cannot
-                    // fail (resize-to-0 / shrink) — flagging those would only invite dead checks.
-                    if (StatementAst.callReturnChecked(body, call) || StatementAst.arrayResizeCannotFail(call)) {
+                    // fail (resize-to-0 / shrink / rollback / compaction trim) — flagging those would only invite
+                    // dead checks.
+                    if (StatementAst.callReturnChecked(body, call) || StatementAst.arrayResizeCannotFail(call)
+                            || StatementAst.arrayResizeNeverGrows(body, call)
+                            || StatementAst.inFailureBranchOfCheckedResize(body, call)) {
                         return;
                     }
                     PsiElement anchor = StatementAst.anchor(call, child.getNavigationElement());

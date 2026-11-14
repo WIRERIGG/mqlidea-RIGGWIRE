@@ -2,7 +2,7 @@
 
 ## What This Is
 
-An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.1) providing MQL4/MQL5 language support for MetaTrader trading development in IntelliJ IDEA and CLion. It focuses on being honest and genuinely helpful for real MQL projects: early, inline detection of syntactic/semantic errors, and full IDE assistance (navigation, refactoring, completion, docs, formatting) plus a compiler-backed error annotator.
+An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.2) providing MQL4/MQL5 language support for MetaTrader trading development in IntelliJ IDEA and CLion. It focuses on being honest and genuinely helpful for real MQL projects: early, inline detection of syntactic/semantic errors, and full IDE assistance (navigation, refactoring, completion, docs, formatting) plus a compiler-backed error annotator.
 
 > The former **AI Code Healing** subsystem (Grok analysis + Claude diff apply, SQLite DB, healing tool window, gutter markers, pre-commit prompts) was **removed in the 2026.1.0 revamp**. Only the AI-free "Generate MQL Inspection Catalog" action (`catalog/`) survives. Do not re-add healing.
 
@@ -13,7 +13,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.1) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (542 pass)
+./gradlew test           # tests only (551 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
 tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 ```
@@ -64,7 +64,7 @@ src/test/                               # parser + inspection tests (219)
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 542). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 551). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **27** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.

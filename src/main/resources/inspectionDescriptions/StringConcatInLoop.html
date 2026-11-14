@@ -1,6 +1,6 @@
 ﻿<html>
 <body>
-This inspection reports string concatenation in loops (use StringConcatenate/StringAdd instead).
+This inspection reports a string built up with <code>+</code> inside a loop (<code>s = s + x</code>, <code>s += x</code>). Each pass copies the whole string; <code>StringAdd(s, x)</code> appends in place. (<code>StringConcatenate()</code> builds a new string each call, so it is no faster.) A <code>for</code> loop with a small constant bound, such as <code>i &lt; 5</code>, is not reported.
 <!-- tooltip end -->
 </body>
 </html>

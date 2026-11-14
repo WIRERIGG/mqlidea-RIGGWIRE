@@ -733,9 +733,9 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     }
 
     public void testStringConcatInLoop() {
-        // Inspection regex matches `+ "` or `" +` patterns, not `+=`
+        // `s = s + "x"` in a loop with no small constant bound
         assertHasProblems(new StringConcatInLoopInspection(),
-                "void foo() { string s; for(int i=0; i<10; i++) { s = s + \"x\"; } }");
+                "void foo(int n) { string s; for(int i=0; i<n; i++) { s = s + \"x\"; } }");
     }
 
     public void testSuboptimalContainer() {
@@ -1450,7 +1450,7 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // The self-accumulation antipattern via '+=' (compound add) must also be flagged — the old
         // check only matched a bare '+' adjacent to a string literal and silently missed 's += x;'.
         assertHasProblems(new StringConcatInLoopInspection(),
-                "void foo() { string s; for(int i=0; i<10; i++) { s += \"x\"; } }");
+                "void foo(int n) { string s; for(int i=0; i<n; i++) { s += \"x\"; } }");
     }
 
     public void testStringConcatInLoopFreshVariableCleanNoFalsePositive() {

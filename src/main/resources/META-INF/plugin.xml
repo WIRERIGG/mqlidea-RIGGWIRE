@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.1</version>
+    <version>2026.1.2</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,11 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.2</b> &ndash; fewer false alarms, found on a real EA: ArrayResize checks skip resizes
+               that only shrink, roll back or trim; a switch covering every value of its enum, or followed
+               by a <code>return</code>, needs no default; repeated-ArrayResize counts only growth of the same
+               array; string-building-in-loop ignores reassignment and short fixed loops and now suggests
+               <code>StringAdd()</code>; account details mailed or pushed to the owner are a weak warning.</p>
             <p><b>2026.1.1</b> &ndash; undeclared-name checks: calls to undefined functions, undeclared
                variables, constants and types, members a class doesn't have, and MQL4-only functions
                (<code>OrderLots</code>, <code>TimeHour</code>, ...) called in MQL5 files. Fixes: a parameter

@@ -31,6 +31,8 @@ import java.util.Set;
  * {@code PrintFormat}/{@code Comment}/{@code Alert} only write to the local terminal log/UI — never
  * a privacy risk — so including them flagged the ordinary, safe idiom
  * {@code double bal = AccountBalance(); Print(bal);} on every EA that logs its own balance.
+ * {@code SendMail}/{@code SendNotification} go to the owner's own configured mailbox and device, so
+ * they get a weak warning; {@code WebRequest}/{@code SendFTP} keep the warning.
  */
 public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
 
@@ -39,7 +41,11 @@ public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
             "AccountInfoDouble", "AccountInfoInteger", "AccountInfoString",
             "AccountBalance", "AccountEquity", "AccountNumber", "AccountName"
     );
-    private static final Set<String> OUTPUT_FUNCS = Set.of("WebRequest", "SendFTP", "SendMail", "SendNotification");
+    private static final String OWNER_MESSAGE = "Account information sent by mail or push notification — check it is meant to leave the terminal";
+    /** Destinations someone else runs: a web server or an FTP server. */
+    private static final Set<String> THIRD_PARTY_OUTPUT_FUNCS = Set.of("WebRequest", "SendFTP");
+    /** The terminal owner's own mailbox and phone, set up in the terminal options: lower risk, so a weak warning. */
+    private static final Set<String> OWNER_OUTPUT_FUNCS = Set.of("SendMail", "SendNotification");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -50,9 +56,14 @@ public class AccountInfoExposureInspection extends MQL5SafetyInspectionBase {
                 ASTNode body = findBracketsBlock(child);
                 if (StatementAst.hasAnyCall(body, ACCOUNT_FUNCS)) {
                     // Anchor at the output call — that is where the account data actually leaves the EA.
-                    ASTNode outputCall = StatementAst.findAnyCall(body, OUTPUT_FUNCS);
-                    if (outputCall != null) {
-                        problems.add(createWarning(manager, StatementAst.anchor(outputCall, child.getNavigationElement()), MESSAGE));
+                    ASTNode thirdParty = StatementAst.findAnyCall(body, THIRD_PARTY_OUTPUT_FUNCS);
+                    if (thirdParty != null) {
+                        problems.add(createWarning(manager, StatementAst.anchor(thirdParty, child.getNavigationElement()), MESSAGE));
+                    } else {
+                        ASTNode ownerOutput = StatementAst.findAnyCall(body, OWNER_OUTPUT_FUNCS);
+                        if (ownerOutput != null) {
+                            problems.add(createWeakWarning(manager, StatementAst.anchor(ownerOutput, child.getNavigationElement()), OWNER_MESSAGE));
+                        }
                     }
                 }
             }
