@@ -2,7 +2,8 @@
 <body>
 Reports a call to a function that is not an MQL built-in and is not declared in the file, its
 <code>#include</code> files or anywhere else in the project. MetaEditor rejects it with
-error 256, "undeclared identifier".
+error 256, "undeclared identifier". In an MQL5 file a call to an MQL4-only function
+(<code>OrderLots()</code>, <code>TimeHour()</code>) is reported too, since MQL5 doesn't have it.
 <!-- tooltip end -->
 <p>Example:</p>
 <pre>

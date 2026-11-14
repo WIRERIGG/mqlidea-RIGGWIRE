@@ -15,24 +15,43 @@ import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 /**
- * MQL5 built-in functions missing from the bundled doc catalog ({@code CalendarValueHistory},
- * {@code CLContextCreate}, ...). Each name in {@code mql/doc/mql5-builtin-functions.json} was
- * confirmed one by one in MetaEditor: a bare {@code Name();} compiled clean or gave
- * "wrong parameters count", never "undeclared identifier".
+ * Built-in names the bundled doc catalog lacks, each confirmed one by one in MetaEditor's MQL5
+ * compiler. Candidates came from MetaEditor's own symbol table.
+ * <ul>
+ *     <li>{@code mql5-builtin-functions.json}: functions ({@code CalendarValueHistory},
+ *     {@code CLContextCreate}, ...). A bare {@code Name();} compiled clean or gave "wrong
+ *     parameters count", never "undeclared identifier".</li>
+ *     <li>{@code mql5-builtin-names.json}: constants, enum types and predefined variables
+ *     ({@code _Symbol}, {@code ENUM_TIMEFRAMES}, {@code INDICATOR_DATA}, ...). {@code Print(Name);}
+ *     gave no "undeclared identifier".</li>
+ *     <li>{@code mql4-only-functions.json}: catalog functions MQL5 doesn't have ({@code OrderLots},
+ *     {@code TimeHour}, ...). {@code Name();} gave "undeclared identifier".</li>
+ * </ul>
  */
 public final class MqlBuiltinFunctions {
 
-    private static final Set<String> NAMES = load();
+    private static final Set<String> FUNCTIONS = load("mql5-builtin-functions.json");
+    private static final Set<String> NAMES = load("mql5-builtin-names.json");
+    private static final Set<String> MQL4_ONLY = load("mql4-only-functions.json");
 
     private MqlBuiltinFunctions() {
     }
 
     public static boolean contains(@NotNull String name) {
-        return NAMES.contains(name);
+        return FUNCTIONS.contains(name);
     }
 
-    private static Set<String> load() {
-        try (InputStream in = MqlBuiltinFunctions.class.getResourceAsStream("/mql/doc/mql5-builtin-functions.json")) {
+    /** A built-in constant, enum type or predefined variable missing from the doc catalog. */
+    public static boolean isBuiltinName(@NotNull String name) {
+        return NAMES.contains(name) || FUNCTIONS.contains(name);
+    }
+
+    public static boolean isMql4Only(@NotNull String name) {
+        return MQL4_ONLY.contains(name);
+    }
+
+    private static Set<String> load(@NotNull String resource) {
+        try (InputStream in = MqlBuiltinFunctions.class.getResourceAsStream("/mql/doc/" + resource)) {
             if (in == null) {
                 return Set.of();
             }

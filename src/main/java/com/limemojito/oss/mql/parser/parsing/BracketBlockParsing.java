@@ -5,6 +5,7 @@
 
 package com.limemojito.oss.mql.parser.parsing;
 
+import com.limemojito.oss.mql.parser.parsing.preprocessor.PreprocessorParsing;
 import com.intellij.lang.PsiBuilder;
 import com.intellij.psi.tree.IElementType;
 import java.util.Stack;
@@ -98,6 +99,7 @@ public class BracketBlockParsing implements MQL4Elements {
                     res = parseEnum(b, l + 1)
                             || parseDefine(b)
                             || parseUndef(b)
+                            || parseConditionalDirective(b)
                             || parseStatement(b, l + 1)
                             || parseBracketsBlock(b, l + 1, false)
                             || parseEmptyStatement(b)
@@ -121,6 +123,26 @@ public class BracketBlockParsing implements MQL4Elements {
             }
             block.done(BRACKETS_BLOCK);
         }
+    }
+
+    /**
+     * {@code #ifdef NAME} / {@code #ifndef NAME} inside a code block: the keyword and the name on its
+     * line stay flat tokens, as at file level. Without this the name started the next statement, so
+     * {@code #ifdef DEBUG} followed by {@code string t = ...;} read as one expression and lost the
+     * declaration of {@code t}.
+     */
+    private static boolean parseConditionalDirective(@NotNull PsiBuilder b) {
+        IElementType t = b.getTokenType();
+        if (t != IFDEF_PP_KEYWORD && t != IFNDEF_PP_KEYWORD) {
+            return false;
+        }
+        int end = b.getCurrentOffset() + (b.getTokenText() == null ? 0 : b.getTokenText().length());
+        b.advanceLexer(); // '#ifdef' | '#ifndef'
+        if (b.getTokenType() == IDENTIFIER
+                && !PreprocessorParsing.hasLineBreaks(b, end, b.getCurrentOffset())) {
+            b.advanceLexer(); // the condition name
+        }
+        return true;
     }
 
     private static boolean hasMatchingClosingBracket(@NotNull PsiBuilder b, @NotNull IElementType lBracket) {

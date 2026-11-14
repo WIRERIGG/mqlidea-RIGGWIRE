@@ -6,6 +6,7 @@
 package reference;
 
 import com.intellij.psi.PsiElement;
+import java.util.List;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
@@ -137,6 +138,16 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertTrue("resolution unchanged after the unrelated body edit", resolved2 instanceof MQL4FunctionElement);
         assertEquals("Deep", ((MQL4FunctionElement) resolved2).getFunctionName());
         assertEquals("C.mqh", resolved2.getContainingFile().getName());
+    }
+
+    public void testParameterWithDefaultValueIsNamedBeforeTheEquals() {
+        PsiFile file = myFixture.configureByText("t.mq5", "void Draw(color clr = clrNONE, int anchor = 5) { Print(clr, anchor); }");
+        List<String> names = com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(file, MQL4FunctionArgElement.class).stream()
+                .map(MQL4FunctionArgElement::getName).toList();
+        assertEquals(List.of("clr", "anchor"), names);
+        int offset = file.getText().indexOf("clr, anchor)");
+        PsiElement resolved = file.findReferenceAt(offset).resolve();
+        assertTrue("clr should resolve to its parameter: " + resolved, resolved instanceof MQL4FunctionArgElement);
     }
 
     public void testBackslashIncludePathResolves() {

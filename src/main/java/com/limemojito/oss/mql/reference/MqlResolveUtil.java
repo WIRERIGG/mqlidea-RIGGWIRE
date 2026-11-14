@@ -622,7 +622,7 @@ public final class MqlResolveUtil {
 
     /** Base-class type names read from {@code cls}'s CLASS_INHERITANCE_LIST / CLASS_INHERITANCE_ITEM. */
     @NotNull
-    private static List<String> baseClassNames(@NotNull MQL4ClassElement cls) {
+    public static List<String> baseClassNames(@NotNull MQL4ClassElement cls) {
         ASTNode list = cls.getNode().findChildByType(MQL4Elements.CLASS_INHERITANCE_LIST);
         if (list == null) {
             return java.util.Collections.emptyList();

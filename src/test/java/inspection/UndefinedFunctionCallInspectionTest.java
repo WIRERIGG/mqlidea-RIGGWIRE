@@ -21,7 +21,7 @@ public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
         myFixture.enableInspections(new UndefinedFunctionCallInspection());
         return myFixture.doHighlighting(HighlightSeverity.ERROR).stream()
                 .map(HighlightInfo::getDescription)
-                .filter(d -> d != null && d.endsWith("undeclared identifier"))
+                .filter(d -> d != null && d.contains("undeclared identifier"))
                 .toList();
     }
 
@@ -69,6 +69,17 @@ public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
                 int Twice(int v) { return v * 2; }
                 """;
         assertEquals(List.of(), undefined("test.mq5", code));
+    }
+
+    public void testMql4OnlyFunctionsAreFlaggedInMql5Only() {
+        String code = "void OnStart() { double l = OrderLots(); int h = TimeHour(TimeCurrent()); Print(l, h, AccountInfoDouble(ACCOUNT_BALANCE)); }\n";
+        assertEquals(List.of("'OrderLots' - undeclared identifier (an MQL4 function, not in MQL5)",
+                "'TimeHour' - undeclared identifier (an MQL4 function, not in MQL5)"), undefined("test.mq5", code));
+        assertEquals(List.of(), undefined("test.mq4", code));
+    }
+
+    public void testOwnWrapperForMql4FunctionIsClean() {
+        assertEquals(List.of(), undefined("test.mq5", "double OrderLots() { return 0.1; }\nvoid OnStart() { Print(OrderLots()); }\n"));
     }
 
     public void testFileWithUnresolvedIncludeIsSkipped() {
