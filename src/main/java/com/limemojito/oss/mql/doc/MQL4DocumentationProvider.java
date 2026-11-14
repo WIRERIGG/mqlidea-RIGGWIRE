@@ -15,6 +15,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiElement;
+import com.limemojito.oss.mql.MqlDialect;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.tree.IElementType;
@@ -121,8 +122,25 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
         if (element instanceof com.limemojito.oss.mql.psi.impl.MQL4ClassElement cls) {
             return generateClassDoc(cls);
         }
-        String link = getLinkByElementText(element != null ? element : originalElement);
-        return link == null ? null : generateDocByLink(link);
+        PsiElement context = element != null ? element : originalElement;
+        String link = getLinkByElementText(context);
+        return link == null || isHiddenFor(link, context) ? null : generateDocByLink(link);
+    }
+
+    /** Links into the bundled language reference ({@code mql/doc/<lang>/basis}). */
+    private static final String LANGUAGE_REFERENCE = "/basis/";
+
+    /**
+     * True for a language-reference page asked for from an MQL5 file. The bundled reference is the
+     * MQL4 one (D-1): its keyword, preprocessor and event pages describe MQL4 behavior, so an MQL5
+     * file shows no page rather than a wrong one. Function and constant pages are still served.
+     */
+    static boolean isHiddenFor(@NotNull String link, @Nullable PsiElement context) {
+        if (!link.startsWith(LANGUAGE_REFERENCE) || context == null || !context.isValid()) {
+            return false;
+        }
+        PsiFile file = context.getContainingFile();
+        return file != null && MqlDialect.isMql5(file);
     }
 
     @NotNull
@@ -205,7 +223,8 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
 
     @Override
     public boolean handleExternal(PsiElement element, PsiElement originalElement) {
-        return getLinkByElementText(originalElement) != null;
+        String link = getLinkByElementText(originalElement);
+        return link != null && !isHiddenFor(link, originalElement);
     }
 
     @Override
@@ -221,7 +240,7 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
     @NotNull
     @Override
     public String fetchExternalDocumentation(@NotNull String link, @Nullable PsiElement element) {
-        return generateDocByLink(link);
+        return isHiddenFor(link, element) ? DOC_NOT_FOUND : generateDocByLink(link);
     }
 
     public String getDocsLanguage() {
