@@ -54,6 +54,24 @@ public class MqlSyntaxAnnotatorTest extends BasePlatformTestCase {
         assertEquals(List.of(), messages("test.mq4", code, HighlightSeverity.ERROR));
     }
 
+    public void testOperatorWithoutRightOperand() {
+        List<String> errors = messages("test.mq5", "void OnStart() { int x = ; int y = 1 +* ; Print(x -); int a[3]; a[y /] = 1; }\n",
+                HighlightSeverity.ERROR);
+        assertEquals(List.of("Expression expected after '='", "Expression expected after '*'",
+                "Expression expected after '-'", "Expression expected after '/'"), errors);
+    }
+
+    public void testCompleteExpressionsHaveNoOperandError() {
+        String code = "#define PLUS +\n#define NEG(x) -x\n"
+                + "class CFoo { public: int v; CFoo *Next(); bool operator==(const CFoo &o) { return v == o.v; } };\n"
+                + "void Take(CFoo *, int &);\n"
+                + "void OnStart() { int i = 0; i++; i--; for (int k = 0; k < 3; k++) { i += k; }\n"
+                + "   CFoo *p = new CFoo(); CObject *o = (CObject*)p; int arr[]; ArrayResize(arr, i--);\n"
+                + "   bool b = !(i > 0) && i != 1; int c = b ? -1 : +1; delete p; Print(c, o, -i, ~i); }\n";
+        assertEquals(List.of(), messages("test.mq5", code, HighlightSeverity.ERROR).stream()
+                .filter(m -> m.startsWith("Expression expected")).toList());
+    }
+
     public void testContextualKeywordsAreColored() {
         List<String> words = keywords("test.mq5", "union U pack(4) { int i; float f; };\n"
                 + "typedef int (*TOp)(int);\ninput group \"Risk\";\n"

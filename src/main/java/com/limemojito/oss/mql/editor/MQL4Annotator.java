@@ -15,6 +15,7 @@ import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.TokenSet;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -52,7 +53,45 @@ public class MQL4Annotator implements Annotator {
             annotateCharCode(element, holder);
         } else if (type == MQL4Elements.STRING_LITERAL) {
             annotateStringCharCodes(element, holder);
+        } else if (NEEDS_RIGHT_OPERAND.contains(type)) {
+            annotateMissingOperand(element, type, holder);
         }
+    }
+
+    /** Operators that can't end an expression: postfix {@code ++}/{@code --} and the macro operators can. */
+    private static final TokenSet NEEDS_RIGHT_OPERAND = TokenSet.andNot(MQL4TokenSets.OPERATORS,
+            TokenSet.create(MQL4Elements.PLUS_PLUS, MQL4Elements.MINUS_MINUS, MQL4Elements.PP_STRINGIZE, MQL4Elements.PP_CONCAT));
+
+    private static final TokenSet EXPRESSION_END = TokenSet.create(MQL4Elements.SEMICOLON, MQL4Elements.R_ROUND_BRACKET,
+            MQL4Elements.R_SQUARE_BRACKET, MQL4Elements.COMMA);
+
+    /** Before {@code )} or {@code ,} these are a pointer or reference type: {@code (CFoo*)p}, {@code f(int &, T *)}. */
+    private static final TokenSet DECLARATOR_OPERATORS = TokenSet.create(MQL4Elements.MUL, MQL4Elements.AND);
+
+    /**
+     * {@code int x = ;} and {@code y = 1 + ;}: an operator directly followed by the end of the
+     * expression. The parser keeps statements as flat tokens, so the check is on the token pair. A
+     * {@code #define} body may hold any fragment ({@code #define PLUS +}), so it is skipped.
+     */
+    private static void annotateMissingOperand(@NotNull PsiElement op, @NotNull IElementType type, @NotNull AnnotationHolder holder) {
+        PsiElement next = PsiTreeUtil.nextLeaf(op);
+        while (next != null && (next instanceof PsiWhiteSpace || MQL4TokenSets.COMMENTS_OR_WS.contains(next.getNode().getElementType()))) {
+            next = PsiTreeUtil.nextLeaf(next);
+        }
+        if (next == null) {
+            return;
+        }
+        IElementType nextType = next.getNode().getElementType();
+        if (!EXPRESSION_END.contains(nextType)
+                || (DECLARATOR_OPERATORS.contains(type) && nextType != MQL4Elements.SEMICOLON)
+                || PsiTreeUtil.findFirstParent(op, e -> e.getNode() != null
+                        && (e.getNode().getElementType() == MQL4Elements.PREPROCESSOR_DEFINE_BLOCK
+                        || e.getNode().getElementType() == MQL4Elements.OPERATOR_NAME)) != null) {
+            return;
+        }
+        holder.newAnnotation(HighlightSeverity.ERROR, "Expression expected after '" + op.getText() + "'")
+                .range(op)
+                .create();
     }
 
     /**
