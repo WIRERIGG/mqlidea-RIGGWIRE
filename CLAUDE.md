@@ -13,7 +13,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.0) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (530 pass)
+./gradlew test           # tests only (535 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
 ```
 
@@ -62,7 +62,7 @@ src/test/                               # parser + inspection tests (219)
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 530). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 535). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **26** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.

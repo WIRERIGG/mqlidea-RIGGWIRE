@@ -522,6 +522,10 @@
                          displayName="Suspicious semicolon after control statement"
                          implementationClass="com.limemojito.oss.mql.inspection.SuspiciousSemicolonInspection"/>
         <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Control Flow" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="ERROR"
+                         displayName="Call to an undefined function"
+                         implementationClass="com.limemojito.oss.mql.inspection.UndefinedFunctionCallInspection"/>
+        <!--suppress PluginXmlI18n -->
         <localInspection language="MQL4" groupName="Control Flow" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
                          displayName="Empty loop body"
                          implementationClass="com.limemojito.oss.mql.inspection.EmptyLoopBodyInspection"/>
