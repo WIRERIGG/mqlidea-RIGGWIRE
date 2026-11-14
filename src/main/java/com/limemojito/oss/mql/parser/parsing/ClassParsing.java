@@ -31,7 +31,7 @@ public class ClassParsing implements MQL4Elements {
     public static final TokenSet ON_ERROR_CLASS_DO_NOT_ADVANCE_TOKENS = TokenSet.create(SEMICOLON);
 
     /**
-     * Form: [abstract] (class|struct) name [final] [: inheritance] { }
+     * Form: [abstract] (class|struct) name [pack(n)] [final] [pack(n)] [: inheritance] { }
      */
     public static boolean parseClassOrStruct(PsiBuilder b, int l) {
         IElementType t1 = b.getTokenType();
@@ -62,8 +62,10 @@ public class ClassParsing implements MQL4Elements {
             }
             b.advanceLexer(); // name
 
+            parsePackSpecifier(b, l);
             if (b.getTokenType() == MQL4Elements.FINAL_KEYWORD) {
                 b.advanceLexer(); // 'final'
+                parsePackSpecifier(b, l);
             }
 
             IElementType t3 = b.getTokenType();
@@ -92,6 +94,19 @@ public class ClassParsing implements MQL4Elements {
             m.done(MQL4Elements.CLASS);
         }
         return true;
+    }
+
+    /**
+     * The alignment specifier {@code pack(n)} after a class, struct or union name (either side of
+     * {@code final}). {@code pack} is not a reserved word in MQL5 ({@code int pack = 1;} compiles),
+     * so it is matched by its text in this one position and left an IDENTIFIER everywhere else.
+     */
+    private static void parsePackSpecifier(PsiBuilder b, int l) {
+        if (b.getTokenType() == IDENTIFIER && "pack".equals(b.getTokenText())
+                && b.lookAhead(1) == L_ROUND_BRACKET) {
+            b.advanceLexer(); // 'pack'
+            parseBracketsBlock(b, l + 1); // (n)
+        }
     }
 
     /**

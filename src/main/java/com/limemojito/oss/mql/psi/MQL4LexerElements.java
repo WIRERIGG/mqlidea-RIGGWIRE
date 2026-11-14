@@ -33,6 +33,8 @@ public interface MQL4LexerElements {
 
     // Escape character
     IElementType ESCAPE = new MQL4ElementType("ESCAPE");
+    IElementType PP_STRINGIZE = new MQL4ElementType("PP_STRINGIZE"); // #x in a macro body
+    IElementType PP_CONCAT = new MQL4ElementType("PP_CONCAT"); // a##b in a macro body
 
     // Literals
     IElementType CHAR_LITERAL = new MQL4ElementType("CHAR_LITERAL");
@@ -106,6 +108,7 @@ public interface MQL4LexerElements {
     IElementType CONST_KEYWORD = new MQL4ElementType("CONST_KEYWORD");
     IElementType FINAL_KEYWORD = new MQL4ElementType("FINAL_KEYWORD");
     IElementType OVERRIDE_KEYWORD = new MQL4ElementType("OVERRIDE_KEYWORD");
+    IElementType EXPORT_KEYWORD = new MQL4ElementType("EXPORT_KEYWORD");
     IElementType PRIVATE_KEYWORD = new MQL4ElementType("PRIVATE_KEYWORD");
     IElementType PROTECTED_KEYWORD = new MQL4ElementType("PROTECTED_KEYWORD");
     IElementType PUBLIC_KEYWORD = new MQL4ElementType("PUBLIC_KEYWORD");

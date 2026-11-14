@@ -123,6 +123,7 @@ datetime_literal = D \' [0-9.: ]* \'
 "const"     { return MQL4Elements.CONST_KEYWORD; }
 "final"     { return MQL4Elements.FINAL_KEYWORD; }
 "override"  { return MQL4Elements.OVERRIDE_KEYWORD; }
+"export"    { return MQL4Elements.EXPORT_KEYWORD; }
 "public"    { return MQL4Elements.PUBLIC_KEYWORD; }
 "private"   { return MQL4Elements.PRIVATE_KEYWORD; }
 "virtual"   { return MQL4Elements.VIRTUAL_KEYWORD; }
@@ -234,6 +235,9 @@ datetime_literal = D \' [0-9.: ]* \'
 ","   { return MQL4Elements.COMMA; }
 "."   { return MQL4Elements.DOT; }
 "\\"   { return MQL4Elements.ESCAPE; }
+// macro-body operators (#define STR(x) #x, CAT(a,b) a##b); a directive like #define is the longer match
+"##"   { return MQL4Elements.PP_CONCAT; }
+"#"   { return MQL4Elements.PP_STRINGIZE; }
 }
 
 [^] { return MQL4Elements.BAD_CHARACTER; }

@@ -123,4 +123,21 @@ class MqlLiteralLexerTest {
             assertThat(only(word).type().toString()).endsWith(type);
         }
     }
+
+    @Test
+    void macroOperatorsAndExportLexAsTokens() {
+        assertThat(lex("#define CAT(a,b) a##b")).extracting(Token::type).containsExactly(
+                MQL4Elements.DEFINE_PP_KEYWORD, MQL4Elements.IDENTIFIER, MQL4Elements.L_ROUND_BRACKET,
+                MQL4Elements.IDENTIFIER, MQL4Elements.COMMA, MQL4Elements.IDENTIFIER,
+                MQL4Elements.R_ROUND_BRACKET, MQL4Elements.IDENTIFIER, MQL4Elements.PP_CONCAT,
+                MQL4Elements.IDENTIFIER);
+        assertThat(lex("#x")).extracting(Token::type)
+                .containsExactly(MQL4Elements.PP_STRINGIZE, MQL4Elements.IDENTIFIER);
+        // directives stay the longer match
+        assertThat(only("#property").type()).isEqualTo(MQL4Elements.PROPERTY_PP_KEYWORD);
+        assertThat(only("#include").type()).isEqualTo(MQL4Elements.INCLUDE_PP_KEYWORD);
+        assertThat(only("export").type()).isEqualTo(MQL4Elements.EXPORT_KEYWORD);
+        // pack is not reserved in MQL5
+        assertThat(only("pack").type()).isEqualTo(MQL4Elements.IDENTIFIER);
+    }
 }

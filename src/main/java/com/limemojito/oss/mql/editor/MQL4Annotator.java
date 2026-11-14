@@ -13,6 +13,8 @@ import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.tree.TokenSet;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MqlEventHandlers;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
@@ -32,7 +34,33 @@ public class MQL4Annotator implements Annotator {
             annotateEventHandler(func, holder);
         } else if (element.getNode().getElementType() == MQL4Elements.VAR_DECLARATION_STATEMENT) {
             annotateInputParameter(element, holder);
+        } else if (MACRO_OPERATORS.contains(element.getNode().getElementType())) {
+            annotateMacroOperator(element, holder);
         }
+    }
+
+    private static final TokenSet MACRO_OPERATORS = TokenSet.create(MQL4Elements.PP_STRINGIZE, MQL4Elements.PP_CONCAT);
+
+    /**
+     * {@code #} and {@code ##} lex as tokens so macro bodies ({@code #define STR(x) #x}) are clean, but
+     * outside a {@code #define} they are stray characters, which MetaEditor rejects.
+     */
+    private void annotateMacroOperator(@NotNull PsiElement token, @NotNull AnnotationHolder holder) {
+        if (PsiTreeUtil.findFirstParent(token, e -> e.getNode() != null
+                && e.getNode().getElementType() == MQL4Elements.PREPROCESSOR_DEFINE_BLOCK) != null) {
+            return;
+        }
+        PsiElement next = token.getNextSibling();
+        if ("#".equals(token.getText()) && next != null && next.getNode().getElementType() == MQL4Elements.IDENTIFIER) {
+            // #region, #pragma ...: MetaEditor's error 109. (#region still folds, see MQL4FoldingBuilder.)
+            holder.newAnnotation(HighlightSeverity.ERROR, "Invalid preprocessor command '#" + next.getText() + "'")
+                    .range(token)
+                    .create();
+            return;
+        }
+        holder.newAnnotation(HighlightSeverity.ERROR, "'" + token.getText() + "' is only valid in a #define body")
+                .range(token)
+                .create();
     }
 
     private void annotateEventHandler(@NotNull MQL4FunctionElement func, @NotNull AnnotationHolder holder) {

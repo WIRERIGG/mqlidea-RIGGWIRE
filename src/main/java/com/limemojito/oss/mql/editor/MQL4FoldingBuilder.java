@@ -165,7 +165,7 @@ public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
      * rather than folded.
      * <p/>
      * Neither directive is a first-class lexer token (see {@link RegionFoldingDescriptor}): a
-     * {@code #region} start is recognised as a {@code BAD_CHARACTER('#')} leaf immediately
+     * {@code #region} start is recognised as a {@code PP_STRINGIZE('#')} leaf immediately
      * followed by an {@code IDENTIFIER("region")} leaf (ditto {@code "endregion"}); the region name
      * is whatever raw source text follows on the rest of that line.
      */
@@ -216,7 +216,7 @@ public class MQL4FoldingBuilder implements FoldingBuilder, DumbAware {
     }
 
     private static boolean isHash(@NotNull ASTNode node) {
-        return node.getElementType() == MQL4Elements.BAD_CHARACTER && "#".equals(node.getText());
+        return node.getElementType() == MQL4Elements.PP_STRINGIZE && "#".equals(node.getText());
     }
 
     @NotNull

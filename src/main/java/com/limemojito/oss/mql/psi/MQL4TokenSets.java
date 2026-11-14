@@ -44,7 +44,7 @@ public class MQL4TokenSets implements MQL4Elements {
     public static final TokenSet OPERATORS = TokenSet.create(
             EQ, EQ_EQ, PLUS_EQ, MINUS_EQ, MUL_EQ, DIV_EQ, MOD_EQ, AND_EQ, OR_EQ, XOR_EQ, TILDA_EQ, SH_LEFT_EQ, SH_RIGHT_EQ, USH_RIGHT_EQ,
             POW_EQ, PLUS_PLUS, MINUS_MINUS, BOOL_OR, BOOL_AND, USH_RIGHT, SH_RIGHT, SH_LEFT, POW, LESS_EQ, GT_EQ, NOT_EQ, OR, XOR, PLUS, MINUS, MUL,
-            TILDA, DIV, MOD, AND, NOT, QUESTION
+            TILDA, DIV, MOD, AND, NOT, QUESTION, PP_STRINGIZE, PP_CONCAT
     );
 
     public static final TokenSet DATA_TYPES = TokenSet.create(

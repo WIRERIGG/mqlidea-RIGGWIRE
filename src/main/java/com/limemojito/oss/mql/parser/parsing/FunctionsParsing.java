@@ -46,7 +46,8 @@ public class FunctionsParsing implements MQL4Elements {
 
     private static final TokenSet FUNCTION_DESCRIPTION_TOKENS = TokenSet.create(MQL4Elements.VIRTUAL_KEYWORD, MQL4Elements.CONST_KEYWORD, MQL4Elements.ABSTRACT_KEYWORD);
 
-    private static final TokenSet FUNCTION_SUFFIX_TOKENS = TokenSet.create(MQL4Elements.OVERRIDE_KEYWORD, MQL4Elements.FINAL_KEYWORD);
+    private static final TokenSet FUNCTION_SUFFIX_TOKENS = TokenSet.create(MQL4Elements.OVERRIDE_KEYWORD, MQL4Elements.FINAL_KEYWORD,
+            MQL4Elements.EXPORT_KEYWORD);
 
     private static final List<PatternMatcher> FUNCTION_MATCHER = Arrays.asList(
             (b, ahead) -> { // return type: custom type or data type
@@ -148,9 +149,9 @@ public class FunctionsParsing implements MQL4Elements {
                 b.advanceLexer(); // 'const'
             }
 
-            // consume optional MQL5 override/final suffixes
+            // consume optional MQL5 override/final suffixes and the library export modifier
             while (FUNCTION_SUFFIX_TOKENS.contains(b.getTokenType())) {
-                b.advanceLexer(); // 'override' or 'final'
+                b.advanceLexer(); // 'override', 'final' or 'export'
             }
 
             boolean hasFieldsInitBlock = false;
