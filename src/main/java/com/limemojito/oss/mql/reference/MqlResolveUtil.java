@@ -106,6 +106,13 @@ public final class MqlResolveUtil {
                 if (match != null) {
                     return match;
                 }
+            } else if (parent.getNode() != null && parent.getNode().getElementType() == MQL4Elements.FOR_STATEMENT) {
+                // for(int i=0; ...): the init-clause declaration is scoped to the header and body
+                ASTNode header = MqlPsiUtil.forHeaderOf(parent.getNode());
+                PsiElement match = header == null ? null : findVarInBlockChildren(header, name);
+                if (match != null) {
+                    return match;
+                }
             }
             parent = parent.getParent();
         }

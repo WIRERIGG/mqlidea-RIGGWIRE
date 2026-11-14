@@ -9,6 +9,7 @@ import com.intellij.lang.PsiBuilder;
 import com.intellij.psi.tree.IElementType;
 import java.util.Stack;
 import org.jetbrains.annotations.NotNull;
+import com.limemojito.oss.mql.parser.parsing.statement.StatementParsing;
 import com.limemojito.oss.mql.parser.parsing.util.ParsingErrors;
 import com.limemojito.oss.mql.parser.parsing.util.ParsingScope;
 import com.limemojito.oss.mql.parser.parsing.util.ParsingUtils;
@@ -35,6 +36,19 @@ public class BracketBlockParsing implements MQL4Elements {
     }
 
     public static boolean parseBracketsBlock(PsiBuilder b, int l, boolean doNotParseContent) {
+        return parseBracketsBlock(b, l, doNotParseContent, false);
+    }
+
+    /**
+     * A {@code for} statement's {@code (...)} header. Same as a plain round-bracket block, except an
+     * init-clause declaration ({@code for(int i=0; ...)}) is parsed as a real
+     * {@code VAR_DECLARATION_STATEMENT}, so the loop variable is a named definition.
+     */
+    public static boolean parseForHeader(PsiBuilder b, int l) {
+        return b.getTokenType() == L_ROUND_BRACKET && parseBracketsBlock(b, l, false, true);
+    }
+
+    private static boolean parseBracketsBlock(PsiBuilder b, int l, boolean doNotParseContent, boolean forHeader) {
         if (!ParsingUtils.nextTokenIn(b, l, "parseBracketBlock", MQL4TokenSets.BRACKETS)) {
             return false;
         }
@@ -53,6 +67,9 @@ public class BracketBlockParsing implements MQL4Elements {
             error(b, NO_MATCHING_CLOSING_BRACKET);
         }
         b.advanceLexer(); // left bracket
+        if (forHeader) {
+            StatementParsing.parseLocalVarDeclaration(b, l + 1); // init clause, through its ';'
+        }
 
         boolean codeBlock = lBracket == L_CURLY_BRACKET;
         if (codeBlock) {

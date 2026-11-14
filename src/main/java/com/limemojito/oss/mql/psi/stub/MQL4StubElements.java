@@ -38,7 +38,7 @@ public interface MQL4StubElements {
     // v23: the ENUM_STATEMENT stub now also carries its constant (field) names, indexed into the new
     // enum-field-name stub index so a bare enum-constant use resolves to its declaration; the changed
     // stub serialization forces a one-time rebuild.
-    int STUB_SCHEMA_VERSION = 23;
+    int STUB_SCHEMA_VERSION = 24;
 
     ILightStubFileElementType FILE = new ILightStubFileElementType(MQL4Language.INSTANCE) {
         @Override

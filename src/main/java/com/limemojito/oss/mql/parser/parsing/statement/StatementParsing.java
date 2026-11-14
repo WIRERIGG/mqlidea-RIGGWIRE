@@ -10,6 +10,7 @@ import com.intellij.lang.PsiBuilder;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.Nullable;
+import com.limemojito.oss.mql.parser.parsing.BracketBlockParsing;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
@@ -49,13 +50,6 @@ public class StatementParsing implements MQL4Elements {
             CONTINUE_KEYWORD,
             CASE_KEYWORD,
             DEFAULT_KEYWORD
-    );
-
-    /**
-     * Same modifier set as VarDeclarationStatement.PRE_TYPES.
-     */
-    private static final TokenSet DECLARATION_PRE_TYPES = TokenSet.create(
-            CONST_KEYWORD, EXTERN_KEYWORD, INPUT_KEYWORD, SINPUT_KEYWORD, STATIC_KEYWORD
     );
 
     public static boolean parseStatement(PsiBuilder b, int l) {
@@ -148,7 +142,12 @@ public class StatementParsing implements MQL4Elements {
         }
         PsiBuilder.Marker m = b.mark();
         b.advanceLexer(); // 'for' | 'while'
-        parseParenGroup(b, l + 1);
+        if (keyword == FOR_KEYWORD && b.lookAhead(0) == L_ROUND_BRACKET) {
+            parseCommentsRun(b);
+            BracketBlockParsing.parseForHeader(b, l + 1); // for(int i=0; ...): i is a definition
+        } else {
+            parseParenGroup(b, l + 1);
+        }
         parseBranch(b, l); // loop body
         m.done(statementType);
         return true;
@@ -197,35 +196,41 @@ public class StatementParsing implements MQL4Elements {
     }
 
     /**
-     * Local variable declaration. Only dispatches to {@link VarDeclarationStatement} for the
-     * simple shapes it parses without emitting errors: [modifier] type name (';' | '= ...').
-     * Anything else (arrays, declaration lists, constructor-call declarations) is left for the
-     * expression-statement fallback which is fully tolerant.
-     */
-    /**
-     * Public entry point so callers outside a {@code {}} code block (top-level globals, class
-     * member fields) can reuse this exact gated shape too (Phase 4, REVAMP_PLAN.md #3b: named PSI
-     * for variables needs this same tolerant, narrow match everywhere a simple
-     * {@code [modifier] type name (';' | '= ...')} declaration can legally appear). The gate
-     * (requires the token right after the name to be ';' or '=') is what keeps this safe to widen:
-     * anything else (arrays, comma lists, ctor-call declarations) falls through untouched to
-     * whatever fallback the caller already has, exactly as it does inside function bodies today.
+     * Variable declaration, used in {@code {}} code blocks, at the top level (globals) and in class
+     * bodies (fields). The shape is decided by {@link VarDeclarationStatement#declarationNameIndex}:
+     * {@code [modifier]* type [*|&] name} followed by {@code ;}, {@code =}, {@code ,} or {@code [},
+     * where the type is a built-in keyword or a user, qualified or template type. Anything else
+     * (calls, constructor-argument declarations {@code CFoo f(1);}, expressions) falls through
+     * untouched to the caller's fallback.
      */
     public static boolean parseLocalVarDeclaration(PsiBuilder b, int l) {
-        int n = 0;
-        if (DECLARATION_PRE_TYPES.contains(b.lookAhead(0))) {
-            n++;
+        if (b.getTokenType() == IDENTIFIER && "typedef".equals(b.getTokenText())) {
+            skipTypedef(b); // `typedef CFoo Bar;` is a type alias (T-4), not a variable named Bar
+            return true;
         }
-        if (!MQL4TokenSets.DATA_TYPES.contains(b.lookAhead(n)) || b.lookAhead(n + 1) != IDENTIFIER) {
-            return false;
-        }
-        IElementType afterName = b.lookAhead(n + 2);
-        if (afterName != SEMICOLON && afterName != EQ) {
-            return false;
-        }
-        // VarDeclarationStatement was fixed to use raw mark()/done() (no enter_section_), so it is
-        // safe to call with the bracket block's raw PsiBuilder and gives locals proper structure.
+        // VarDeclarationStatement.declarationNameIndex is the gate: user/qualified/template types,
+        // '*'/'&', array sizes and comma lists, but only when the name is followed by ; = , or [.
+        // VarDeclarationStatement uses raw mark()/done() (no enter_section_), so it is safe to call
+        // with the bracket block's raw PsiBuilder.
         return parseVarDeclaration(b, l);
+    }
+
+    /**
+     * Consumes a {@code typedef ...;} flat through its {@code ;} so the declaration gate never sees
+     * its tail ({@code CFoo Bar;}). Stops before a brace so an unfinished line can't swallow a block.
+     */
+    private static void skipTypedef(PsiBuilder b) {
+        b.advanceLexer(); // 'typedef'
+        while (!b.eof()) {
+            IElementType t = b.getTokenType();
+            if (t == L_CURLY_BRACKET || t == R_CURLY_BRACKET) {
+                return;
+            }
+            b.advanceLexer();
+            if (t == SEMICOLON) {
+                return;
+            }
+        }
     }
 
     /**

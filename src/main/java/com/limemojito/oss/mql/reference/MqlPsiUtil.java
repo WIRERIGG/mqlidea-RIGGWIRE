@@ -68,4 +68,19 @@ public final class MqlPsiUtil {
         ASTNode first = node.getFirstChildNode();
         return first != null && first.getElementType() == MQL4Elements.L_CURLY_BRACKET;
     }
+
+    /**
+     * The {@code (...)} header block of a {@code FOR_STATEMENT} node, or null. Its direct children
+     * hold the init-clause {@code VAR_DECLARATION_STATEMENT} when the loop declares its variable.
+     */
+    @org.jetbrains.annotations.Nullable
+    public static ASTNode forHeaderOf(@NotNull ASTNode forStatement) {
+        for (ASTNode child = forStatement.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            if (child.getElementType() == MQL4Elements.BRACKETS_BLOCK) {
+                ASTNode first = child.getFirstChildNode();
+                return first != null && first.getElementType() == MQL4Elements.L_ROUND_BRACKET ? child : null;
+            }
+        }
+        return null;
+    }
 }
