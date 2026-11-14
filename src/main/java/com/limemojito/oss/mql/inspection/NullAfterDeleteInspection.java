@@ -16,6 +16,7 @@ import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
+import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -33,6 +34,30 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "'delete %s' without subsequent '%s = NULL' — leaves dangling pointer";
     private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);
+
+    /**
+     * True when {@code delete name;} is the last statement of the block that declares {@code name}
+     * as a local, so no use of the pointer can follow.
+     */
+    private static boolean endsDeclaringBlock(@NotNull ASTNode deleteStatement, @NotNull String name) {
+        ASTNode after = StatementAst.nextNonTrivia(deleteStatement);
+        if (after == null || after.getElementType() != MQL4Elements.R_CURLY_BRACKET) {
+            return false;
+        }
+        ASTNode block = deleteStatement.getTreeParent();
+        for (ASTNode child = block.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            if (child.getElementType() != MQL4Elements.VAR_DECLARATION_STATEMENT) {
+                continue;
+            }
+            ASTNode list = child.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
+            for (ASTNode def = list == null ? null : list.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+                if (def.getPsi() instanceof MQL4VarDefinitionElement var && name.equals(var.getName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -65,6 +90,9 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
                         }
                     }
                     String name = idNode.getText();
+                    if (endsDeclaringBlock(stmt, name)) {
+                        return; // { CFoo *a = new CFoo; ... delete a; }: `a` dies with the block
+                    }
                     if (!StatementAst.hasAssignmentAfter(body, name, stmt.getTextRange().getEndOffset())) {
                         offenderNode[0] = idNode;
                         offenderStatement[0] = stmt;

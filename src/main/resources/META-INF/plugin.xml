@@ -280,7 +280,7 @@
                          displayName="OnInit() returns void instead of int"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingOnInitReturnInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
                          displayName="Empty event handler"
                          implementationClass="com.limemojito.oss.mql.inspection.EmptyEventHandlerInspection"/>
         <!--suppress PluginXmlI18n -->

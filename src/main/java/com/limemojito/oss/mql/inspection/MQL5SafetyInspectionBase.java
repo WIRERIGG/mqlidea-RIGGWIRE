@@ -28,6 +28,7 @@ import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import com.limemojito.oss.mql.psi.MqlEventHandlers;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
+import com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -209,13 +210,22 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
     @NotNull
     protected static List<PsiElement> childrenAndClassMethods(@NotNull PsiFile file) {
         List<PsiElement> result = new ArrayList<>();
-        for (PsiElement child : file.getChildren()) {
+        addDeclarations(file.getChildren(), result);
+        return result;
+    }
+
+    /** File-level declarations plus class methods, descending into namespace bodies. */
+    private static void addDeclarations(@NotNull PsiElement[] children, @NotNull List<PsiElement> result) {
+        for (PsiElement child : children) {
+            if (child instanceof MQL4NamespaceElement namespace) {
+                addDeclarations(namespace.getDeclarations(), result);
+                continue;
+            }
             result.add(child);
             if (child instanceof MQL4ClassElement) {
                 addClassMethods(child.getNode(), result);
             }
         }
-        return result;
     }
 
     private static void addClassMethods(@NotNull ASTNode cls, @NotNull List<PsiElement> result) {

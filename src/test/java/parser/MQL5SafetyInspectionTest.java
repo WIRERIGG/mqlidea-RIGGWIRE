@@ -1761,4 +1761,34 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertNoProblems(new PreprocessorPropertyInspection(),
                 "#property indicator_buffers 2\n", "test.mq5");
     }
+
+    // I-2, I-5, F-3: idioms MetaEditor accepts without comment
+
+    public void testNullAfterDeleteSkipsALocalDyingWithItsBlock() {
+        assertNoProblems(new NullAfterDeleteInspection(),
+                "class CFoo { };\nvoid foo() { if (true) { CFoo *a = new CFoo; Print(1); delete a; } }");
+        assertHasProblems(new NullAfterDeleteInspection(),
+                "class CFoo { };\nCFoo *g;\nvoid foo() { if (true) { CFoo *a = new CFoo; g = a; delete g; } }");
+    }
+
+    public void testSuspiciousSemicolonSkipsAForThatAdvancesInItsStep() {
+        assertNoProblems(new SuspiciousSemicolonInspection(),
+                "void OnStart() { int k = 0; for (k = 0; k < 3; k++); Print(k); }");
+        assertNoProblems(new SuspiciousSemicolonInspection(),
+                "int Next(int i) { return i + 1; }\nvoid OnStart() { for (int i = 0; i < 3; i = Next(i)); }");
+        assertHasProblems(new SuspiciousSemicolonInspection(),
+                "void OnStart() { int k = 0; for (k = 0; k < 3; ); Print(k); }");
+    }
+
+    public void testStackOverflowRiskSkipsRecursionWithABaseCase() {
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "int Fact(int n) { if (n <= 1) return 1; return n * Fact(n - 1); }");
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "int Fib(int n) { return n < 2 ? n : Fib(n - 1) + Fib(n - 2); }");
+        assertHasProblems(new StackOverflowRiskInspection(),
+                "int Loop(int n) { Print(n); return Loop(n + 1); }");
+        // namespace bodies are walked like file level (I-3)
+        assertHasProblems(new StackOverflowRiskInspection(),
+                "namespace Util { class CNode { public: int Walk(int n) { return Walk(n + 1); } }; int Loop(int n) { return Loop(n); } }");
+    }
 }
