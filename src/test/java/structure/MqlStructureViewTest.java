@@ -52,4 +52,26 @@ public class MqlStructureViewTest extends BasePlatformTestCase {
             model.dispose();
         }
     }
+
+    public void testNamespacesAndInputGroupsAreNodes() {
+        PsiFile file = myFixture.configureByText("test.mq5",
+                "input group \"Risk\";\ninput double InpLots = 0.1;\nsinput int InpSlip = 3;\n"
+                        + "input group \"Signal\"\ninput int InpPeriod = 14;\n"
+                        + "namespace Util { int Twice(int x) { return 2 * x; } }\n");
+        TreeBasedStructureViewBuilder tree = (TreeBasedStructureViewBuilder) new MQL4StructureViewBuilderFactory().getStructureViewBuilder(file);
+        StructureViewModel model = tree.createStructureViewModel(myFixture.getEditor());
+        try {
+            List<String> outline = new ArrayList<>();
+            for (var child : model.getRoot().getChildren()) {
+                List<String> inner = new ArrayList<>();
+                for (var grandChild : child.getChildren()) {
+                    inner.add(grandChild.getPresentation().getPresentableText());
+                }
+                outline.add(child.getPresentation().getPresentableText() + inner);
+            }
+            assertEquals(List.of("Risk[InpLots, InpSlip]", "Signal[InpPeriod]", "Util[Twice(int x)]"), outline);
+        } finally {
+            model.dispose();
+        }
+    }
 }
