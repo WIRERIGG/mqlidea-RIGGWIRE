@@ -11,8 +11,9 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.0) providing MQL4/MQL5 l
 ```bash
 # macOS: use the CLion (or IntelliJ) bundled JBR 21 as JAVA_HOME
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
-./gradlew build          # compile + test + verify
-./gradlew test           # tests only (484 pass)
+./gradlew build          # compile (-Werror on deprecation) + test
+./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
+./gradlew test           # tests only (490 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
 ```
 
@@ -61,12 +62,13 @@ src/test/                               # parser + inspection tests (219)
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 484). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 490). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **25** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.
 - Never swallow `ProcessCanceledException` (it extends `RuntimeException`) — always let it propagate.
 - Run `./gradlew build` to verify after every change.
+- Platform API must exist, un-deprecated, on **both** 2025.3.2 (since-build) and the newest verified IDE (CLion 2026.3). javac runs with `-Xlint:deprecation -Xlint:removal -Werror`, so a deprecated call fails the build. The only allowed exception is an override the oldest platform still declares abstract; it carries an explained `@SuppressWarnings("deprecation")`. Check the verifier reports under `build/reports/pluginVerifier/` for experimental and internal API too. The whole `com.intellij.codeInsight.hints` package is experimental, so use `hints.declarative`.
 
 ## Known Limitations / Roadmap
 
@@ -76,7 +78,7 @@ src/test/                               # parser + inspection tests (219)
 - Member-access (`obj.field`/`obj.Method()`) **is** type-resolved (`reference/MqlTypeResolver`: declared-type / param / `this` / base-class / bounded chain), so rename, find-usages, and dot-completion cover project-defined classes. Out of scope: full expression type inference (function-return types, casts, templates, array-element types).
 - Header (`.mqh`) compile errors from the ExternalAnnotator are not yet surfaced.
 - Compile-checking runs on macOS (`mt5`/Wine), Windows (native `metaeditor64.exe` via a registered MQL SDK), and Linux (explicit Wine) through the `MqlCompilerService` launcher strategy; macOS is the actively-exercised path.
-- A few deprecated platform APIs remain (`StartupActivity`→`ProjectActivity`, `SuppressIntentionAction`, `MQL5TemplateContextType` ctor).
+- Plugin Verifier: Compatible on IU 2025.3.2 and CL 2026.3, with no experimental or internal API. One deprecated usage is unavoidable: `MQL4SdkType.suggestHomePath()`, which is still abstract on 2025.3. `suggestHomePaths(Project)` is overridden alongside it, so SDK suggestions keep working after the platform removes it. Drop the override once since-build passes 253.
 
 ## Available Agents
 

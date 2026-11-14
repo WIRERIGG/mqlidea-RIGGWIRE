@@ -190,7 +190,7 @@ public final class MqlResolveUtil {
         GlobalSearchScope closureScope = closureScopeFor(file);
         if (closureScope != null) {
             collectIndexed(name, project, closureScope, hits);
-            for (MQL4EnumElement e : MQL4EnumNameIndex.getInstance().get(name, project, closureScope)) {
+            for (MQL4EnumElement e : MQL4EnumNameIndex.getInstance().getElements(name, project, closureScope)) {
                 com.intellij.openapi.progress.ProgressManager.checkCanceled();
                 if (name.equals(e.getName())) {
                     hits.add(e);
@@ -204,7 +204,7 @@ public final class MqlResolveUtil {
             // result so it never overrides a function/class/enum-type/global/local that already claimed
             // the name; poly-resolves if two enums in the closure both declare it (safe, never a pick).
             if (hits.isEmpty()) {
-                for (MQL4EnumElement e : MQL4EnumFieldNameIndex.getInstance().get(name, project, closureScope)) {
+                for (MQL4EnumElement e : MQL4EnumFieldNameIndex.getInstance().getElements(name, project, closureScope)) {
                     com.intellij.openapi.progress.ProgressManager.checkCanceled();
                     collectEnumFieldsNamed(e, name, hits);
                 }
@@ -273,7 +273,7 @@ public final class MqlResolveUtil {
                                               @NotNull GlobalSearchScope scope,
                                               @NotNull List<PsiElement> hits) {
         Map<PsiFile, MQL4VarDefinitionElement> firstPerFile = new java.util.LinkedHashMap<>();
-        for (MQL4VarDefinitionElement v : MQL4GlobalVarNameIndex.getInstance().get(name, project, scope)) {
+        for (MQL4VarDefinitionElement v : MQL4GlobalVarNameIndex.getInstance().getElements(name, project, scope)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
             if (!name.equals(v.getName())) {
                 continue;
@@ -577,7 +577,7 @@ public final class MqlResolveUtil {
     @NotNull
     private static ClassLookup lookupClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
         MQL4ClassElement found = null;
-        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
+        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().getElements(name, project, scope)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
             if (name.equals(c.getTypeName())) {
                 if (found != null) {
@@ -603,12 +603,12 @@ public final class MqlResolveUtil {
     }
 
     private static void collectIndexed(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope, @NotNull List<PsiElement> out) {
-        for (MQL4FunctionElement f : MQL4FunctionNameIndex.getInstance().get(name, project, scope)) {
+        for (MQL4FunctionElement f : MQL4FunctionNameIndex.getInstance().getElements(name, project, scope)) {
             if (name.equals(f.getFunctionName())) {
                 out.add(f);
             }
         }
-        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
+        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().getElements(name, project, scope)) {
             if (name.equals(c.getTypeName())) {
                 out.add(c);
             }

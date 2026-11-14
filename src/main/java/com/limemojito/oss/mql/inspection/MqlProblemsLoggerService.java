@@ -22,7 +22,6 @@ import com.intellij.openapi.extensions.ExtensionPointName;
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.util.ProgressIndicatorUtils;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -253,7 +252,7 @@ public final class MqlProblemsLoggerService implements Disposable {
 
         try {
             // Collect the file list in a short read action
-            Set<VirtualFile> allFiles = ReadAction.compute(() -> {
+            Set<VirtualFile> allFiles = ReadAction.nonBlocking(() -> {
                 Set<VirtualFile> files = new LinkedHashSet<>();
                 files.addAll(FileTypeIndex.getFiles(MQL4FileType.INSTANCE, GlobalSearchScope.projectScope(project)));
                 files.addAll(FileTypeIndex.getFiles(MQL5FileType.INSTANCE, GlobalSearchScope.projectScope(project)));
@@ -261,7 +260,7 @@ public final class MqlProblemsLoggerService implements Disposable {
                 // them explicitly or headers would silently drop out of the scan/report.
                 files.addAll(FileTypeIndex.getFiles(MqlHeaderFileType.INSTANCE, GlobalSearchScope.projectScope(project)));
                 return files;
-            });
+            }).expireWhen(project::isDisposed).executeSynchronously();
 
             // Atomically snapshot the dirty set and reset it, then scan over the snapshot
             Set<String> dirty;
@@ -277,7 +276,8 @@ public final class MqlProblemsLoggerService implements Disposable {
             // in the report (their stale cache entries get pruned via retainAll below).
             allFiles.removeIf(vf -> REPORT_EXCLUDED_PATHS.contains(getRelativePath(basePath, vf)));
 
-            List<LocalInspectionTool> tools = ReadAction.compute(this::discoverInspections);
+            List<LocalInspectionTool> tools = ReadAction.nonBlocking(this::discoverInspections)
+                    .expireWhen(project::isDisposed).executeSynchronously();
 
             // Prune cache entries for deleted/renamed files so the report stays current
             Set<String> currentUrls = new LinkedHashSet<>();
@@ -343,29 +343,22 @@ public final class MqlProblemsLoggerService implements Disposable {
     }
 
     private void processBatch(@NotNull List<VirtualFile> files, @NotNull String basePath,
-                              @NotNull List<LocalInspectionTool> tools) throws InterruptedException {
-        // Cancellable read with write-action priority: a pending write action (e.g. the user
-        // typing) cancels the read via ProgressManager.checkCanceled() and we retry the batch
-        // after yielding, so the EDT is never blocked for the duration of a batch.
-        boolean success = false;
-        while (!success) {
-            if (project.isDisposed()) return;
-            success = ProgressIndicatorUtils.runInReadActionWithWriteActionPriority(() -> {
-                for (VirtualFile vf : files) {
-                    if (project.isDisposed()) return;
-                    List<ProblemInfo> problems = scanSingleFile(vf, basePath, tools);
-                    if (problems != null) {
-                        String relativePath = getRelativePath(basePath, vf);
-                        cache.put(vf.getUrl(), new CachedFileResult(vf.getModificationStamp(),
-                                relativePath, problems));
-                    }
+                              @NotNull List<LocalInspectionTool> tools) {
+        // Non-blocking read: a pending write action (e.g. the user typing) cancels it and the
+        // platform restarts the batch once the write finishes, so the EDT is never blocked for the
+        // duration of a batch. Re-scanning a file on restart just overwrites its cache entry.
+        ReadAction.nonBlocking(() -> {
+            for (VirtualFile vf : files) {
+                ProgressManager.checkCanceled();
+                List<ProblemInfo> problems = scanSingleFile(vf, basePath, tools);
+                if (problems != null) {
+                    String relativePath = getRelativePath(basePath, vf);
+                    cache.put(vf.getUrl(), new CachedFileResult(vf.getModificationStamp(),
+                            relativePath, problems));
                 }
-            });
-            if (!success) {
-                // A write action interrupted the read; yield briefly before retrying
-                Thread.sleep(YIELD_SLEEP_MS);
             }
-        }
+            return null;
+        }).expireWhen(project::isDisposed).executeSynchronously();
     }
 
     @Nullable

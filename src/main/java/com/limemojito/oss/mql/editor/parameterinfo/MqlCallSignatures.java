@@ -97,7 +97,7 @@ public final class MqlCallSignatures {
         if (builtin != null) {
             return new Object[]{builtin};
         }
-        var projectFunctions = MQL4FunctionNameIndex.getInstance().get(name, project, GlobalSearchScope.allScope(project));
+        var projectFunctions = MQL4FunctionNameIndex.getInstance().getElements(name, project, GlobalSearchScope.allScope(project));
         List<MQL4FunctionElement> matching = new ArrayList<>();
         for (MQL4FunctionElement f : projectFunctions) {
             if (name.equals(f.getFunctionName())) {

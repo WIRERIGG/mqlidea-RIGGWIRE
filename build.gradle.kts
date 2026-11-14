@@ -69,6 +69,10 @@ tasks {
     // specified source release" error.
     withType<JavaCompile> {
         options.release.set(21)
+        // Deprecated or for-removal platform API is a build error, so it is replaced when it
+        // appears instead of piling up. An override the oldest supported platform still requires
+        // carries an explained @SuppressWarnings("deprecation").
+        options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:removal", "-Werror"))
     }
 
     test {

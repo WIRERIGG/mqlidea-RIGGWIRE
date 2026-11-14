@@ -413,13 +413,13 @@ public class MqlResolveTest extends BasePlatformTestCase {
 
         // (a) BOTH enums are indexed -- the top-level one and the class-nested one.
         assertFalse("top-level enum EColor must be in the enum index",
-                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().get("EColor", getProject(), all).isEmpty());
+                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().getElements("EColor", getProject(), all).isEmpty());
         assertFalse("class-nested enum EMode must be in the enum index",
-                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().get("EMode", getProject(), all).isEmpty());
+                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().getElements("EMode", getProject(), all).isEmpty());
 
         // (b) the global-var index finds the GLOBAL but NOT the class field of the same name.
         java.util.Collection<MQL4VarDefinitionElement> shared =
-                com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex.getInstance().get("shared", getProject(), all);
+                com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex.getInstance().getElements("shared", getProject(), all);
         assertEquals("exactly one 'shared' (the global) must be indexed -- never the class field",
                 1, shared.size());
         MQL4VarDefinitionElement indexed = shared.iterator().next();

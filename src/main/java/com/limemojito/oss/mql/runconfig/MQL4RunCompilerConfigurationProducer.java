@@ -8,7 +8,8 @@
 package com.limemojito.oss.mql.runconfig;
 
 import com.intellij.execution.actions.ConfigurationContext;
-import com.intellij.execution.actions.RunConfigurationProducer;
+import com.intellij.execution.actions.LazyRunConfigurationProducer;
+import com.intellij.execution.configurations.ConfigurationFactory;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -25,13 +26,15 @@ import java.util.Set;
  * which cannot be built standalone) it creates/matches an {@link MQL4RunCompilerConfiguration}
  * whose {@code fileToCompile} points at that file, so the gutter action has a config to run.
  */
-public class MQL4RunCompilerConfigurationProducer extends RunConfigurationProducer<MQL4RunCompilerConfiguration> {
+public class MQL4RunCompilerConfigurationProducer extends LazyRunConfigurationProducer<MQL4RunCompilerConfiguration> {
 
     /** Program extensions MetaEditor can compile standalone -- headers (.mqh) are deliberately excluded. */
     private static final Set<String> COMPILABLE_PROGRAM_EXTENSIONS = Set.of("mq4", "mql4", "mq5", "mql5");
 
-    protected MQL4RunCompilerConfigurationProducer() {
-        super(MQL4RunCompilerConfigurationType.getInstance());
+    @NotNull
+    @Override
+    public ConfigurationFactory getConfigurationFactory() {
+        return MQL4RunCompilerConfigurationType.getInstance().getConfigurationFactories()[0];
     }
 
     @Override

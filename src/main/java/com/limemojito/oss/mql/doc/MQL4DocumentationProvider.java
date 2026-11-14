@@ -195,7 +195,8 @@ public class MQL4DocumentationProvider extends DocumentationProviderEx implement
 
     @Nullable
     @Override
-    public PsiElement getCustomDocumentationElement(@NotNull Editor editor, @NotNull PsiFile file, @Nullable PsiElement contextElement) {
+    public PsiElement getCustomDocumentationElement(@NotNull Editor editor, @NotNull PsiFile file, @Nullable PsiElement contextElement,
+                                                    int targetOffset) {
         return contextElement;
     }
 

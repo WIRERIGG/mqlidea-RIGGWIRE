@@ -162,9 +162,16 @@
                                    implementationClass="com.limemojito.oss.mql.editor.parameterinfo.MQL4ParameterInfoHandler"/>
 
         <!-- Parameter-name inlay hints (Phase 3a): labels each positional argument of a resolved
-             call with its parameter name, reusing the Ctrl-P signature resolution. -->
-        <codeInsight.parameterNameHints language="MQL4"
-                                        implementationClass="com.limemojito.oss.mql.editor.MqlParameterHintsProvider"/>
+             call with its parameter name, reusing the Ctrl-P signature resolution. Declarative
+             API: the old parameterNameHints EP's interface is @ApiStatus.Experimental. -->
+        <codeInsight.declarativeInlayProvider language="MQL4"
+                                              implementationClass="com.limemojito.oss.mql.editor.MqlParameterHintsProvider"
+                                              isEnabledByDefault="true"
+                                              group="PARAMETERS_GROUP"
+                                              providerId="riggwire.mql.parameter.names"
+                                              bundle="messages.plugin"
+                                              nameKey="inlay.parameter.names.name"
+                                              descriptionKey="inlay.parameter.names.description"/>
 
         <!-- Spellchecking (Phase 2c): comments/strings as free text, identifiers split on
              case/underscore boundaries; common MQL/MetaTrader jargon is allow-listed via the

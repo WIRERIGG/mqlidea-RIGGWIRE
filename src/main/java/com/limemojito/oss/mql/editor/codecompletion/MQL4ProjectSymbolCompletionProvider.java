@@ -69,7 +69,7 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
         });
         for (String name : functionNames) {
             ProgressManager.checkCanceled();
-            for (MQL4FunctionElement function : functionIndex.get(name, project, scope)) {
+            for (MQL4FunctionElement function : functionIndex.getElements(name, project, scope)) {
                 if (!name.equals(function.getFunctionName())) {
                     continue;
                 }
@@ -99,7 +99,7 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
         });
         for (String name : classNames) {
             ProgressManager.checkCanceled();
-            for (MQL4ClassElement cls : classIndex.get(name, project, scope)) {
+            for (MQL4ClassElement cls : classIndex.getElements(name, project, scope)) {
                 if (!name.equals(cls.getTypeName())) {
                     continue;
                 }

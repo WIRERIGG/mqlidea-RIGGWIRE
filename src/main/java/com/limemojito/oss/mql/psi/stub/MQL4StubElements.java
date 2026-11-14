@@ -38,9 +38,13 @@ public interface MQL4StubElements {
     // v23: the ENUM_STATEMENT stub now also carries its constant (field) names, indexed into the new
     // enum-field-name stub index so a bare enum-constant use resolves to its declaration; the changed
     // stub serialization forces a one-time rebuild.
+    // v24: user-type, pointer, array and comma-list declarations parse as VAR_DEFINITIONs, adding
+    // global-var stubs.
+    // v25: `export` functions and `pack(n)` classes/structs parse into FUNCTION / CLASS nodes.
     int STUB_SCHEMA_VERSION = 25;
 
-    ILightStubFileElementType FILE = new ILightStubFileElementType(MQL4Language.INSTANCE) {
+    // The debug name goes through the constructor: getDebugName() is internal API and not for overriding.
+    ILightStubFileElementType FILE = new ILightStubFileElementType("RIGGWIRE MQL File", MQL4Language.INSTANCE) {
         @Override
         public String getExternalId() {
             // Distinctive, plugin-unique id so the platform can tell this stub file element
@@ -48,11 +52,6 @@ public interface MQL4StubElements {
             // which uses the default "MQL4.FILE"). Avoids the "Cannot distinguish
             // StubFileElementTypes" warning.
             return "riggwire.mql.FILE";
-        }
-
-        @Override
-        public String getDebugName() {
-            return "RIGGWIRE MQL File";
         }
 
         @Override

@@ -13,6 +13,7 @@ import com.intellij.openapi.fileChooser.FileChooserFactory;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.projectRoots.ProjectJdkTable;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.roots.ProjectRootManager;
@@ -118,7 +119,10 @@ public class MQL4CompilerRunnerEditor extends SettingsEditor<MQL4RunCompilerConf
             FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
                     .withFileFilter(MQL4CompilerRunnerEditor::acceptsProgramFile);
             descriptor.setTitle("Select MQL File…");
-            descriptor.setRoots(project.getBaseDir());
+            VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
+            if (projectDir != null) {
+                descriptor.setRoots(projectDir);
+            }
 
             FileChooserDialog chooser = FileChooserFactory.getInstance().createFileChooser(descriptor, project, null);
             VirtualFile[] selectedFiles = chooser.choose(project);

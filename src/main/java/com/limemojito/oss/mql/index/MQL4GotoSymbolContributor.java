@@ -54,10 +54,10 @@ public class MQL4GotoSymbolContributor implements ChooseByNameContributor {
         }
         GlobalSearchScope scope = GlobalSearchScope.allScope(project);
 
-        Collection<MQL4ClassElement> classes = MQL4ClassNameIndex.getInstance().get(name, project, scope);
+        Collection<MQL4ClassElement> classes = MQL4ClassNameIndex.getInstance().getElements(name, project, scope);
         List<NavigationItem> result = new ArrayList<>(classes);
 
-        Collection<MQL4FunctionElement> functions = MQL4FunctionNameIndex.getInstance().get(name, project, scope);
+        Collection<MQL4FunctionElement> functions = MQL4FunctionNameIndex.getInstance().getElements(name, project, scope);
         result.addAll(functions);
 
         return result.toArray(new NavigationItem[0]);

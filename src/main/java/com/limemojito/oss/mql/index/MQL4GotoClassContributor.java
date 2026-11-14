@@ -11,11 +11,11 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.ArrayUtil;
-import com.intellij.util.containers.HashSet;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 
 import java.util.Collection;
+import java.util.HashSet;
 
 public class MQL4GotoClassContributor implements ChooseByNameContributor {
 
@@ -36,7 +36,7 @@ public class MQL4GotoClassContributor implements ChooseByNameContributor {
             return NavigationItem.EMPTY_NAVIGATION_ITEM_ARRAY;
         }
         MQL4ClassNameIndex index = MQL4ClassNameIndex.getInstance();
-        Collection<MQL4ClassElement> classes = index.get(name, project, GlobalSearchScope.allScope(project));
+        Collection<MQL4ClassElement> classes = index.getElements(name, project, GlobalSearchScope.allScope(project));
         return classes.toArray(new NavigationItem[0]);
     }
 }

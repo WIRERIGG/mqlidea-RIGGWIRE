@@ -6,12 +6,15 @@
 package com.limemojito.oss.mql.sdk;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.AdditionalDataConfigurable;
 import com.intellij.openapi.projectRoots.SdkAdditionalData;
 import com.intellij.openapi.projectRoots.SdkModel;
 import com.intellij.openapi.projectRoots.SdkModificator;
 import com.intellij.openapi.projectRoots.SdkType;
 import java.io.File;
+import java.util.Collection;
+import java.util.List;
 import javax.swing.Icon;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
@@ -41,15 +44,27 @@ public class MQL4SdkType extends SdkType {
         return MQL4Icons.File;
     }
 
-    @NotNull
-    @Override
-    public Icon getIconForAddAction() {
-        return getIcon();
-    }
 
+    // Deprecated, but abstract on 2025.3 (the oldest supported platform), so it must stay
+    // implemented until since-build moves past 253. Once the platform drops it, this is a plain
+    // method and suggestHomePaths(Project) below keeps the suggestion working.
     @Nullable
     @Override
+    @SuppressWarnings("deprecation")
     public String suggestHomePath() {
+        return defaultHomePath();
+    }
+
+    @NotNull
+    @Override
+    public Collection<String> suggestHomePaths(@Nullable Project project) {
+        String home = defaultHomePath();
+        return home == null ? List.of() : List.of(home);
+    }
+
+    /** Where MetaTrader is usually installed: Program Files on Windows, the default Wine prefix elsewhere. */
+    @Nullable
+    static String defaultHomePath() {
         if (OSUtils.isWindowsOS()) {
             File res = new File("c:/Program Files (x86)");
             if (res.isDirectory()) {
