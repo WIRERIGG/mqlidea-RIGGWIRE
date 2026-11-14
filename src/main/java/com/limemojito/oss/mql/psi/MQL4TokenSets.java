@@ -31,11 +31,11 @@ public class MQL4TokenSets implements MQL4Elements {
     );
 
     public static final TokenSet LITERALS = TokenSet.create(STRING_LITERAL, CHAR_LITERAL, INTEGER_LITERAL, DOUBLE_LITERAL,
-            FALSE_KEYWORD, TRUE_KEYWORD, COLOR_CONSTANT_LITERAL, COLOR_STRING_LITERAL);
+            FALSE_KEYWORD, TRUE_KEYWORD, COLOR_CONSTANT_LITERAL, COLOR_STRING_LITERAL, DATETIME_LITERAL);
 
     public static final TokenSet STRINGS_AND_CHARS = TokenSet.create(STRING_LITERAL, CHAR_LITERAL, INCLUDE_STRING_LITERAL);
 
-    public static final TokenSet NUMBERS = TokenSet.create(INTEGER_LITERAL, DOUBLE_LITERAL);
+    public static final TokenSet NUMBERS = TokenSet.create(INTEGER_LITERAL, DOUBLE_LITERAL, DATETIME_LITERAL);
 
     public static final TokenSet LEFT_BRACKETS = TokenSet.create(L_CURLY_BRACKET, L_ROUND_BRACKET, L_SQUARE_BRACKET);
     public static final TokenSet RIGHT_BRACKETS = TokenSet.create(R_CURLY_BRACKET, R_ROUND_BRACKET, R_SQUARE_BRACKET);

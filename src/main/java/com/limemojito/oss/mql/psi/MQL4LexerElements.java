@@ -42,6 +42,7 @@ public interface MQL4LexerElements {
     IElementType STRING_LITERAL = new MQL4ElementType("STRING_LITERAL");
     IElementType COLOR_CONSTANT_LITERAL = new MQL4ElementType("COLOR_CONSTANT_LITERAL");
     IElementType COLOR_STRING_LITERAL = new MQL4ElementType("COLOR_STRING_LITERAL");
+    IElementType DATETIME_LITERAL = new MQL4ElementType("DATETIME_LITERAL");
 
     // Braces and separators
     IElementType COLON_COLON = new MQL4ElementType("COLON_COLON");

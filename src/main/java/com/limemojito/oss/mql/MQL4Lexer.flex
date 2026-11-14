@@ -30,8 +30,12 @@ line_comment = "/""/"[^\r\n]* {line_terminator}?
 double_quoted_string = \" ( [^\\\"] |{escape_sequence})* \" {string_postfix}?
 string_postfix = [cwd]
 
-escape_sequence = {escape_sequence_spec_char}
-escape_sequence_spec_char = "\\\'" | "\\\"" | "\\\?" | "\\\\" | "\\0" | "\\a" | "\\b"  | "\\f"  | "\\n"  | "\\r"  | "\\t" | "\\v"
+escape_sequence = {escape_sequence_spec_char} | {escape_sequence_hex} | {escape_sequence_decimal}
+escape_sequence_spec_char = "\\\'" | "\\\"" | "\\\?" | "\\\\" | "\\a" | "\\b"  | "\\f"  | "\\n"  | "\\r"  | "\\t" | "\\v"
+// Character codes (MQL5 reference, Character Constants): '\xhhhh' takes 1 to 4 hex digits and '\d' a
+// decimal code from 0 to 65535 (which covers the former "\\0").
+escape_sequence_hex = "\\" [xX] [0-9a-fA-F]{1,4}
+escape_sequence_decimal = "\\" [0-9]{1,5}
 
 char_literal = \' ( [^\r\n\t\f\\] | {escape_sequence} ) \'
 integer_literal = ({decimal_integer} | {hexadecimal_integer}) {integer_suffix}?
@@ -63,6 +67,9 @@ color_name= Black | DarkGreen | DarkSlateGray | Olive | Green | Teal | Navy | Pu
 
 color_constant_literal = {color_prefix} {color_name} | {color_name}
 color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
+// D'2024.01.15 12:30:00', D'19.07.1980 12', D'2015.01.01 00:00' (MQL5 reference, Datetime Type): date
+// and/or time parts made of digits, '.', ':' and spaces.
+datetime_literal = D \' [0-9.: ]* \'
 
 /*End of rules*/
 
@@ -76,6 +83,7 @@ color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
 {line_comment}      { return MQL4Elements.LINE_COMMENT; }
 
 {color_string_literal}     { return MQL4Elements.COLOR_STRING_LITERAL;}
+{datetime_literal}     { return MQL4Elements.DATETIME_LITERAL;}
 {char_literal} { return MQL4Elements.CHAR_LITERAL; }
 {integer_literal} { return MQL4Elements.INTEGER_LITERAL; }
 {float_literal} { return MQL4Elements.DOUBLE_LITERAL; }
