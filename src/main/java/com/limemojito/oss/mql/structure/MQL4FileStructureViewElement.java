@@ -6,7 +6,6 @@
 package com.limemojito.oss.mql.structure;
 
 import com.intellij.ide.structureView.StructureViewTreeElement;
-import com.intellij.ide.structureView.impl.common.PsiTreeElementBase;
 import com.intellij.navigation.ItemPresentation;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.tree.IElementType;
@@ -25,16 +24,24 @@ import javax.swing.Icon;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class MQL4FileStructureViewElement extends PsiTreeElementBase<MQL4File> {
+/**
+ * Root of the Structure view. Builds on {@link MQL4StructureViewElement} rather than the platform's
+ * {@code PsiTreeElementBase}: from CLion 2026.3 that class lives in the separate structure-view
+ * plugin, which this plugin does not depend on, so using it fails with NoClassDefFoundError.
+ */
+public class MQL4FileStructureViewElement extends MQL4StructureViewElement<MQL4File> {
 
     protected MQL4FileStructureViewElement(@NotNull MQL4File file) {
         super(file);
     }
 
     @NotNull
-    public Collection<StructureViewTreeElement> getChildrenBase() {
-        PsiElement[] children = getFileElement().getChildren();
-        return toStructureViewElements(children);
+    @Override
+    public StructureViewTreeElement[] getChildren() {
+        if (!element.isValid()) {
+            return EMPTY_ARRAY;
+        }
+        return toStructureViewElements(element.getChildren()).toArray(EMPTY_ARRAY);
     }
 
     public static Collection<StructureViewTreeElement> toStructureViewElements(PsiElement[] elements) {
@@ -69,12 +76,11 @@ public class MQL4FileStructureViewElement extends PsiTreeElementBase<MQL4File> {
 
     @NotNull
     private MQL4File getFileElement() {
-        MQL4File file = getElement();
-        assert file != null;
-        return file;
+        return element;
     }
 
     @NotNull
+    @Override
     public ItemPresentation getPresentation() {
         return new ItemPresentation() {
 

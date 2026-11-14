@@ -48,6 +48,18 @@ dependencies {
 intellijPlatform {
     // fails on auto builds for unknown reasons.
     buildSearchableOptions = false
+
+    // ./gradlew verifyPlugin: the build's own target IDE plus the CLion this plugin is used in.
+    // MQL_VERIFY_IDE overrides the local IDE path (machines without /Applications/CLion.app).
+    pluginVerification {
+        ides {
+            create(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdea, "2025.3.2")
+            val localIde = file(System.getenv("MQL_VERIFY_IDE") ?: "/Applications/CLion.app")
+            if (localIde.exists()) {
+                local(localIde)
+            }
+        }
+    }
 }
 
 tasks {
