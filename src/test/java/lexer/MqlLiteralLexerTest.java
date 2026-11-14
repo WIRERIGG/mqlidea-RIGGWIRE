@@ -96,6 +96,19 @@ class MqlLiteralLexerTest {
         assertThat(tokens).extracting(Token::text).contains("\"\\x00A9\"", "x");
     }
 
+    @Test
+    void leadingZeroIntegerIsOneToken() {
+        // MetaEditor accepts zero-padded decimals (enum ENUM_HOUR { h07=07, h08=08 } in MQLTA Utils.mqh)
+        for (String literal : new String[]{"00", "07", "08", "09", "0012", "0", "10"}) {
+            assertThat(only(literal).type()).isEqualTo(MQL4Elements.INTEGER_LITERAL);
+        }
+        assertThat(lex("enum E { h00=00, h08=08 };")).extracting(Token::type).containsExactly(
+                MQL4Elements.ENUM_KEYWORD, MQL4Elements.IDENTIFIER, MQL4Elements.L_CURLY_BRACKET,
+                MQL4Elements.IDENTIFIER, MQL4Elements.EQ, MQL4Elements.INTEGER_LITERAL, MQL4Elements.COMMA,
+                MQL4Elements.IDENTIFIER, MQL4Elements.EQ, MQL4Elements.INTEGER_LITERAL,
+                MQL4Elements.R_CURLY_BRACKET, MQL4Elements.SEMICOLON);
+    }
+
     /**
      * These keywords used to be recognised only by a hand-written fallback patched into the generated
      * lexer; after regenerating from MQL4Lexer.flex they must come from the DFA itself.

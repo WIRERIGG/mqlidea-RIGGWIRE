@@ -41,7 +41,7 @@ char_literal = \' ( [^\r\n\t\f\\] | {escape_sequence} ) \'
 integer_literal = ({decimal_integer} | {hexadecimal_integer}) {integer_suffix}?
 
 integer_suffix =  L | u | U | Lu | LU | uL | UL
-decimal_integer = 0 | ([1-9] [0-9]*)
+decimal_integer = [0-9]+
 hexadecimal_integer = 0[xX] [0-9a-fA-F] [0-9a-fA-F]*
 
 float_literal = {decimal_float}
