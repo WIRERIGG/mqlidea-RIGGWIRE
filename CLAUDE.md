@@ -15,10 +15,12 @@ export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
 ./gradlew test           # tests only (542 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
+tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 ```
 
 - Java 21 (JetBrains Runtime), Gradle 9.3 via wrapper, IntelliJ Platform Gradle Plugin 2.11.0.
 - Target IDE: IntelliJ IDEA / CLion **2025.3.2+** (since-build 253.30387).
+- Updates reach CLion through a local plugin repository: `file:///Users/shemarrigg/.mqlidea-repo/updatePlugins.xml` (Settings → Plugins → ⚙ → Manage Plugin Repositories). Bump `version` in build.gradle.kts **and** `<version>` in plugin.xml, `buildPlugin`, then run the publish script; CLion offers the update.
 - The plugin only depends on `com.intellij.modules.lang`, so it loads in CLion as well as IDEA.
 
 ## Dependencies
