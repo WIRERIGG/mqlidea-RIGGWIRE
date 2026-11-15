@@ -10,6 +10,7 @@ import com.intellij.lang.PsiBuilder;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.Nullable;
+import com.limemojito.oss.mql.parser.parsing.BracketBlockParsing;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
 
@@ -51,13 +52,6 @@ public class StatementParsing implements MQL4Elements {
             DEFAULT_KEYWORD
     );
 
-    /**
-     * Same modifier set as VarDeclarationStatement.PRE_TYPES.
-     */
-    private static final TokenSet DECLARATION_PRE_TYPES = TokenSet.create(
-            CONST_KEYWORD, EXTERN_KEYWORD, INPUT_KEYWORD, SINPUT_KEYWORD, STATIC_KEYWORD
-    );
-
     public static boolean parseStatement(PsiBuilder b, int l) {
         if (!recursion_guard_(b, l, "parseStatement")) {
             return false;
@@ -74,7 +68,9 @@ public class StatementParsing implements MQL4Elements {
                 || parseLoopLikeStatement(b, l, WHILE_KEYWORD, WHILE_STATEMENT)
                 || parseDoStatement(b, l)
                 || parseSwitchStatement(b, l)
-                || parseLocalVarDeclaration(b, l)
+                || parseTypedef(b, l)
+                || parseLocalType(b, l)
+                || parseVarDeclaration(b, l, true) // a code block: CFoo f(1); declares f
                 || parseBlockStatement(b, l)
                 || parseExpressionStatement(b, l);
     }
@@ -148,7 +144,12 @@ public class StatementParsing implements MQL4Elements {
         }
         PsiBuilder.Marker m = b.mark();
         b.advanceLexer(); // 'for' | 'while'
-        parseParenGroup(b, l + 1);
+        if (keyword == FOR_KEYWORD && b.lookAhead(0) == L_ROUND_BRACKET) {
+            parseCommentsRun(b);
+            BracketBlockParsing.parseForHeader(b, l + 1); // for(int i=0; ...): i is a definition
+        } else {
+            parseParenGroup(b, l + 1);
+        }
         parseBranch(b, l); // loop body
         m.done(statementType);
         return true;
@@ -197,36 +198,89 @@ public class StatementParsing implements MQL4Elements {
     }
 
     /**
-     * Local variable declaration. Only dispatches to {@link VarDeclarationStatement} for the
-     * simple shapes it parses without emitting errors: [modifier] type name (';' | '= ...').
-     * Anything else (arrays, declaration lists, constructor-call declarations) is left for the
-     * expression-statement fallback which is fully tolerant.
-     */
-    /**
-     * Public entry point so callers outside a {@code {}} code block (top-level globals, class
-     * member fields) can reuse this exact gated shape too (Phase 4, REVAMP_PLAN.md #3b: named PSI
-     * for variables needs this same tolerant, narrow match everywhere a simple
-     * {@code [modifier] type name (';' | '= ...')} declaration can legally appear). The gate
-     * (requires the token right after the name to be ';' or '=') is what keeps this safe to widen:
-     * anything else (arrays, comma lists, ctor-call declarations) falls through untouched to
-     * whatever fallback the caller already has, exactly as it does inside function bodies today.
+     * Variable declaration, used in {@code {}} code blocks, at the top level (globals) and in class
+     * bodies (fields). The shape is decided by {@link VarDeclarationStatement#declarationNameIndex}:
+     * {@code [modifier]* type [*|&] name} followed by {@code ;}, {@code =}, {@code ,} or {@code [},
+     * where the type is a built-in keyword or a user, qualified or template type. Anything else
+     * (calls, expressions; constructor-argument declarations {@code CFoo f(1);} only in code blocks) falls through
+     * untouched to the caller's fallback.
      */
     public static boolean parseLocalVarDeclaration(PsiBuilder b, int l) {
-        int n = 0;
-        if (DECLARATION_PRE_TYPES.contains(b.lookAhead(0))) {
-            n++;
+        if (parseTypedef(b, l)) {
+            return true; // `typedef int (*TOp)(int);` declares a type (T-4), not a variable
         }
-        if (!MQL4TokenSets.DATA_TYPES.contains(b.lookAhead(n)) || b.lookAhead(n + 1) != IDENTIFIER) {
-            return false;
-        }
-        IElementType afterName = b.lookAhead(n + 2);
-        if (afterName != SEMICOLON && afterName != EQ) {
-            return false;
-        }
-        // VarDeclarationStatement was fixed to use raw mark()/done() (no enter_section_), so it is
-        // safe to call with the bracket block's raw PsiBuilder and gives locals proper structure.
+        // VarDeclarationStatement.declarationNameIndex is the gate: user/qualified/template types,
+        // '*'/'&', array sizes and comma lists, but only when the name is followed by ; = , or [.
+        // VarDeclarationStatement uses raw mark()/done() (no enter_section_), so it is safe to call
+        // with the bracket block's raw PsiBuilder.
         return parseVarDeclaration(b, l);
     }
+
+    /**
+     * A struct, class or union defined inside a function ({@code struct SHeader { ... };}), with any
+     * variables declared after its body ({@code union U { ... } res;}).
+     */
+    private static boolean parseLocalType(PsiBuilder b, int l) {
+        IElementType t = b.getTokenType();
+        boolean union = t == IDENTIFIER && "union".equals(b.getTokenText()) && b.lookAhead(1) == IDENTIFIER;
+        if (!union && t != STRUCT_KEYWORD && t != CLASS_KEYWORD) {
+            return false;
+        }
+        if (!com.limemojito.oss.mql.parser.parsing.ClassParsing.parseClassOrStruct(b, l)) {
+            return false;
+        }
+        if (b.getTokenType() == IDENTIFIER || b.getTokenType() == MUL) {
+            PsiBuilder.Marker vars = b.mark();
+            if (VarDeclarationStatement.parseVarDefinitionList(b, l + 1) == VarDeclarationStatement.ListEnd.INITIALIZER) {
+                b.advanceLexer(); // ';' after the last initializer
+            }
+            vars.done(VAR_DECLARATION_STATEMENT);
+        } else if (b.getTokenType() == SEMICOLON) {
+            b.advanceLexer();
+        }
+        return true;
+    }
+
+    /**
+     * Form: typedef returnType (*Name)(params); -- MQL5's only typedef, a function-pointer type. The
+     * return type goes in a TYPEDEF_RETURN_TYPE node so Name is the TYPEDEF's first direct
+     * IDENTIFIER. {@code typedef} isn't reserved in MQL4, so it's recognized by text. A malformed
+     * typedef is consumed through its {@code ;} (stopping before a brace) as a TYPEDEF without a name.
+     */
+    private static boolean parseTypedef(PsiBuilder b, int l) {
+        if (b.getTokenType() != IDENTIFIER || !"typedef".equals(b.getTokenText())) {
+            return false;
+        }
+        PsiBuilder.Marker m = b.mark();
+        b.remapCurrentToken(TYPEDEF_KEYWORD);
+        b.advanceLexer(); // 'typedef'
+        PsiBuilder.Marker ret = b.mark();
+        while (!b.eof() && !TYPEDEF_STOP.contains(b.getTokenType())) {
+            b.advanceLexer();
+        }
+        ret.done(TYPEDEF_RETURN_TYPE);
+        if (b.getTokenType() == L_ROUND_BRACKET && b.lookAhead(1) == MUL && b.lookAhead(2) == IDENTIFIER
+                && b.lookAhead(3) == R_ROUND_BRACKET) {
+            b.advanceLexer(); // '('
+            b.advanceLexer(); // '*'
+            b.advanceLexer(); // name
+            b.advanceLexer(); // ')'
+            if (b.getTokenType() == L_ROUND_BRACKET) {
+                parseBracketsBlock(b, l + 1); // (params)
+            }
+        }
+        while (!b.eof() && b.getTokenType() != SEMICOLON
+                && b.getTokenType() != L_CURLY_BRACKET && b.getTokenType() != R_CURLY_BRACKET) {
+            b.advanceLexer();
+        }
+        if (b.getTokenType() == SEMICOLON) {
+            b.advanceLexer();
+        }
+        m.done(TYPEDEF);
+        return true;
+    }
+
+    private static final TokenSet TYPEDEF_STOP = TokenSet.create(L_ROUND_BRACKET, SEMICOLON, L_CURLY_BRACKET, R_CURLY_BRACKET);
 
     /**
      * Nested {} code block used as a statement.

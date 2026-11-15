@@ -32,6 +32,9 @@ public interface MQL4Icons {
     Icon Class = AllIcons.Nodes.Class;
     Icon Struct = IconLoader.getIcon("/icons/struct.svg", callingClassLoader());
     Icon Interface = AllIcons.Nodes.Interface;
+    Icon Typedef = AllIcons.Nodes.Type;
+    Icon Define = AllIcons.Nodes.Constant;
+    Icon Namespace = AllIcons.Nodes.Package;
 
     // Functions and methods
     Icon FunctionDeclaration = createLayeredIcon(AllIcons.Nodes.Function);

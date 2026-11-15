@@ -5,14 +5,21 @@
 
 package com.limemojito.oss.mql.runconfig.ui;
 
+import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil;
-import com.intellij.ui.ComboboxWithBrowseButton;
+import com.intellij.openapi.ui.ComponentWithBrowseButton;
+import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.sdk.MQL4SdkType;
 
-public class MQL4SDKComboBoxWithBrowseButton extends ComboboxWithBrowseButton {
+/**
+ * SDK combo box with a browse button that registers a new MQL SDK from a chosen home folder. Built on
+ * {@link ComponentWithBrowseButton} and the SDK type's own home chooser (which validates the folder)
+ * instead of the deprecated {@code ComboboxWithBrowseButton} and {@code SdkConfigurationUtil.selectSdkHome}.
+ */
+public class MQL4SDKComboBoxWithBrowseButton extends ComponentWithBrowseButton<MQL4SDKComboBox> {
 
     @NotNull
     public final MQL4SDKComboBox comboBox;
@@ -20,16 +27,20 @@ public class MQL4SDKComboBoxWithBrowseButton extends ComboboxWithBrowseButton {
     public Project project;
 
     public MQL4SDKComboBoxWithBrowseButton() {
-        super(new MQL4SDKComboBox());
-        this.comboBox = (MQL4SDKComboBox) getComboBox();
+        super(new MQL4SDKComboBox(), null);
+        this.comboBox = getChildComponent();
 
-        addActionListener(e -> SdkConfigurationUtil.selectSdkHome(MQL4SdkType.INSTANCE, sdkHome -> {
-            Sdk sdk = SdkConfigurationUtil.createAndAddSDK(sdkHome, MQL4SdkType.INSTANCE);
+        addActionListener(e -> {
+            VirtualFile home = FileChooser.chooseFile(MQL4SdkType.INSTANCE.getHomeChooserDescriptor(), this, project, null);
+            if (home == null) {
+                return;
+            }
+            Sdk sdk = SdkConfigurationUtil.createAndAddSDK(home.getPath(), MQL4SdkType.INSTANCE);
             if (sdk == null) {
                 return;
             }
             comboBox.addItem(sdk);
             comboBox.setSelectedSdk(sdk);
-        }));
+        });
     }
 }

@@ -60,6 +60,15 @@ public class MQL4ElementsFactory implements MQL4Elements {
         if (type == FUNCTION_ARG) {
             return new MQL4FunctionArgElement(node);
         }
+        if (type == TYPEDEF) {
+            return new com.limemojito.oss.mql.psi.impl.MQL4TypedefElement(node);
+        }
+        if (type == PREPROCESSOR_DEFINE_BLOCK) {
+            return new com.limemojito.oss.mql.psi.impl.MQL4DefineElement(node);
+        }
+        if (type == NAMESPACE_BLOCK) {
+            return new com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement(node);
+        }
         return new MQL4PsiElement(node);
     }
 

@@ -33,6 +33,8 @@ public interface MQL4LexerElements {
 
     // Escape character
     IElementType ESCAPE = new MQL4ElementType("ESCAPE");
+    IElementType PP_STRINGIZE = new MQL4ElementType("PP_STRINGIZE"); // #x in a macro body
+    IElementType PP_CONCAT = new MQL4ElementType("PP_CONCAT"); // a##b in a macro body
 
     // Literals
     IElementType CHAR_LITERAL = new MQL4ElementType("CHAR_LITERAL");
@@ -42,6 +44,7 @@ public interface MQL4LexerElements {
     IElementType STRING_LITERAL = new MQL4ElementType("STRING_LITERAL");
     IElementType COLOR_CONSTANT_LITERAL = new MQL4ElementType("COLOR_CONSTANT_LITERAL");
     IElementType COLOR_STRING_LITERAL = new MQL4ElementType("COLOR_STRING_LITERAL");
+    IElementType DATETIME_LITERAL = new MQL4ElementType("DATETIME_LITERAL");
 
     // Braces and separators
     IElementType COLON_COLON = new MQL4ElementType("COLON_COLON");
@@ -105,6 +108,7 @@ public interface MQL4LexerElements {
     IElementType CONST_KEYWORD = new MQL4ElementType("CONST_KEYWORD");
     IElementType FINAL_KEYWORD = new MQL4ElementType("FINAL_KEYWORD");
     IElementType OVERRIDE_KEYWORD = new MQL4ElementType("OVERRIDE_KEYWORD");
+    IElementType EXPORT_KEYWORD = new MQL4ElementType("EXPORT_KEYWORD");
     IElementType PRIVATE_KEYWORD = new MQL4ElementType("PRIVATE_KEYWORD");
     IElementType PROTECTED_KEYWORD = new MQL4ElementType("PROTECTED_KEYWORD");
     IElementType PUBLIC_KEYWORD = new MQL4ElementType("PUBLIC_KEYWORD");
@@ -169,4 +173,13 @@ public interface MQL4LexerElements {
     IElementType THIS_KEYWORD = new MQL4ElementType("THIS_KEYWORD");
     IElementType TRUE_KEYWORD = new MQL4ElementType("TRUE_KEYWORD");
     IElementType WHILE_KEYWORD = new MQL4ElementType("WHILE_KEYWORD");
+
+    // Contextual keywords. The lexer returns IDENTIFIER (none is reserved in MQL4, and pack, group
+    // and offsetof aren't reserved in MQL5 either); the parser remaps the token where the word acts
+    // as a keyword, and MQL4Annotator colors it.
+    IElementType UNION_KEYWORD = new MQL4ElementType("UNION_KEYWORD");
+    IElementType TYPEDEF_KEYWORD = new MQL4ElementType("TYPEDEF_KEYWORD");
+    IElementType PACK_KEYWORD = new MQL4ElementType("PACK_KEYWORD");
+    IElementType GROUP_KEYWORD = new MQL4ElementType("GROUP_KEYWORD");
+    IElementType OFFSETOF_KEYWORD = new MQL4ElementType("OFFSETOF_KEYWORD");
 }

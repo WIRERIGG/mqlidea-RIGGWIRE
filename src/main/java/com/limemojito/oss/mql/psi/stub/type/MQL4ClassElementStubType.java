@@ -42,7 +42,7 @@ public class MQL4ClassElementStubType extends ILightStubElementType<MQL4ClassEle
         LighterASTNode keyNode = LightTreeUtil.firstChildOfType(tree, node, MQL4Elements.IDENTIFIER);
         String key = keyNode == null ? "" : ((LighterASTTokenNode) keyNode).getText().toString();
 
-        LighterASTNode typeNode = LightTreeUtil.firstChildOfType(tree, node, MQL4TokenSets.CLASS_STRUCT_INTERFACE);
+        LighterASTNode typeNode = LightTreeUtil.firstChildOfType(tree, node, MQL4TokenSets.CLASS_KIND_KEYWORDS);
         ClassType classType = ClassType.fromTokenType(typeNode == null ? MQL4Elements.CLASS_KEYWORD : typeNode.getTokenType());
 
         return new MQL4ClassElementStubImpl(parentStub, key, classType);

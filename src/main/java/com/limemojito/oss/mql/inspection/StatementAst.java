@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -735,6 +736,69 @@ final class StatementAst implements MQL4Elements {
         return rest.isEmpty() || rest.charAt(0) == '-';
     }
 
+    /**
+     * True when, judging by how {@code body} computes the new size, an {@code ArrayResize} call can
+     * only keep or shrink the array, so it cannot fail:
+     * <ul>
+     *     <li>the size is {@code n} or {@code n - ...}, where every assignment to {@code n} in the
+     *     function is {@code n = ArraySize(array)}: a rollback after a failed grow, or a remove-at;</li>
+     *     <li>the size is a compaction counter {@code c}: only ever set to {@code 0} and incremented,
+     *     and used to index the same array ({@code array[c] = ...; c++;}), so it never passes the
+     *     number of elements already there.</li>
+     * </ul>
+     * Like {@link #arrayResizeCannotFail} this is text-level, with string and comment content left out.
+     */
+    static boolean arrayResizeNeverGrows(@Nullable ASTNode body, @NotNull ASTNode callIdentifier) {
+        String sizeArg = nthCallArg(callIdentifier, 1);
+        String arrayArg = nthCallArg(callIdentifier, 0);
+        if (body == null || sizeArg == null || arrayArg == null) return false;
+        Matcher size = SHRINK_SIZE.matcher(sizeArg.strip());
+        if (!size.matches()) return false;
+        String v = Pattern.quote(size.group(1));
+        String array = Pattern.quote(WHITESPACE.matcher(arrayArg).replaceAll(""));
+        String text = heuristicText(body);
+        int assignments = count(Pattern.compile("(?<![\\w.])" + v + "\\s*(?:[-+*/]?=(?!=)|\\+\\+|--)|(?:\\+\\+|--)\\s*" + v + "\\b"), text);
+        int fromSize = count(Pattern.compile("(?<![\\w.])" + v + "\\s*=(?!=)\\s*ArraySize\\s*\\(\\s*" + array + "\\s*\\)\\s*[;,]"), text);
+        if (assignments > 0 && assignments == fromSize) {
+            return true;
+        }
+        if (size.group(2) != null) return false; // `c - 1` of a counter: no claim
+        int zeroed = count(Pattern.compile("(?<![\\w.])" + v + "\\s*=(?!=)\\s*0\\s*[;,]"), text);
+        int incremented = count(Pattern.compile("(?<![\\w.])" + v + "\\s*\\+\\+|\\+\\+\\s*" + v + "\\b"), text);
+        boolean indexes = Pattern.compile("(?<![\\w.])" + array + "\\s*\\[\\s*" + v + "\\s*\\]").matcher(text).find();
+        return indexes && zeroed > 0 && incremented > 0 && zeroed + incremented == assignments;
+    }
+
+    /**
+     * True when {@code call} sits in the then-branch of an {@code if} whose condition compares another
+     * {@code ArrayResize} result: the rollback of a checked grow
+     * ({@code if(ArrayResize(a, n + 1) != n + 1) { ArrayResize(a, n); return; }}). Undoing a failed
+     * grow puts back a size the array already had.
+     */
+    static boolean inFailureBranchOfCheckedResize(@NotNull ASTNode body, @NotNull ASTNode call) {
+        for (ASTNode node = call; node != null && node != body; node = node.getTreeParent()) {
+            ASTNode parent = node.getTreeParent();
+            if (parent == null || parent.getElementType() != IF_STATEMENT) continue;
+            ASTNode condition = findConditionBlock(parent);
+            if (condition == null || node != findBodyAfterCondition(parent)) continue;
+            ASTNode[] checked = {null};
+            forEachCall(condition, Set.of("ArrayResize"), resize -> {
+                if (callResultCompared(resize)) checked[0] = resize;
+            });
+            if (checked[0] != null) return true;
+        }
+        return false;
+    }
+
+    /** {@code name} or {@code name - <anything>}: the only new-size shapes {@link #arrayResizeNeverGrows} judges. */
+    private static final Pattern SHRINK_SIZE = Pattern.compile("([A-Za-z_]\\w*)(\\s*-.*)?", Pattern.DOTALL);
+
+    private static int count(@NotNull Pattern pattern, @NotNull String text) {
+        int n = 0;
+        for (Matcher m = pattern.matcher(text); m.find(); ) n++;
+        return n;
+    }
+
     /** The first non-trivia sibling after the {@code )} matching {@code lParen}, tracking depth; or null. */
     @Nullable
     private static ASTNode tokenAfterMatchingParen(@NotNull ASTNode lParen) {
@@ -803,9 +867,9 @@ final class StatementAst implements MQL4Elements {
      *   <li>{@code int copied; while(copied<needed){copied=CopyBuffer(...);}} retry idiom — the
      *       outer {@code copied} is in effect at both, so the header check counts → clean.</li>
      * </ul>
-     * Declarations are recognised structurally in both parse shapes (see {@link #isDeclarationOf}),
-     * including the flat-token {@code for(int i = 0; ...)} header, which the parser never wraps in a
-     * {@code VAR_DEFINITION}. When {@code name} has no recognised local declaration (parameter /
+     * Declarations are recognised structurally (see {@link #isDeclarationOf}): the
+     * {@code VAR_DEFINITION} the parser builds, including in a {@code for(int i = 0; ...)} header,
+     * and a flat {@code <type> name} token pair as a fallback. When {@code name} has no recognised local declaration (parameter /
      * global), the binding is null at every use, so uses still match — lenient, never a false positive.
      */
     static boolean capturedResultCompared(@Nullable ASTNode body, @NotNull String name, int captureOffset) {

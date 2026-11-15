@@ -5,7 +5,6 @@
 
 package com.limemojito.oss.mql.util;
 
-import com.intellij.xml.util.XmlUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +55,23 @@ public class TextUtils {
         return matcher.replaceAll(" ");
     }
 
-    public static String unescape(String val) {
-        return XmlUtil.unescape(val);
+    private static final String[] XML_ENTITIES = {"&lt;", "&gt;", "&quot;", "&amp;"};
+    private static final String[] XML_CHARS = {"<", ">", "\"", "&"};
+
+    /**
+     * Decodes {@code &lt; &gt; &quot; &amp;} exactly as {@code XmlUtil.unescape} does: not
+     * {@code &apos;}, and {@code &amp;} last, so {@code &amp;lt;} becomes {@code &lt;}. Kept local: from CLion 2026.3 {@code XmlUtil} lives
+     * in the XML plugin, which this plugin does not depend on, and this runs during stub indexing.
+     */
+    @Contract("null -> null")
+    public static String unescape(@Nullable String val) {
+        if (val == null || val.indexOf('&') < 0) {
+            return val;
+        }
+        String result = val;
+        for (int i = 0; i < XML_ENTITIES.length; i++) {
+            result = result.replace(XML_ENTITIES[i], XML_CHARS[i]);
+        }
+        return result;
     }
 }

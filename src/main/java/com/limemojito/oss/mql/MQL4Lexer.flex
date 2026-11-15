@@ -27,24 +27,37 @@ block_comment = "/*" {block_comment_content} "*/"
 block_comment_content = ([^*] | "*"+ [^/])*
 line_comment = "/""/"[^\r\n]* {line_terminator}?
 
-double_quoted_string = \" ( [^\\\"] |{escape_sequence})* \" {string_postfix}?
+// any other backslash pair too: an #include path "DX\DXHandle.mqh" is a path, and MetaEditor
+// only warns about an unknown escape in a string
+double_quoted_string = \" ( [^\\\"] |{escape_sequence} | "\\" [^\r\n] )* \" {string_postfix}?
 string_postfix = [cwd]
 
-escape_sequence = {escape_sequence_spec_char}
-escape_sequence_spec_char = "\\\'" | "\\\"" | "\\\?" | "\\\\" | "\\0" | "\\a" | "\\b"  | "\\f"  | "\\n"  | "\\r"  | "\\t" | "\\v"
+escape_sequence = {escape_sequence_spec_char} | {escape_sequence_hex} | {escape_sequence_decimal}
+escape_sequence_spec_char = "\\\'" | "\\\"" | "\\\?" | "\\\\" | "\\a" | "\\b"  | "\\f"  | "\\n"  | "\\r"  | "\\t" | "\\v"
+// Character codes (MQL5 reference, Character Constants): '\xhhhh' takes 1 to 4 hex digits and '\d' a
+// decimal code from 0 to 65535 (which covers the former "\\0").
+escape_sequence_hex = "\\" [xX] [0-9a-fA-F]{1,4}
+escape_sequence_decimal = "\\" [0-9]{1,5}
 
-char_literal = \' ( [^\r\n\t\f\\] | {escape_sequence} ) \'
+// A char literal takes any number of code digits so an out-of-range code ('\99999', '\x10000') stays
+// one CHAR_LITERAL; MQL4Annotator reports what MetaEditor reports (error 239). In strings the digit
+// limits above apply, because extra digits there are ordinary characters.
+char_escape_code = "\\" [xX] [0-9a-fA-F]+ | "\\" [0-9]+
+char_literal = \' ( [^\r\n\t\f\\] | {escape_sequence_spec_char} | {char_escape_code} ) \'
 integer_literal = ({decimal_integer} | {hexadecimal_integer}) {integer_suffix}?
 
-integer_suffix =  L | u | U | Lu | LU | uL | UL
-decimal_integer = 0 | ([1-9] [0-9]*)
+// u/U and l/L/ll/LL in either order: 5u, 7L, 2ull, 9LLU
+integer_suffix = [uU] ([lL] | ll | LL)? | ([lL] | ll | LL) [uU]?
+decimal_integer = [0-9]+
 hexadecimal_integer = 0[xX] [0-9a-fA-F] [0-9a-fA-F]*
 
-float_literal = {decimal_float}
-decimal_float = ( {decimal_float_simple} | {decimal_float_exponent} | {decimal_float_no_dot_exponent} )
+float_literal = {decimal_float} [fF]?   // 0.5f: a float constant
+decimal_float = ( {decimal_float_simple} | {decimal_float_exponent} | {decimal_float_no_dot_exponent} | {decimal_float_trailing_dot} )
 decimal_float_simple = [0-9]* \. ([0-9]+)
 decimal_float_exponent = [0-9]* \. [0-9_]+ {decimal_exponent}
 decimal_float_no_dot_exponent = [0-9]+ {decimal_exponent}
+// 5. and 5.e2 (MetaEditor accepts both)
+decimal_float_trailing_dot = [0-9]+ \. {decimal_exponent}?
 decimal_exponent = [eE][\+\-]? [0-9_]+
 
 color_prefix = clr
@@ -63,6 +76,9 @@ color_name= Black | DarkGreen | DarkSlateGray | Olive | Green | Teal | Navy | Pu
 
 color_constant_literal = {color_prefix} {color_name} | {color_name}
 color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
+// D'2024.01.15 12:30:00', D'19.07.1980 12', D'2015.01.01 00:00' (MQL5 reference, Datetime Type): date
+// and/or time parts made of digits, '.', ':' and spaces.
+datetime_literal = D \' [0-9.: ]* \'
 
 /*End of rules*/
 
@@ -76,6 +92,7 @@ color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
 {line_comment}      { return MQL4Elements.LINE_COMMENT; }
 
 {color_string_literal}     { return MQL4Elements.COLOR_STRING_LITERAL;}
+{datetime_literal}     { return MQL4Elements.DATETIME_LITERAL;}
 {char_literal} { return MQL4Elements.CHAR_LITERAL; }
 {integer_literal} { return MQL4Elements.INTEGER_LITERAL; }
 {float_literal} { return MQL4Elements.DOUBLE_LITERAL; }
@@ -115,6 +132,7 @@ color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
 "const"     { return MQL4Elements.CONST_KEYWORD; }
 "final"     { return MQL4Elements.FINAL_KEYWORD; }
 "override"  { return MQL4Elements.OVERRIDE_KEYWORD; }
+"export"    { return MQL4Elements.EXPORT_KEYWORD; }
 "public"    { return MQL4Elements.PUBLIC_KEYWORD; }
 "private"   { return MQL4Elements.PRIVATE_KEYWORD; }
 "virtual"   { return MQL4Elements.VIRTUAL_KEYWORD; }
@@ -226,6 +244,9 @@ color_string_literal = C \' ({decimal_integer} | {hexadecimal_integer} | , )* \'
 ","   { return MQL4Elements.COMMA; }
 "."   { return MQL4Elements.DOT; }
 "\\"   { return MQL4Elements.ESCAPE; }
+// macro-body operators (#define STR(x) #x, CAT(a,b) a##b); a directive like #define is the longer match
+"##"   { return MQL4Elements.PP_CONCAT; }
+"#"   { return MQL4Elements.PP_STRINGIZE; }
 }
 
 [^] { return MQL4Elements.BAD_CHARACTER; }

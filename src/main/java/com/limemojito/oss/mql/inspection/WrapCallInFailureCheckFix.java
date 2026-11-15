@@ -35,15 +35,41 @@ import org.jetbrains.annotations.NotNull;
 final class WrapCallInFailureCheckFix implements LocalQuickFix {
 
     private final String callName;
+    /** True for a call returning {@code bool} (MQL5 {@code OrderSend}): the check is {@code !call(...)}, not {@code < 0}. */
+    private final boolean boolResult;
 
     WrapCallInFailureCheckFix(@NotNull String callName) {
+        this(callName, false);
+    }
+
+    WrapCallInFailureCheckFix(@NotNull String callName, boolean boolResult) {
         this.callName = callName;
+        this.boolResult = boolResult;
+    }
+
+    @NotNull
+    private String condition(@NotNull String expr) {
+        return boolResult ? "!" + expr : expr + " < 0";
+    }
+
+    @NotNull
+    private String report() {
+        return "Print(__FUNCTION__, \": " + callName + " failed, error \", GetLastError());";
+    }
+
+    /** The bare call statement for the highlighted element: the call's identifier or the statement itself. */
+    @org.jetbrains.annotations.Nullable
+    private static ASTNode statementFor(@NotNull ASTNode node) {
+        if (node.getElementType() == com.limemojito.oss.mql.psi.MQL4Elements.EXPRESSION_STATEMENT) {
+            return node;
+        }
+        return StatementAst.isBareCallStatement(node) ? StatementAst.enclosingStatement(node) : null;
     }
 
     @NotNull
     @Override
     public String getName() {
-        return "Wrap in 'if(" + callName + "(...) < 0)' failure check";
+        return "Wrap in 'if(" + condition(callName + "(...)") + ")' failure check";
     }
 
     @NotNull
@@ -57,8 +83,7 @@ final class WrapCallInFailureCheckFix implements LocalQuickFix {
         PsiElement element = descriptor.getPsiElement();
         if (element == null || !element.isValid()) return;
         ASTNode callId = element.getNode();
-        if (callId == null || !StatementAst.isBareCallStatement(callId)) return;
-        ASTNode statement = StatementAst.enclosingStatement(callId);
+        ASTNode statement = callId == null ? null : statementFor(callId);
         if (statement == null) return;
         PsiFile file = element.getContainingFile();
         if (file == null) return;
@@ -73,8 +98,7 @@ final class WrapCallInFailureCheckFix implements LocalQuickFix {
         // Strip the trailing ';' to recover the call expression.
         String expr = stmtText.endsWith(";") ? stmtText.substring(0, stmtText.length() - 1).trim() : stmtText.trim();
         String indent = lineIndent(doc, start);
-        String replacement = "if(" + expr + " < 0)\n"
-                + indent + "   Print(__FUNCTION__, \": " + callName + " failed\");";
+        String replacement = "if(" + condition(expr) + ")\n" + indent + "   " + report();
         doc.replaceString(start, end, replacement);
         PsiDocumentManager.getInstance(project).commitDocument(doc);
     }
@@ -92,12 +116,11 @@ final class WrapCallInFailureCheckFix implements LocalQuickFix {
         PsiElement element = descriptor.getPsiElement();
         if (element == null || !element.isValid()) return IntentionPreviewInfo.EMPTY;
         ASTNode callId = element.getNode();
-        if (callId == null || !StatementAst.isBareCallStatement(callId)) return IntentionPreviewInfo.EMPTY;
-        ASTNode statement = StatementAst.enclosingStatement(callId);
+        ASTNode statement = callId == null ? null : statementFor(callId);
         if (statement == null) return IntentionPreviewInfo.EMPTY;
         String original = statement.getText();
         String expr = original.endsWith(";") ? original.substring(0, original.length() - 1).trim() : original.trim();
-        String modified = "if(" + expr + " < 0)\n   Print(__FUNCTION__, \": " + callName + " failed\");";
+        String modified = "if(" + condition(expr) + ")\n   " + report();
         return new IntentionPreviewInfo.CustomDiff(MQL4FileType.INSTANCE, original, modified);
     }
 

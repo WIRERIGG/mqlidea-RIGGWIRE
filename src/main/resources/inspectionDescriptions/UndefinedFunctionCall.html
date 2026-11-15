@@ -1,0 +1,19 @@
+<html>
+<body>
+Reports a call to a function that is not an MQL built-in and is not declared in the file, its
+<code>#include</code> files or anywhere else in the project. MetaEditor rejects it with
+error 256, "undeclared identifier". In an MQL5 file a call to an MQL4-only function
+(<code>OrderLots()</code>, <code>TimeHour()</code>) is reported too, since MQL5 doesn't have it.
+<!-- tooltip end -->
+<p>Example:</p>
+<pre>
+void OnTick()
+{
+   double lot = CalcLotSise(0.01);   // typo: the function is CalcLotSize
+}
+</pre>
+<p>A file with an <code>#include</code> that can't be found is not checked, since the missing
+header could declare the name. Member and scoped calls (<code>obj.Foo()</code>,
+<code>CFoo::Bar()</code>) and <code>#define</code> / <code>#import</code> bodies are not checked.</p>
+</body>
+</html>

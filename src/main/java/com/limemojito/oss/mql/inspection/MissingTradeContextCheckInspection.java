@@ -39,7 +39,7 @@ public class MissingTradeContextCheckInspection extends MQL5SafetyInspectionBase
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         if (isMql5Source(file)) return ProblemDescriptor.EMPTY_ARRAY;
         List<ProblemDescriptor> problems = new SmartList<>();
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func
                     && !func.isDeclaration()

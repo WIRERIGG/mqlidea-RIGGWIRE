@@ -33,7 +33,7 @@ public class MissingFunctionDocCommentInspection extends MQL5SafetyInspectionBas
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 String name = func.getFunctionName();

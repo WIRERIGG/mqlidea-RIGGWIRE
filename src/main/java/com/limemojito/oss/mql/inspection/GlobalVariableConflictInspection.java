@@ -28,7 +28,7 @@ public class GlobalVariableConflictInspection extends MQL5SafetyInspectionBase {
         List<ProblemDescriptor> problems = new SmartList<>();
         List<MQL4FunctionElement> funcsWithGlobalSet = new ArrayList<>();
 
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);

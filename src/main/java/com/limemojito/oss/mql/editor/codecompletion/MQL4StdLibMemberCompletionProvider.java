@@ -84,6 +84,13 @@ public class MQL4StdLibMemberCompletionProvider extends CompletionProvider<Compl
 
     @Nullable
     static String guessDeclaredStdLibType(@NotNull String fileText, int qualifierOffset, @NotNull String qualifierName) {
+        String candidate = guessDeclaredType(fileText, qualifierOffset, qualifierName);
+        return candidate == null || StdLibCatalog.get(candidate) == null ? null : candidate;
+    }
+
+    /** The type of the nearest preceding {@code Type [&*] qualifierName} text, or null. */
+    @Nullable
+    static String guessDeclaredType(@NotNull String fileText, int qualifierOffset, @NotNull String qualifierName) {
         if (qualifierOffset > fileText.length()) {
             qualifierOffset = fileText.length();
         }
@@ -95,9 +102,6 @@ public class MQL4StdLibMemberCompletionProvider extends CompletionProvider<Compl
             if (qualifierName.equals(m.group(2))) {
                 lastCandidate = m.group(1);
             }
-        }
-        if (lastCandidate == null || StdLibCatalog.get(lastCandidate) == null) {
-            return null;
         }
         return lastCandidate;
     }

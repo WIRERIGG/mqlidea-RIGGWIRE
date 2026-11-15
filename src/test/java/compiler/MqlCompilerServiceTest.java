@@ -105,6 +105,43 @@ public class MqlCompilerServiceTest extends BasePlatformTestCase {
         assertEquals(2, calls.get()); // cache explicitly invalidated -> launcher probed again
     }
 
+    /** A program's result is memoised by its closure stamp: a saved header changes it and forces a compile. */
+    public void testClosureStampChangeRecompiles() {
+        AtomicInteger calls = new AtomicInteger();
+        MqlCompilerService service = new MqlCompilerService(List.of(counting(calls, logWritingCommand())));
+        service.compile(virtualFile, 1L);
+        service.compile(virtualFile, 1L);
+        assertEquals(1, calls.get());
+        service.compile(virtualFile, 2L);
+        assertEquals(2, calls.get());
+    }
+
+    public void testClosureStampFollowsEveryFile() throws Exception {
+        File header = File.createTempFile("MqlCompilerServiceTest", ".mqh");
+        try {
+            VirtualFile h = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(header);
+            assertNotNull(h);
+            long before = MqlCompilerService.closureStamp(List.of(virtualFile, h));
+            assertEquals(before, MqlCompilerService.closureStamp(List.of(virtualFile, h)));
+            com.intellij.openapi.application.WriteAction.runAndWait(() -> h.setBinaryContent("int x;\n".getBytes()));
+            assertFalse(before == MqlCompilerService.closureStamp(List.of(virtualFile, h)));
+        } finally {
+            Files.deleteIfExists(header.toPath());
+        }
+    }
+
+    /** A header compiles through the program nearest it; a header nothing includes has none. */
+    public void testHeaderCompilesThroughTheNearestIncluder() {
+        myFixture.addFileToProject("Experts/EA/Main.mq5", "#include \"Lib/Part.mqh\"\n");
+        myFixture.addFileToProject("Experts/Other.mq5", "#include \"EA/Lib/Part.mqh\"\n");
+        com.intellij.psi.PsiFile part = myFixture.addFileToProject("Experts/EA/Lib/Part.mqh", "int g_part;\n");
+        com.intellij.psi.PsiFile program = com.limemojito.oss.mql.compiler.MqlCompilerExternalAnnotator.programFor(part);
+        assertNotNull(program);
+        assertEquals("Main.mq5", program.getName());
+        com.intellij.psi.PsiFile orphan = myFixture.addFileToProject("Experts/EA/Lib/Orphan.mqh", "int g_orphan;\n");
+        assertNull(com.limemojito.oss.mql.compiler.MqlCompilerExternalAnnotator.programFor(orphan));
+    }
+
     public void testGetLastResultIsNullBeforeAnyCompile() {
         MqlCompilerService service = new MqlCompilerService(List.of(unavailable()));
 

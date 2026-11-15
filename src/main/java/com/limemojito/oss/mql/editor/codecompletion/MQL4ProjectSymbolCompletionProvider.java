@@ -15,14 +15,21 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.stubs.StubIndex;
 import com.intellij.util.ProcessingContext;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.Icon;
+import com.limemojito.oss.mql.reference.MqlScopes;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.MQL4Icons;
+import com.intellij.psi.stubs.StubIndexKey;
 import com.limemojito.oss.mql.index.MQL4ClassNameIndex;
+import com.limemojito.oss.mql.index.MQL4DefineNameIndex;
+import com.limemojito.oss.mql.index.MQL4TypedefNameIndex;
+import com.limemojito.oss.mql.psi.impl.MQL4DefineElement;
+import com.limemojito.oss.mql.psi.impl.MQL4NamedStubElement;
+import com.limemojito.oss.mql.psi.impl.MQL4TypedefElement;
 import com.limemojito.oss.mql.index.MQL4FunctionNameIndex;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
@@ -45,7 +52,8 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
     protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
         PsiFile file = parameters.getOriginalFile();
         Project project = file.getProject();
-        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+        // Per name, the project's declarations win over the indexed MetaTrader Include folders,
+        // which can hold stale copies of the project's own headers (MqlScopes).
         // Only build lookup elements for keys the user's prefix can actually match — iterating and
         // constructing an element for every project symbol on each keystroke is wasteful and the
         // result set would discard the non-matches anyway.
@@ -69,7 +77,7 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
         });
         for (String name : functionNames) {
             ProgressManager.checkCanceled();
-            for (MQL4FunctionElement function : functionIndex.get(name, project, scope)) {
+            for (MQL4FunctionElement function : MqlScopes.projectFirst(functionIndex.getKey(), name, project, MQL4FunctionElement.class)) {
                 if (!name.equals(function.getFunctionName())) {
                     continue;
                 }
@@ -99,7 +107,7 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
         });
         for (String name : classNames) {
             ProgressManager.checkCanceled();
-            for (MQL4ClassElement cls : classIndex.get(name, project, scope)) {
+            for (MQL4ClassElement cls : MqlScopes.projectFirst(classIndex.getKey(), name, project, MQL4ClassElement.class)) {
                 if (!name.equals(cls.getTypeName())) {
                     continue;
                 }
@@ -107,6 +115,35 @@ public class MQL4ProjectSymbolCompletionProvider extends CompletionProvider<Comp
                         .withIcon(MQL4Icons.Class)
                         .withTypeText(cls.getContainingFile().getName());
                 result.addElement(PrioritizedLookupElement.withPriority(builder, PRIORITY_PROJECT_CLASS));
+            }
+        }
+
+        addNamed(MQL4TypedefNameIndex.getInstance().getKey(), MQL4TypedefElement.class, MQL4Icons.Typedef, project, prefixMatcher, result);
+        addNamed(MQL4DefineNameIndex.getInstance().getKey(), MQL4DefineElement.class, MQL4Icons.Define, project, prefixMatcher, result);
+    }
+
+    /** One item per name and file for a typedef or #define index (an #ifdef/#else pair is one name). */
+    private static <T extends MQL4NamedStubElement<T>> void addNamed(@NotNull StubIndexKey<String, T> key, @NotNull Class<T> type,
+                                                                     @NotNull Icon icon, @NotNull Project project,
+                                                                     @NotNull PrefixMatcher prefixMatcher,
+                                                                     @NotNull CompletionResultSet result) {
+        List<String> names = new ArrayList<>();
+        StubIndex.getInstance().processAllKeys(key, project, name -> {
+            ProgressManager.checkCanceled();
+            if (prefixMatcher.prefixMatches(name)) {
+                names.add(name);
+            }
+            return true;
+        });
+        for (String name : names) {
+            ProgressManager.checkCanceled();
+            java.util.Set<String> files = new java.util.HashSet<>();
+            for (T element : MqlScopes.projectFirst(key, name, project, type)) {
+                String fileName = element.getContainingFile().getName();
+                if (name.equals(element.getName()) && files.add(fileName)) {
+                    result.addElement(PrioritizedLookupElement.withPriority(
+                            LookupElementBuilder.create(name).withIcon(icon).withTypeText(fileName), PRIORITY_PROJECT_CLASS));
+                }
             }
         }
     }

@@ -7,6 +7,8 @@ package com.limemojito.oss.mql.index;
 
 import com.intellij.psi.stubs.StubIndexKey;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
+import com.limemojito.oss.mql.psi.impl.MQL4DefineElement;
+import com.limemojito.oss.mql.psi.impl.MQL4TypedefElement;
 import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
@@ -20,6 +22,8 @@ public class MQL4IndexKeys {
     // enum carries them). Lets a bare enum-constant use resolve to its declaration across the closure.
     public static final StubIndexKey<String, MQL4EnumElement> ENUM_FIELD_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.enumFieldName.index");
     public static final StubIndexKey<String, MQL4VarDefinitionElement> GLOBAL_VAR_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.globalVarName.index");
+    public static final StubIndexKey<String, MQL4TypedefElement> TYPEDEF_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.typedefName.index");
+    public static final StubIndexKey<String, MQL4DefineElement> DEFINE_NAME_INDEX_KEY = StubIndexKey.createIndexKey("mql4.defineName.index");
 
 
 }

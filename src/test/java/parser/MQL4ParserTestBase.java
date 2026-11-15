@@ -8,7 +8,7 @@ package parser;
 import com.intellij.core.CoreApplicationEnvironment;
 import com.intellij.lang.LanguageASTFactory;
 import com.intellij.lang.LanguageExtensionPoint;
-import com.intellij.openapi.extensions.Extensions;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.testFramework.ParsingTestCase;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.MQL4Language;
@@ -43,7 +43,7 @@ public abstract class MQL4ParserTestBase extends ParsingTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        CoreApplicationEnvironment.registerExtensionPoint(Extensions.getRootArea(), "com.intellij.lang.braceMatcher", LanguageExtensionPoint.class);
+        CoreApplicationEnvironment.registerExtensionPoint(ApplicationManager.getApplication().getExtensionArea(), "com.intellij.lang.braceMatcher", LanguageExtensionPoint.class);
         // com.intellij.lang.LanguageASTFactory.INSTANCE caches its per-language lookup in a way
         // that survives across this lightweight ParsingTestCase environment and the full
         // BasePlatformTestCase environment used by reference/*Test -- whichever one resolves the

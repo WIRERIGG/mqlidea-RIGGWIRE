@@ -16,6 +16,7 @@ import com.intellij.psi.tree.TokenSet;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
+import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -26,22 +27,49 @@ import java.util.List;
  * ({@link StatementAst#hasAssignmentAfter}) — not just the literal {@code = NULL} guard, since the
  * delete-then-recreate idiom {@code delete obj; obj = new CFoo();} equally ends the dangling window.
  * Also does not flag a delete that is the last statement directly in {@code OnDeinit()}'s body:
- * nothing dangles once the handler (and usually the program) has finished tearing down.
+ * nothing dangles once the handler (and usually the program) has finished tearing down. Nor a
+ * delete directly in a destructor's body: the deleted members die with the object.
  */
 public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
 
     private static final String MESSAGE = "'delete %s' without subsequent '%s = NULL' — leaves dangling pointer";
     private static final TokenSet EXPRESSION_STATEMENTS = TokenSet.create(MQL4Elements.EXPRESSION_STATEMENT);
 
+    /**
+     * True when {@code delete name;} is the last statement of the block that declares {@code name}
+     * as a local, so no use of the pointer can follow.
+     */
+    private static boolean endsDeclaringBlock(@NotNull ASTNode deleteStatement, @NotNull String name) {
+        ASTNode after = StatementAst.nextNonTrivia(deleteStatement);
+        if (after == null || after.getElementType() != MQL4Elements.R_CURLY_BRACKET) {
+            return false;
+        }
+        ASTNode block = deleteStatement.getTreeParent();
+        for (ASTNode child = block.getFirstChildNode(); child != null; child = child.getTreeNext()) {
+            if (child.getElementType() != MQL4Elements.VAR_DECLARATION_STATEMENT) {
+                continue;
+            }
+            ASTNode list = child.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
+            for (ASTNode def = list == null ? null : list.getFirstChildNode(); def != null; def = def.getTreeNext()) {
+                if (def.getPsi() instanceof MQL4VarDefinitionElement var && name.equals(var.getName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
                 if (body == null) continue;
-                boolean isOnDeinit = "OnDeinit".equals(func.getFunctionName());
+                boolean isOnDeinit = isTopLevel(func) && "OnDeinit".equals(func.getFunctionName());
+                String fn = func.getFunctionName();
+                boolean isDestructor = fn != null && fn.startsWith("~");
                 // One problem per function (preserves the original cardinality): the message names
                 // the first delete found whose variable is never subsequently reassigned. Anchor at
                 // that delete's identifier, not the function header.
@@ -52,6 +80,9 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
                     if (offenderNode[0] != null) return;
                     ASTNode idNode = StatementAst.deletedIdentifier(stmt);
                     if (idNode == null) return;
+                    if (isDestructor && stmt.getTreeParent() == body) {
+                        return; // ~CFoo() { delete m_a; delete m_b; }: the members die with the object
+                    }
                     if (isOnDeinit && stmt.getTreeParent() == body) {
                         ASTNode after = StatementAst.nextNonTrivia(stmt);
                         if (after == null || after.getElementType() == MQL4Elements.R_CURLY_BRACKET) {
@@ -59,6 +90,9 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
                         }
                     }
                     String name = idNode.getText();
+                    if (endsDeclaringBlock(stmt, name)) {
+                        return; // { CFoo *a = new CFoo; ... delete a; }: `a` dies with the block
+                    }
                     if (!StatementAst.hasAssignmentAfter(body, name, stmt.getTextRange().getEndOffset())) {
                         offenderNode[0] = idNode;
                         offenderStatement[0] = stmt;

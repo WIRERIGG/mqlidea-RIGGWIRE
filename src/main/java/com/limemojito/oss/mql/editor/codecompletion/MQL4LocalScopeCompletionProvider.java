@@ -45,6 +45,8 @@ public class MQL4LocalScopeCompletionProvider extends CompletionProvider<Complet
                 addParams(function, result);
             } else if (MqlPsiUtil.isCodeBlock(parent)) {
                 addVarsInBlockChildren(parent.getNode(), result);
+            } else if (MqlPsiUtil.forHeaderOf(parent) != null) {
+                addVarsInBlockChildren(MqlPsiUtil.forHeaderOf(parent), result); // for(int i=0; ...) loop variable
             }
             parent = parent.getParent();
         }

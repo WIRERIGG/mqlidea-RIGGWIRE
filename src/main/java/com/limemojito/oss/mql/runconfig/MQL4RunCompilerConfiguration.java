@@ -14,6 +14,7 @@ import com.intellij.execution.configurations.RuntimeConfigurationException;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.projectRoots.ProjectJdkTable;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.util.InvalidDataException;
@@ -31,8 +32,6 @@ import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.runconfig.ui.MQL4CompilerRunnerEditor;
 import com.limemojito.oss.mql.sdk.MQL4SdkType;
 
-import static com.intellij.openapi.util.JDOMExternalizerUtil.addElementWithValueAttribute;
-import static com.intellij.openapi.util.JDOMExternalizerUtil.getFirstChildValueAttribute;
 
 public class MQL4RunCompilerConfiguration extends RunConfigurationBase<RunProfileState> {
 
@@ -130,21 +129,21 @@ public class MQL4RunCompilerConfiguration extends RunConfigurationBase<RunProfil
     @Override
     public void writeExternal(@NotNull Element element) throws WriteExternalException {
         super.writeExternal(element);
-        addElementWithValueAttribute(element, "sdk", sdkName);
-        addElementWithValueAttribute(element, "file", fileToCompile);
-        addElementWithValueAttribute(element, "encoding", buildEncoding);
-        addElementWithValueAttribute(element, "buildDir", buildDir);
-        addElementWithValueAttribute(element, "buildLogEncoding", buildLogEncoding);
+        writeValueChild(element, "sdk", sdkName);
+        writeValueChild(element, "file", fileToCompile);
+        writeValueChild(element, "encoding", buildEncoding);
+        writeValueChild(element, "buildDir", buildDir);
+        writeValueChild(element, "buildLogEncoding", buildLogEncoding);
     }
 
     @Override
     public void readExternal(@NotNull Element element) throws InvalidDataException {
         super.readExternal(element);
-        sdkName = getFirstChildValueAttribute(element, "sdk");
-        fileToCompile = Objects.toString(getFirstChildValueAttribute(element, "file"), "");
-        buildEncoding = Objects.toString(getFirstChildValueAttribute(element, "encoding"), "");
-        buildDir = Objects.toString(getFirstChildValueAttribute(element, "buildDir"), "");
-        buildLogEncoding = Objects.toString(getFirstChildValueAttribute(element, "buildLogEncoding"), "");
+        sdkName = readValueChild(element, "sdk");
+        fileToCompile = Objects.toString(readValueChild(element, "file"), "");
+        buildEncoding = Objects.toString(readValueChild(element, "encoding"), "");
+        buildDir = Objects.toString(readValueChild(element, "buildDir"), "");
+        buildLogEncoding = Objects.toString(readValueChild(element, "buildLogEncoding"), "");
     }
 
     @Nullable
@@ -191,6 +190,26 @@ public class MQL4RunCompilerConfiguration extends RunConfigurationBase<RunProfil
 
     @Nullable
     public VirtualFile getFileToCompileAsVirtualFile() {
-        return getProject().getBaseDir().findFileByRelativePath(fileToCompile);
+        VirtualFile projectDir = ProjectUtil.guessProjectDir(getProject());
+        return projectDir == null ? null : projectDir.findFileByRelativePath(fileToCompile);
+    }
+
+    /**
+     * Appends {@code <tag value="..."/>}, the XML the run configuration has always been saved in
+     * (formerly via the deprecated {@code JDOMExternalizerUtil.addElementWithValueAttribute}).
+     */
+    static void writeValueChild(@NotNull Element parent, @NotNull String tag, @Nullable String value) {
+        Element child = new Element(tag);
+        if (value != null) {
+            child.setAttribute("value", value);
+        }
+        parent.addContent(child);
+    }
+
+    /** The {@code value} attribute of the first {@code <tag>} child, or null (see {@link #writeValueChild}). */
+    @Nullable
+    static String readValueChild(@NotNull Element parent, @NotNull String tag) {
+        Element child = parent.getChild(tag);
+        return child == null ? null : child.getAttributeValue("value");
     }
 }

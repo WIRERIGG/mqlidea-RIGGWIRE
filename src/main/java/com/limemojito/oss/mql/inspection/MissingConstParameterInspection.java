@@ -26,7 +26,7 @@ public class MissingConstParameterInspection extends MQL5SafetyInspectionBase {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 checkFunctionArgs(func, manager, problems);

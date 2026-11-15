@@ -6,16 +6,20 @@
 
 package com.limemojito.oss.mql.editor;
 
-import com.intellij.codeInsight.hints.HintInfo;
-import com.intellij.codeInsight.hints.InlayInfo;
-import com.intellij.codeInsight.hints.InlayParameterHintsProvider;
+import com.intellij.codeInsight.hints.declarative.HintFormat;
+import com.intellij.codeInsight.hints.declarative.InlayHintsCollector;
+import com.intellij.codeInsight.hints.declarative.InlayHintsProvider;
+import com.intellij.codeInsight.hints.declarative.InlayTreeSink;
+import com.intellij.codeInsight.hints.declarative.InlineInlayPosition;
+import com.intellij.codeInsight.hints.declarative.SharedBypassCollector;
 import com.intellij.lang.ASTNode;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.limemojito.oss.mql.MQL4Language;
 import com.limemojito.oss.mql.editor.parameterinfo.MqlCallSignatures;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4TokenSets;
@@ -23,6 +27,7 @@ import com.limemojito.oss.mql.psi.MQL4TokenSets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import kotlin.Unit;
 
 /**
  * Parameter-name inlay hints (Phase 3a): renders {@code OrderSend(sym, /*cmd:*&#47; OP_BUY, ...)}
@@ -32,17 +37,46 @@ import java.util.Set;
  * PSI + built-in {@link com.limemojito.oss.mql.doc.BuiltinSignatureCatalog} lookup that drives the
  * Ctrl-P parameter-info popup -- so a call gets hints exactly when it resolves to a known
  * signature. Unresolved calls (unknown names, member calls we cannot type-resolve) get none.</p>
+ *
+ * <p>Built on the declarative inlay API ({@code codeInsight.declarativeInlayProvider}): the older
+ * {@code InlayParameterHintsProvider} lives in the {@code @ApiStatus.Experimental}
+ * {@code com.intellij.codeInsight.hints} package. Toggle it under Settings | Editor | Inlay Hints |
+ * Parameter names | MQL.</p>
  */
-public class MqlParameterHintsProvider implements InlayParameterHintsProvider {
+public class MqlParameterHintsProvider implements InlayHintsProvider {
+
+    /** Variadic logging/UI calls have no fixed positional parameter names worth labelling. */
+    private static final Set<String> NEVER_HINTED = Set.of("Print", "PrintFormat", "Alert", "Comment");
+
+    /** A parameter-name label shown before the argument that starts at {@code offset}. */
+    public record Hint(@NotNull String name, int offset) {
+    }
 
     @NotNull
     @Override
-    public List<InlayInfo> getParameterHints(@NotNull PsiElement element) {
+    public InlayHintsCollector createCollector(@NotNull PsiFile file, @NotNull Editor editor) {
+        return (SharedBypassCollector) (element, sink) -> addHints(element, sink);
+    }
+
+    /** Adds one {@code name:} inlay per {@link #computeHints hint} of {@code element}. */
+    public static void addHints(@NotNull PsiElement element, @NotNull InlayTreeSink sink) {
+        for (Hint hint : computeHints(element)) {
+            sink.addPresentation(new InlineInlayPosition(hint.offset(), false, 0), null, null,
+                    HintFormat.Companion.getDefault(), builder -> {
+                        builder.text(hint.name() + ":", null);
+                        return Unit.INSTANCE;
+                    });
+        }
+    }
+
+    /** The parameter-name hints of a call's {@code (...)} block; empty for any other element. */
+    @NotNull
+    public static List<Hint> computeHints(@NotNull PsiElement element) {
         if (!MqlCallSignatures.isCallArgsBlock(element)) {
             return List.of();
         }
         String name = MqlCallSignatures.callName(element);
-        if (name == null) {
+        if (name == null || NEVER_HINTED.contains(name)) {
             return List.of();
         }
         Object[] items = MqlCallSignatures.resolveItems(name, element.getProject());
@@ -63,7 +97,7 @@ public class MqlParameterHintsProvider implements InlayParameterHintsProvider {
             return List.of();
         }
 
-        List<InlayInfo> hints = new ArrayList<>();
+        List<Hint> hints = new ArrayList<>();
         int count = Math.min(args.size(), rawParams.size());
         for (int i = 0; i < count; i++) {
             ProgressManager.checkCanceled();
@@ -85,38 +119,9 @@ public class MqlParameterHintsProvider implements InlayParameterHintsProvider {
                     && paramName.equals(arg.first().getText())) {
                 continue;
             }
-            hints.add(new InlayInfo(paramName, arg.startOffset));
+            hints.add(new Hint(paramName, arg.startOffset));
         }
         return hints;
-    }
-
-    @Nullable
-    @Override
-    public HintInfo getHintInfo(@NotNull PsiElement element) {
-        if (!MqlCallSignatures.isCallArgsBlock(element)) {
-            return null;
-        }
-        String name = MqlCallSignatures.callName(element);
-        if (name == null) {
-            return null;
-        }
-        Object[] items = MqlCallSignatures.resolveItems(name, element.getProject());
-        if (items == null || items.length == 0) {
-            return null;
-        }
-        List<String> paramNames = new ArrayList<>();
-        for (String raw : MqlCallSignatures.rawParams(items[0])) {
-            String pn = MqlCallSignatures.parameterName(raw);
-            paramNames.add(pn == null ? "" : pn);
-        }
-        return new HintInfo.MethodInfo(name, paramNames, MQL4Language.INSTANCE);
-    }
-
-    @NotNull
-    @Override
-    public Set<String> getDefaultBlackList() {
-        // Variadic logging/UI calls have no fixed positional parameter names worth labelling.
-        return Set.of("Print", "PrintFormat", "Alert", "Comment");
     }
 
     // ---- argument extraction -----------------------------------------------------------------

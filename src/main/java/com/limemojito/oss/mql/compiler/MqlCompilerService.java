@@ -79,8 +79,16 @@ public final class MqlCompilerService {
     /** Compiles {@code file} (or returns the memoised result if its content is unchanged). Never throws. */
     @NotNull
     public CompileResult compile(@NotNull VirtualFile file) {
+        return compile(file, file.getModificationStamp());
+    }
+
+    /**
+     * Compiles {@code file}, memoised by {@code stamp}: pass one that also changes when an included
+     * header does ({@link #closureStamp}), or an edited header leaves a stale result. Never throws.
+     */
+    @NotNull
+    public CompileResult compile(@NotNull VirtualFile file, long stamp) {
         String path = file.getPath();
-        long stamp = file.getModificationStamp();
         Cached hit = cache.get(path);
         if (hit != null && hit.stamp == stamp) {
             return hit.result;
@@ -93,6 +101,17 @@ public final class MqlCompilerService {
             cache.put(path, new Cached(stamp, result));
         }
         return result;
+    }
+
+    /** A stamp over every file in a program's include closure: it changes when any of them is saved. */
+    public static long closureStamp(@NotNull java.util.Collection<VirtualFile> closure) {
+        long stamp = 17;
+        for (VirtualFile f : closure) {
+            stamp = 31 * stamp + f.getPath().hashCode();
+            stamp = 31 * stamp + f.getModificationStamp();
+            stamp = 31 * stamp + f.getTimeStamp();
+        }
+        return stamp;
     }
 
     /** Forces a fresh compile of {@code file}, discarding any memoised result for it first. Never throws. */

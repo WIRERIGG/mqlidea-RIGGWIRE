@@ -1,0 +1,16 @@
+{
+  "_source": "Field and method names of MQL5's built-in structures (API names only, no reference text). Every name is checked by compiling tools/verify-structs.mq5 in MetaEditor.",
+  "MqlDateTime": {"fields": ["year", "mon", "day", "hour", "min", "sec", "day_of_week", "day_of_year"]},
+  "MqlRates": {"fields": ["time", "open", "high", "low", "close", "tick_volume", "spread", "real_volume"]},
+  "MqlTick": {"fields": ["time", "bid", "ask", "last", "volume", "time_msc", "flags", "volume_real"]},
+  "MqlBookInfo": {"fields": ["type", "price", "volume", "volume_real"]},
+  "MqlParam": {"fields": ["type", "integer_value", "double_value", "string_value"]},
+  "MqlTradeRequest": {"fields": ["action", "magic", "order", "symbol", "volume", "price", "stoplimit", "sl", "tp", "deviation", "type", "type_filling", "type_time", "expiration", "comment", "position", "position_by"]},
+  "MqlTradeResult": {"fields": ["retcode", "deal", "order", "volume", "price", "bid", "ask", "comment", "request_id", "retcode_external"]},
+  "MqlTradeCheckResult": {"fields": ["retcode", "balance", "equity", "profit", "margin", "margin_free", "margin_level", "comment"]},
+  "MqlTradeTransaction": {"fields": ["deal", "order", "symbol", "type", "order_type", "order_state", "deal_type", "time_type", "time_expiration", "price", "price_trigger", "price_sl", "price_tp", "volume", "position", "position_by"]},
+  "MqlCalendarCountry": {"fields": ["id", "name", "code", "currency", "currency_symbol", "url_name"]},
+  "MqlCalendarEvent": {"fields": ["id", "type", "sector", "frequency", "time_mode", "country_id", "unit", "importance", "multiplier", "digits", "source_url", "event_code", "name"]},
+  "MqlCalendarValue": {"fields": ["id", "event_id", "time", "period", "revision", "actual_value", "prev_value", "revised_prev_value", "forecast_value", "impact_type"],
+                       "methods": ["HasActualValue", "HasPreviousValue", "HasRevisedValue", "HasForecastValue", "GetActualValue", "GetPreviousValue", "GetRevisedValue", "GetForecastValue"]}
+}

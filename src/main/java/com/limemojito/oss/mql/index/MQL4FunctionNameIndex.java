@@ -28,8 +28,8 @@ public class MQL4FunctionNameIndex extends MQL4AbstractStringStubIndex<MQL4Funct
         return MQL4IndexKeys.FUNCTION_NAME_INDEX_KEY;
     }
 
-    @Override
-    public Collection<MQL4FunctionElement> get(@NotNull String key, @NotNull Project project, @NotNull GlobalSearchScope scope) {
+    /** Elements named {@code key}; a plain method, not the deprecated {@code AbstractStubIndex.get} override. */
+    public Collection<MQL4FunctionElement> getElements(@NotNull String key, @NotNull Project project, @NotNull GlobalSearchScope scope) {
         return StubIndex.getElements(getKey(), key, project, scope, MQL4FunctionElement.class);
     }
 

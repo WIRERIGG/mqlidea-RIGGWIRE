@@ -238,6 +238,22 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "test.mqh");
     }
 
+    public void testMissingInputValidationScriptClean() {
+        // I-1: a script's entry point is OnStart(); it has no OnInit() to validate inputs in
+        assertNoProblems(new MissingInputValidationInspection(),
+                "#property script_show_inputs\n" +
+                "input int InpCount = 5;\n" +
+                "void OnStart() { Print(InpCount); }",
+                "test.mq5");
+    }
+
+    public void testMissingInputValidationExpertWithoutOnInitFlagged() {
+        assertHasProblems(new MissingInputValidationInspection(),
+                "input int InpPeriod = 14;\n" +
+                "void OnTick() { Print(InpPeriod); }",
+                "test.mq5");
+    }
+
     public void testMissingInputValidationOnInitNoIfNotEmptyClean() {
         // A non-empty OnInit() that does real setup (e.g. a timer) without an if-statement is not
         // "missing validation" — plenty of legitimate inputs (string/enum/bool) need no range check.
@@ -466,6 +482,12 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "class CTest { CObj *m_obj; public: CTest() { m_obj = new CObj(); } };");
     }
 
+    public void testMissingDestructorSeesEveryFieldOfACommaList() {
+        // Only the second pointer of the list acquires the resource; it must still be collected.
+        assertHasProblems(new MissingDestructorInspection(),
+                "class CTest { CObj *m_a, *m_b; public: CTest() { m_b = new CObj(); } };");
+    }
+
     public void testMissingDestructorValueClassIsFine() {
         // A plain value class with a constructor but no owned resource needs no destructor in MQL5.
         assertNoProblems(new MissingDestructorInspection(),
@@ -540,6 +562,14 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertInspectionRuns(new ImmutableInputParameterInspection(),
                 "input int InpPeriod = 14;\n" +
                 "void OnInit() { InpPeriod = 20; }");
+    }
+
+    public void testImmutableInputParameterSeesEveryNameOfACommaList() {
+        ProblemDescriptor[] problems = runInspection(new ImmutableInputParameterInspection(),
+                "input int A = 1, B = 2;\n" +
+                "void OnTick() { B = 5; }");
+        assertEquals(1, problems.length);
+        assertTrue(problems[0].getDescriptionTemplate().contains("'B'"));
     }
 
     public void testImmutableInputParameterMemberAccessClean() {
@@ -703,9 +733,9 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     }
 
     public void testStringConcatInLoop() {
-        // Inspection regex matches `+ "` or `" +` patterns, not `+=`
+        // `s = s + "x"` in a loop with no small constant bound
         assertHasProblems(new StringConcatInLoopInspection(),
-                "void foo() { string s; for(int i=0; i<10; i++) { s = s + \"x\"; } }");
+                "void foo(int n) { string s; for(int i=0; i<n; i++) { s = s + \"x\"; } }");
     }
 
     public void testSuboptimalContainer() {
@@ -1032,6 +1062,27 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void foo() { delete obj; obj = new CFoo(); }");
     }
 
+    public void testNullAfterDeleteInDestructorClean() {
+        // ~CFoo() frees its members; they die with the object, so no `= NULL` is needed after each.
+        assertNoProblems(new NullAfterDeleteInspection(),
+                "class CFoo { CObj *m_a; CObj *m_b; public: ~CFoo() { delete m_a; delete m_b; } };",
+                "test.mq5");
+    }
+
+    public void testNullAfterDeleteInClassMethodFlagged() {
+        // an ordinary in-class method is checked (I-3) and the pointer stays dangling there
+        assertHasProblems(new NullAfterDeleteInspection(),
+                "class CFoo { CObj *m_a; public: void Reset() { delete m_a; } };",
+                "test.mq5");
+    }
+
+    public void testUnusedParameterOfMethodNamedLikeAHandlerIsReported() {
+        // a class method called OnTick is not the terminal's event handler, so it is not exempt
+        assertHasProblems(new UnusedParameterInspection(),
+                "class CBot { public: void OnTick(int unused) { Print(1); } };",
+                "test.mq5");
+    }
+
     public void testNullAfterDeleteOnDeinitLastStatementClean() {
         // Nothing dangles once OnDeinit finishes tearing down — a bare delete as the last statement
         // there is not a leaked/dangling pointer.
@@ -1346,6 +1397,24 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void f() { for(int i=0; i<10; i++) { CObj* o = new CObj(); } }");
     }
 
+    public void testNewKeywordInLoopIntoOwnersClean() {
+        // I-4: filling a pointer array, a member, a container or returning: the object is kept
+        assertNoProblems(new NewKeywordInLoopInspection(),
+                "class CItem { public: int v; CItem(int x) : v(x) {} };\n"
+                        + "void f() {\n"
+                        + "  CItem *items[3];\n"
+                        + "  for(int i=0; i<3; i++) items[i] = new CItem(i);\n"
+                        + "  for(int i=0; i<3; i++) { list.Add(new CItem(i)); holder.m_last = new CItem(i); }\n"
+                        + "  while(true) { return new CItem(1); }\n"
+                        + "}", "test.mq5");
+    }
+
+    public void testNewKeywordInLoopIntoPlainVariableFlagged() {
+        // overwritten every iteration: the previous object leaks
+        assertHasProblems(new NewKeywordInLoopInspection(),
+                "void f() { CItem *last; for(int i=0; i<3; i++) last = new CItem(i); }", "test.mq5");
+    }
+
     public void testNewKeywordOutsideLoopBodyClean() {
         // Anti-false-positive: brace-less loop, 'new' lives in an unrelated block after it
         assertNoProblems(new NewKeywordInLoopInspection(),
@@ -1381,7 +1450,7 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         // The self-accumulation antipattern via '+=' (compound add) must also be flagged — the old
         // check only matched a bare '+' adjacent to a string literal and silently missed 's += x;'.
         assertHasProblems(new StringConcatInLoopInspection(),
-                "void foo() { string s; for(int i=0; i<10; i++) { s += \"x\"; } }");
+                "void foo(int n) { string s; for(int i=0; i<n; i++) { s += \"x\"; } }");
     }
 
     public void testStringConcatInLoopFreshVariableCleanNoFalsePositive() {
@@ -1637,7 +1706,7 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 inspection.isSuppressedFor(problems[0].getPsiElement()));
 
         com.intellij.codeInspection.SuppressQuickFix[] fixes = inspection.getBatchSuppressActions(problems[0].getPsiElement());
-        assertEquals(2, fixes.length);
+        assertEquals(3, fixes.length);
         com.intellij.codeInspection.SuppressQuickFix functionScopedFix = fixes[0];
         assertTrue(functionScopedFix.getName().contains("function"));
         ProblemDescriptor problemToFix = problems[0];
@@ -1662,7 +1731,7 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertTrue("Expected the unsuppressed snippet to be flagged", problems.length > 0);
 
         com.intellij.codeInspection.SuppressQuickFix[] fixes = inspection.getBatchSuppressActions(problems[0].getPsiElement());
-        assertEquals(2, fixes.length);
+        assertEquals(3, fixes.length);
         com.intellij.codeInspection.SuppressQuickFix fileScopedFix = fixes[1];
         assertTrue(fileScopedFix.getName().contains("file"));
         ProblemDescriptor problemToFix = problems[0];
@@ -1680,8 +1749,78 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 inspection.isSuppressedFor(afterFix[0].getPsiElement()));
     }
 
+    /** "Suppress for statement" silences that one call and leaves the next one in the function flagged. */
+    public void testSuppressForStatementSuppressesOnlyThatStatement() {
+        UncheckedOrderSendInspection inspection = new UncheckedOrderSendInspection();
+        String code = "void OnTick()\n  {\n   OrderSend(request, result);\n   OrderSend(request, result);\n  }\n";
+        ProblemDescriptor[] problems = runInspection(inspection, code);
+        assertEquals(2, problems.length);
+        com.intellij.codeInspection.SuppressQuickFix statementFix = inspection.getBatchSuppressActions(problems[0].getPsiElement())[2];
+        assertTrue(statementFix.getName().contains("statement"));
+        assertTrue(statementFix.isAvailable(getProject(), problems[0].getPsiElement()));
+        ProblemDescriptor problemToFix = problems[0];
+        WriteCommandAction.runWriteCommandAction(getProject(), () -> statementFix.applyFix(getProject(), problemToFix));
+        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+
+        String text = myFixture.getFile().getText();
+        assertTrue(text, text.contains("  {\n   //noinspection " + inspection.getID() + "\n   OrderSend"));
+        ProblemDescriptor[] afterFix = runInspection(inspection, text);
+        assertEquals(2, afterFix.length);
+        assertTrue(inspection.isSuppressedFor(afterFix[0].getPsiElement()));
+        assertFalse("the second call is not suppressed", inspection.isSuppressedFor(afterFix[1].getPsiElement()));
+    }
+
+    /** A trailing comment on the problem's own line suppresses it; one naming another inspection doesn't. */
+    public void testTrailingNoinspectionCommentSuppressesThatLine() {
+        UncheckedOrderSendInspection inspection = new UncheckedOrderSendInspection();
+        String id = inspection.getID();
+        ProblemDescriptor[] problems = runInspection(inspection,
+                "void OnTick()\n  {\n   OrderSend(request, result); // noinspection " + id + "\n   OrderSend(request, result); // noinspection OtherCheck\n  }\n");
+        assertEquals(2, problems.length);
+        assertTrue(inspection.isSuppressedFor(problems[0].getPsiElement()));
+        assertFalse(inspection.isSuppressedFor(problems[1].getPsiElement()));
+    }
+
     /** PreprocessorPropertyInspection no longer implements the deprecated CustomSuppressableInspectionTool. */
     public void testPreprocessorPropertyInspectionIsPlainLocalInspectionTool() {
         assertFalse(new PreprocessorPropertyInspection() instanceof com.intellij.codeInspection.CustomSuppressableInspectionTool);
+    }
+
+    public void testPropertyNumericValueRejectsDatetimeLiteral() {
+        // D'...' is a datetime constant, not a number, so a numeric #property must still be flagged.
+        assertHasProblems(new PreprocessorPropertyInspection(),
+                "#property indicator_buffers D'2024.01.01'\n", "test.mq5");
+        assertNoProblems(new PreprocessorPropertyInspection(),
+                "#property indicator_buffers 2\n", "test.mq5");
+    }
+
+    // I-2, I-5, F-3: idioms MetaEditor accepts without comment
+
+    public void testNullAfterDeleteSkipsALocalDyingWithItsBlock() {
+        assertNoProblems(new NullAfterDeleteInspection(),
+                "class CFoo { };\nvoid foo() { if (true) { CFoo *a = new CFoo; Print(1); delete a; } }");
+        assertHasProblems(new NullAfterDeleteInspection(),
+                "class CFoo { };\nCFoo *g;\nvoid foo() { if (true) { CFoo *a = new CFoo; g = a; delete g; } }");
+    }
+
+    public void testSuspiciousSemicolonSkipsAForThatAdvancesInItsStep() {
+        assertNoProblems(new SuspiciousSemicolonInspection(),
+                "void OnStart() { int k = 0; for (k = 0; k < 3; k++); Print(k); }");
+        assertNoProblems(new SuspiciousSemicolonInspection(),
+                "int Next(int i) { return i + 1; }\nvoid OnStart() { for (int i = 0; i < 3; i = Next(i)); }");
+        assertHasProblems(new SuspiciousSemicolonInspection(),
+                "void OnStart() { int k = 0; for (k = 0; k < 3; ); Print(k); }");
+    }
+
+    public void testStackOverflowRiskSkipsRecursionWithABaseCase() {
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "int Fact(int n) { if (n <= 1) return 1; return n * Fact(n - 1); }");
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "int Fib(int n) { return n < 2 ? n : Fib(n - 1) + Fib(n - 2); }");
+        assertHasProblems(new StackOverflowRiskInspection(),
+                "int Loop(int n) { Print(n); return Loop(n + 1); }");
+        // namespace bodies are walked like file level (I-3)
+        assertHasProblems(new StackOverflowRiskInspection(),
+                "namespace Util { class CNode { public: int Walk(int n) { return Walk(n + 1); } }; int Loop(int n) { return Loop(n); } }");
     }
 }

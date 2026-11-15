@@ -1,0 +1,21 @@
+<html>
+<body>
+Reports a broken contract between an indicator and the programs that read it, using literal values only.
+<p>In an indicator: a <code>SetIndexBuffer</code> index at or past <code>indicator_buffers</code>, plots that need
+more buffers than are declared, and an <code>INDICATOR_DATA</code> buffer past the buffers the plots use. MetaTrader
+doesn't bind that buffer for other programs: their <code>CopyBuffer</code> returns -1 (error 4806). Bind it as
+<code>INDICATOR_CALCULATIONS</code> instead.</p>
+<!-- tooltip end -->
+<p>In an EA or script: <code>CopyBuffer(handle, index, ...)</code> where <code>handle</code> is only assigned
+<code>iCustom(..., "Name", ...)</code> and <code>Name.mq5</code> is in the project, with <code>index</code> a number or
+a <code>#define</code> of one, reading a buffer the indicator doesn't declare, never binds, or binds unreadably. Also an
+<code>iCustom</code> call passing more parameters than the indicator has inputs.</p>
+<p>Computed indexes, dynamic draw types (<code>PLOT_DRAW_TYPE</code>), <code>DRAW_BARS</code>/<code>DRAW_CANDLES</code>
+and indicators outside the project are skipped, never guessed.</p>
+<pre><code>#property indicator_buffers 3
+#property indicator_plots   1
+#property indicator_type1   DRAW_LINE
+...
+SetIndexBuffer(2, atr, INDICATOR_DATA);   // unreadable from an EA: use INDICATOR_CALCULATIONS</code></pre>
+</body>
+</html>

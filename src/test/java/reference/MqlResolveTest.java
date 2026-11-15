@@ -6,6 +6,7 @@
 package reference;
 
 import com.intellij.psi.PsiElement;
+import java.util.List;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
@@ -137,6 +138,25 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertTrue("resolution unchanged after the unrelated body edit", resolved2 instanceof MQL4FunctionElement);
         assertEquals("Deep", ((MQL4FunctionElement) resolved2).getFunctionName());
         assertEquals("C.mqh", resolved2.getContainingFile().getName());
+    }
+
+    public void testParameterWithDefaultValueIsNamedBeforeTheEquals() {
+        PsiFile file = myFixture.configureByText("t.mq5", "void Draw(color clr = clrNONE, int anchor = 5) { Print(clr, anchor); }");
+        List<String> names = com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(file, MQL4FunctionArgElement.class).stream()
+                .map(MQL4FunctionArgElement::getName).toList();
+        assertEquals(List.of("clr", "anchor"), names);
+        int offset = file.getText().indexOf("clr, anchor)");
+        PsiElement resolved = file.findReferenceAt(offset).resolve();
+        assertTrue("clr should resolve to its parameter: " + resolved, resolved instanceof MQL4FunctionArgElement);
+    }
+
+    public void testBackslashIncludePathResolves() {
+        PsiFile lib = myFixture.addFileToProject("Sub/Lib.mqh", "void Shared() { }");
+        PsiFile main = myFixture.addFileToProject("Main.mq5", "#include \"Sub\\Lib.mqh\"\nvoid f() { Shared(); }");
+        com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock include = com.intellij.psi.util.PsiTreeUtil
+                .findChildOfType(main, com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock.class);
+        assertNotNull(include);
+        assertEquals(lib, include.resolveIncludedFile());
     }
 
     public void testIncludeDirectiveResolvesToFile() {
@@ -413,13 +433,13 @@ public class MqlResolveTest extends BasePlatformTestCase {
 
         // (a) BOTH enums are indexed -- the top-level one and the class-nested one.
         assertFalse("top-level enum EColor must be in the enum index",
-                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().get("EColor", getProject(), all).isEmpty());
+                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().getElements("EColor", getProject(), all).isEmpty());
         assertFalse("class-nested enum EMode must be in the enum index",
-                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().get("EMode", getProject(), all).isEmpty());
+                com.limemojito.oss.mql.index.MQL4EnumNameIndex.getInstance().getElements("EMode", getProject(), all).isEmpty());
 
         // (b) the global-var index finds the GLOBAL but NOT the class field of the same name.
         java.util.Collection<MQL4VarDefinitionElement> shared =
-                com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex.getInstance().get("shared", getProject(), all);
+                com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex.getInstance().getElements("shared", getProject(), all);
         assertEquals("exactly one 'shared' (the global) must be indexed -- never the class field",
                 1, shared.size());
         MQL4VarDefinitionElement indexed = shared.iterator().next();
@@ -507,5 +527,30 @@ public class MqlResolveTest extends BasePlatformTestCase {
         PsiReference ref = myFixture.getReferenceAtCaretPosition();
         assertTrue("ambiguous duplicate class must not resolve to an arbitrary pick",
                 ref == null || ref.resolve() == null);
+    }
+
+    private static final String SHAPES = """
+            class CShape { public: double m_area; virtual double Area() { return m_area; } };
+            class CCircle : public CShape { public: double m_radius; };
+            """;
+
+    public void testMemberThroughACStyleCastResolves() {
+        PsiReference ref = referenceAt(SHAPES + "void F(CShape *s) { double r = ((CCircle*)s).m_radius + 0; }", "m_radius + 0");
+        PsiElement target = ref.resolve();
+        assertNotNull("((CCircle*)s).m_radius", target);
+        assertTrue(target.getText(), target.getText().contains("m_radius"));
+    }
+
+    public void testMemberThroughDynamicCastResolvesIncludingInherited() {
+        PsiReference ref = referenceAt(SHAPES + "void F(CShape *s) { double a = dynamic_cast<CCircle*>(s).Area(); }", "Area(); }");
+        PsiElement target = ref.resolve();
+        assertNotNull("dynamic_cast<CCircle*>(s).Area()", target);
+        assertTrue(target.getText(), target.getText().contains("Area"));
+    }
+
+    public void testParenthesizedVariableIsNotACast() {
+        PsiReference ref = referenceAt(SHAPES + "void F(CCircle *c) { double r = ((c)).m_radius + 0; }", "m_radius + 0");
+        assertNotNull("a reference exists at the member", ref);
+        assertNull("((c)) is not a cast: the paren receiver stays unresolved", ref.resolve());
     }
 }

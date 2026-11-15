@@ -43,6 +43,9 @@ public class MQL4FunctionArgElement extends MQL4PsiElement implements PsiNameIde
             if (first == null) {
                 first = child;
             }
+            if (child.getElementType() == MQL4Elements.EQ) {
+                break; // a default value follows: `color clr = clrNONE` is named clr, not clrNONE
+            }
             if (child.getElementType() == MQL4Elements.IDENTIFIER) {
                 last = child;
             }

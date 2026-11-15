@@ -44,6 +44,33 @@ public class MQL4DocumentationProviderTest extends BasePlatformTestCase {
         assertTrue(info.contains("test.mq4"));
     }
 
+    /** The built-in doc page for the leaf at {@code marker}, as quick doc asks for it. */
+    private String builtinDoc(String fileName, String code, String marker) {
+        PsiFile file = myFixture.configureByText(fileName, code);
+        PsiElement leaf = file.findElementAt(code.indexOf(marker));
+        return new MQL4DocumentationProvider().generateDoc(leaf, leaf);
+    }
+
+    // D-1: the bundled language reference is MQL4 text, so MQL5 files don't show it
+
+    public void testLanguagePagesShowInMql4Files() {
+        String doc = builtinDoc("test.mq4", "class CFoo { };\n", "class");
+        assertNotNull(doc);
+        assertFalse(doc.isEmpty());
+    }
+
+    public void testLanguagePagesAreHiddenInMql5Files() {
+        assertNull(builtinDoc("test.mq5", "class CFoo { };\n", "class"));
+        assertNull(builtinDoc("test.mq5", "#property strict\n", "#property"));
+        assertNull(builtinDoc("test.mq5", "int OnInit() { return INIT_SUCCEEDED; }\n", "INIT_SUCCEEDED"));
+    }
+
+    public void testFunctionPagesStillShowInMql5Files() {
+        String doc = builtinDoc("test.mq5", "void OnStart() { ArrayResize(a, 3); }\n", "ArrayResize");
+        assertNotNull(doc);
+        assertTrue(doc, doc.contains("ArrayResize"));
+    }
+
     private PsiElement findFunction(PsiFile file, String name) {
         for (PsiElement child : file.getChildren()) {
             if (child instanceof MQL4FunctionElement f && name.equals(f.getFunctionName())) {

@@ -7,6 +7,7 @@ package com.limemojito.oss.mql.psi.impl;
 
 import com.intellij.extapi.psi.StubBasedPsiElementBase;
 import com.intellij.lang.ASTNode;
+import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiNameIdentifierOwner;
 import com.intellij.util.IncorrectOperationException;
@@ -70,10 +71,8 @@ public class MQL4VarDefinitionElement extends StubBasedPsiElementBase<MQL4Global
      * enclosing {@code VAR_DECLARATION_STATEMENT} (the child before the {@code VAR_DEFINITION_LIST}).
      * Returns {@code null} when that type is a built-in primitive keyword (never a class) or the
      * enclosing shape is unexpected. Used by
-     * {@link com.limemojito.oss.mql.reference.MqlTypeResolver} to type-resolve {@code v.member};
-     * today the tolerant parser only builds a {@code VAR_DECLARATION_STATEMENT} for primitive-typed
-     * declarations, so this returns {@code null} in practice, but it is kept general so a future
-     * custom-type declaration node resolves without further change.
+     * {@link com.limemojito.oss.mql.reference.MqlTypeResolver} to type-resolve {@code v.member} for
+     * user-typed declarations ({@code CTrade t;}, {@code CItem *p;}, {@code Risk::CGuard g;}).
      */
     @Nullable
     public String getDeclaredTypeName() {
@@ -85,13 +84,24 @@ public class MQL4VarDefinitionElement extends StubBasedPsiElementBase<MQL4Global
         if (statement == null || statement.getElementType() != MQL4Elements.VAR_DECLARATION_STATEMENT) {
             return null;
         }
+        // A custom (class) type appears as an IDENTIFIER; primitive keywords / modifiers are skipped.
+        // For a qualified type (Risk::CGuard) the last segment is the class; template arguments
+        // (CStack<double>) are not the type.
+        String typeName = null;
+        int templateDepth = 0;
         for (ASTNode child = statement.getFirstChildNode(); child != null && child != list; child = child.getTreeNext()) {
-            // A custom (class) type appears as an IDENTIFIER; primitive keywords / modifiers are skipped.
-            if (child.getElementType() == MQL4Elements.IDENTIFIER) {
-                return child.getText();
+            IElementType t = child.getElementType();
+            if (t == MQL4Elements.LT) {
+                templateDepth++;
+            } else if (t == MQL4Elements.GT) {
+                templateDepth--;
+            } else if (t == MQL4Elements.SH_RIGHT) {
+                templateDepth -= 2;
+            } else if (t == MQL4Elements.IDENTIFIER && templateDepth == 0) {
+                typeName = child.getText();
             }
         }
-        return null;
+        return typeName;
     }
 
     @Override

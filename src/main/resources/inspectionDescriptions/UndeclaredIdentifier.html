@@ -1,0 +1,23 @@
+<html>
+<body>
+Reports a name that nothing declares: a variable, constant or type that is not an MQL built-in and
+is not declared in the file, its <code>#include</code> files, the file that includes this header,
+or anywhere else in the project, and a member a class doesn't have. MetaEditor rejects both with
+error 256, "undeclared identifier". Calls to undefined global functions are reported by
+"Call to an undefined function".
+<!-- tooltip end -->
+<p>Example:</p>
+<pre>
+class CRisk { public: double Lots(); };
+CRisk risk;
+void OnTick()
+{
+   double lots = risk.Lot();          // the method is Lots
+   if(lots > MaxLots) Print(lots);    // MaxLots is declared nowhere
+}
+</pre>
+<p>A member is checked only when the receiver's class and all its base classes are declared in
+the project or its headers. A file with an <code>#include</code> that can't be found is not
+checked, nor are <code>#define</code>, <code>#import</code> and <code>#property</code> lines.</p>
+</body>
+</html>

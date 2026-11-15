@@ -14,13 +14,7 @@ import com.intellij.util.diff.FlyweightCapableTreeStructure;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 
-import static com.limemojito.oss.mql.parser.parsing.BracketBlockParsing.parseBracketsBlock;
-import static com.limemojito.oss.mql.parser.parsing.ClassParsing.parseClassOrStruct;
-import static com.limemojito.oss.mql.parser.parsing.CommentParsing.parseComment;
-import static com.limemojito.oss.mql.parser.parsing.FunctionsParsing.parseFunction;
-import static com.limemojito.oss.mql.parser.parsing.preprocessor.PreprocessorParsing.parsePreprocessorBlock;
-import static com.limemojito.oss.mql.parser.parsing.statement.EnumParsing.parseEnum;
-import static com.limemojito.oss.mql.parser.parsing.statement.StatementParsing.parseLocalVarDeclaration;
+import static com.limemojito.oss.mql.parser.parsing.TopLevelParsing.parseTopLevelItem;
 
 public class MQL4Parser implements PsiParser, MQL4Elements {
 
@@ -39,18 +33,7 @@ public class MQL4Parser implements PsiParser, MQL4Elements {
     private void doParse(@NotNull IElementType root, @NotNull PsiBuilder b) {
         PsiBuilder.Marker fileBlock = b.mark();
         while (!b.eof()) {
-            boolean r = parseComment(b)
-                    || parsePreprocessorBlock(b)
-                    || parseFunction(b)
-                    || parseEnum(b, 0)
-                    || parseClassOrStruct(b, 0)
-                    // Phase 4 (REVAMP_PLAN.md #3b): global variable declarations get the same
-                    // named VAR_DECLARATION_STATEMENT/VAR_DEFINITION structure locals already get,
-                    // so globals become resolvable/renamable named PSI too. Reuses the exact same
-                    // narrow, tolerant, already-proven-safe gate used inside {} blocks.
-                    || parseLocalVarDeclaration(b, 0)
-                    || parseBracketsBlock(b, 0);
-            if (!r) {
+            if (!parseTopLevelItem(b, 0)) {
                 b.advanceLexer();
             }
         }

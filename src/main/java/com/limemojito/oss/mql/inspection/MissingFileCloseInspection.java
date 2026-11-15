@@ -35,7 +35,7 @@ public class MissingFileCloseInspection extends MQL5SafetyInspectionBase {
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
         boolean hasClose = false;
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
@@ -47,7 +47,7 @@ public class MissingFileCloseInspection extends MQL5SafetyInspectionBase {
         }
         if (hasClose) return ProblemDescriptor.EMPTY_ARRAY;
 
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);

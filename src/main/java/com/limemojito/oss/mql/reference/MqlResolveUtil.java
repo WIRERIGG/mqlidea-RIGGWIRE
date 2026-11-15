@@ -19,12 +19,18 @@ import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
 import com.limemojito.oss.mql.index.MQL4ClassNameIndex;
+import com.limemojito.oss.mql.index.MQL4DefineNameIndex;
+import com.limemojito.oss.mql.index.MQL4TypedefNameIndex;
 import com.limemojito.oss.mql.index.MQL4EnumFieldNameIndex;
 import com.limemojito.oss.mql.index.MQL4EnumNameIndex;
 import com.limemojito.oss.mql.index.MQL4FunctionNameIndex;
 import com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.MQL4File;
+import com.limemojito.oss.mql.psi.MQL4TokenSets;
+import com.limemojito.oss.mql.psi.impl.MQL4DefineElement;
+import com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement;
+import com.limemojito.oss.mql.psi.impl.MQL4TypedefElement;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
 import com.limemojito.oss.mql.psi.impl.MQL4EnumFieldElement;
@@ -45,7 +51,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Resolution order per REVAMP_PLAN.md #3b:
  * <ol>
  *     <li>lexical scope walk (locals + parameters, up through enclosing {} blocks/function)</li>
- *     <li>same file + #include closure (functions, classes, enums, global/field variables)</li>
+ *     <li>same file + #include closure (functions, classes, enums, global/field variables); for a
+ *     header, then the closures of the files that include it</li>
  *     <li>project-wide stub indexes (functions, classes) -- dialect filtering left as TODO</li>
  * </ol>
  * Built-ins are deliberately NOT resolved to PSI here (that needs the synthetic-PSI std-lib
@@ -59,6 +66,20 @@ public final class MqlResolveUtil {
 
     @NotNull
     public static List<PsiElement> resolve(@NotNull PsiElement identifier, @NotNull String name) {
+        if (isMacroParameter(identifier, name)) {
+            return new ArrayList<>(); // `a` in `#define MAX(a,b) ...` names no declaration
+        }
+        PsiElement prev = PsiTreeUtil.prevVisibleLeaf(identifier);
+        if (prev != null && prev.getNode().getElementType() == MQL4Elements.COLON_COLON) {
+            List<PsiElement> qualified = resolveQualified(identifier, name, prev);
+            if (qualified != null) {
+                return qualified;
+            }
+        }
+        List<PsiElement> offsetofMember = resolveOffsetofMember(identifier, name, prev);
+        if (offsetofMember != null) {
+            return offsetofMember;
+        }
         PsiElement local = resolveLocal(identifier, name);
         if (local != null) {
             List<PsiElement> single = new ArrayList<>(1);
@@ -79,16 +100,84 @@ public final class MqlResolveUtil {
 
     @org.jetbrains.annotations.Nullable
     private static PsiElement resolveEnclosingClassMember(@NotNull PsiElement identifier, @NotNull String name) {
-        MQL4ClassElement cls = PsiTreeUtil.getParentOfType(identifier, MQL4ClassElement.class);
+        MQL4ClassElement cls = enclosingClass(identifier);
         if (cls == null) {
             return null;
         }
-        ASTNode inner = cls.getInnerBlockNode();
-        if (inner == null || !PsiTreeUtil.isAncestor(inner.getPsi(), identifier, false)) {
-            return null; // only bare uses within the class body
-        }
         List<PsiElement> members = resolveMemberInClassHierarchy(cls, name);
         return members.isEmpty() ? null : members.get(0);
+    }
+
+    /**
+     * The class whose members a bare name in {@code element} sees: the class whose body contains it,
+     * or {@code X} for a body or initializer list of an out-of-line {@code X::Method(...)} (OOP-1).
+     * Null elsewhere, including an out-of-line method's return and argument types.
+     */
+    @org.jetbrains.annotations.Nullable
+    public static MQL4ClassElement enclosingClass(@NotNull PsiElement element) {
+        MQL4ClassElement cls = PsiTreeUtil.getParentOfType(element, MQL4ClassElement.class);
+        if (cls != null) {
+            ASTNode inner = cls.getInnerBlockNode();
+            return inner != null && PsiTreeUtil.isAncestor(inner.getPsi(), element, false) ? cls : null;
+        }
+        MQL4FunctionElement function = PsiTreeUtil.getParentOfType(element, MQL4FunctionElement.class);
+        String className = function == null ? null : MqlPsiUtil.outOfLineClassName(function);
+        if (className == null || !MqlPsiUtil.isAfterArguments(function, element)) {
+            return null;
+        }
+        return findClassByName(className, element.getProject(), element);
+    }
+
+    /**
+     * {@code ::name} and {@code X::name}. A bare {@code ::name} skips locals and members for the
+     * file-level declaration (V-2). {@code X::name} looks in class {@code X} (its members, inherited
+     * too: {@code CBase::Method()}, {@code int CCounter::s_total = 0;}) or namespace {@code X}. Null
+     * when {@code X} is neither, so an enum constant ({@code ENUM_X::VALUE}) resolves as before.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static List<PsiElement> resolveQualified(@NotNull PsiElement identifier, @NotNull String name, @NotNull PsiElement colons) {
+        PsiElement qualifier = PsiTreeUtil.prevVisibleLeaf(colons);
+        if (qualifier == null || qualifier.getNode().getElementType() != MQL4Elements.IDENTIFIER) {
+            return resolveNonLocal(identifier, name);
+        }
+        MQL4ClassElement cls = findClassByName(qualifier.getText(), identifier.getProject(), identifier);
+        if (cls != null) {
+            List<PsiElement> members = resolveMemberInClassHierarchy(cls, name);
+            if (!members.isEmpty()) {
+                return members;
+            }
+        }
+        List<PsiElement> inNamespace = new ArrayList<>();
+        for (PsiElement hit : resolveNonLocal(identifier, name)) {
+            MQL4NamespaceElement ns = PsiTreeUtil.getParentOfType(hit, MQL4NamespaceElement.class);
+            if (ns != null && qualifier.getText().equals(ns.getName())) {
+                inNamespace.add(hit);
+            }
+        }
+        return inNamespace.isEmpty() ? null : inNamespace;
+    }
+
+    /** {@code m} in {@code offsetof(S, m)}: the member of struct {@code S}. */
+    @org.jetbrains.annotations.Nullable
+    private static List<PsiElement> resolveOffsetofMember(@NotNull PsiElement identifier, @NotNull String name,
+                                                          @org.jetbrains.annotations.Nullable PsiElement comma) {
+        if (comma == null || comma.getNode().getElementType() != MQL4Elements.COMMA) {
+            return null;
+        }
+        PsiElement type = PsiTreeUtil.prevVisibleLeaf(comma);
+        PsiElement open = type == null ? null : PsiTreeUtil.prevVisibleLeaf(type);
+        PsiElement keyword = open == null ? null : PsiTreeUtil.prevVisibleLeaf(open);
+        if (keyword == null || open.getNode().getElementType() != MQL4Elements.L_ROUND_BRACKET
+                || type.getNode().getElementType() != MQL4Elements.IDENTIFIER || !"offsetof".equals(keyword.getText())) {
+            return null;
+        }
+        MQL4ClassElement cls = findClassByName(type.getText(), identifier.getProject(), identifier);
+        return cls == null ? null : resolveMemberInClassHierarchy(cls, name);
+    }
+
+    private static boolean isMacroParameter(@NotNull PsiElement identifier, @NotNull String name) {
+        MQL4DefineElement define = PsiTreeUtil.getParentOfType(identifier, MQL4DefineElement.class);
+        return define != null && define.getParameterNames().contains(name);
     }
 
     // ---- Tier 1: lexical scope (locals + parameters) --------------------------------------
@@ -103,6 +192,12 @@ public final class MqlResolveUtil {
                 }
             } else if (MqlPsiUtil.isCodeBlock(parent)) {
                 PsiElement match = findVarInBlockChildren(parent.getNode(), name);
+                if (match != null) {
+                    return match;
+                }
+            } else if (MqlPsiUtil.forHeaderOf(parent) != null) {
+                // for(int i=0; ...): the init-clause declaration is scoped to the header and body
+                PsiElement match = findVarInBlockChildren(MqlPsiUtil.forHeaderOf(parent), name);
                 if (match != null) {
                     return match;
                 }
@@ -138,12 +233,50 @@ public final class MqlResolveUtil {
         for (ASTNode child = blockNode.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             if (child.getElementType() == MQL4Elements.VAR_DECLARATION_STATEMENT) {
                 PsiElement match = findVarDefinitionInDeclaration(child, name);
-                if (match != null) {
+                if (match != null && !isMultiplication(child)) {
                     return match;
                 }
             }
         }
         return null;
+    }
+
+    /** Statements being checked by {@link #isMultiplication}, so {@code a * a;} can't recurse. */
+    private static final ThreadLocal<Set<ASTNode>> MULTIPLICATION_CHECKS = ThreadLocal.withInitial(java.util.HashSet::new);
+
+    /**
+     * True for {@code a * b;} where {@code a} is a variable in scope: the parser reads it as a pointer
+     * declaration of {@code b} (it can't tell types from variables), but it is a multiplication
+     * (MetaEditor's warning 95), so it declares nothing. A class named {@code a} keeps the declaration.
+     */
+    private static boolean isMultiplication(@NotNull ASTNode declaration) {
+        ASTNode type = declaration.getFirstChildNode();
+        ASTNode star = type == null ? null : type.getTreeNext();
+        while (star != null && MQL4TokenSets.COMMENTS_OR_WS.contains(star.getElementType())) {
+            star = star.getTreeNext();
+        }
+        if (type == null || type.getElementType() != MQL4Elements.IDENTIFIER
+                || star == null || star.getElementType() != MQL4Elements.MUL) {
+            return false;
+        }
+        ASTNode list = declaration.findChildByType(MQL4Elements.VAR_DEFINITION_LIST);
+        if (list == null || list.findChildByType(MQL4Elements.COMMA) != null
+                || declaration.findChildByType(MQL4Elements.EQ) != null
+                || (list.findChildByType(MQL4Elements.VAR_DEFINITION) != null
+                && list.findChildByType(MQL4Elements.VAR_DEFINITION).findChildByType(MQL4Elements.EQ) != null)) {
+            return false;
+        }
+        Set<ASTNode> inProgress = MULTIPLICATION_CHECKS.get();
+        if (!inProgress.add(declaration)) {
+            return false;
+        }
+        try {
+            PsiElement typeLeaf = type.getPsi();
+            return resolveLocal(typeLeaf, type.getText()) != null
+                    && findClassByName(type.getText(), typeLeaf.getProject(), typeLeaf) == null;
+        } finally {
+            inProgress.remove(declaration);
+        }
     }
 
     /** The VAR_DEFINITION named {@code name} inside a VAR_DECLARATION_STATEMENT, or null. */
@@ -183,24 +316,13 @@ public final class MqlResolveUtil {
         // short-circuit below so a project symbol shadowing a built-in name still wins.
         GlobalSearchScope closureScope = closureScopeFor(file);
         if (closureScope != null) {
-            collectIndexed(name, project, closureScope, hits);
-            for (MQL4EnumElement e : MQL4EnumNameIndex.getInstance().get(name, project, closureScope)) {
-                com.intellij.openapi.progress.ProgressManager.checkCanceled();
-                if (name.equals(e.getName())) {
-                    hits.add(e);
-                }
-            }
+            collectInClosureScope(name, project, closureScope, hits);
+            // A header is compiled inside each .mq5/.mq4 that includes it, so it also sees what
+            // that includer declared or included before it (sibling headers, the EA's globals).
             if (hits.isEmpty()) {
-                collectClosureGlobals(name, project, closureScope, hits);
-            }
-            // Enum-constant tier (LAST closure tier): a bare use of a constant (`RED`, or `Color::RED`
-            // whose member leaf is still `RED`) binds to its enum-field declaration. Gated on an empty
-            // result so it never overrides a function/class/enum-type/global/local that already claimed
-            // the name; poly-resolves if two enums in the closure both declare it (safe, never a pick).
-            if (hits.isEmpty()) {
-                for (MQL4EnumElement e : MQL4EnumFieldNameIndex.getInstance().get(name, project, closureScope)) {
-                    com.intellij.openapi.progress.ProgressManager.checkCanceled();
-                    collectEnumFieldsNamed(e, name, hits);
+                GlobalSearchScope includerScope = includerScopeFor(file);
+                if (includerScope != null) {
+                    collectInClosureScope(name, project, includerScope, hits);
                 }
             }
         } else {
@@ -227,6 +349,11 @@ public final class MqlResolveUtil {
                     }
                 }
             }
+            if (hits.isEmpty()) {
+                for (PsiFile f : closure) {
+                    collectFirstPerFile(PsiTreeUtil.findChildrenOfType(f, MQL4DefineElement.class), name, hits);
+                }
+            }
             // Enum-constant tier (last), mirroring the index path above: scan the closure enums'
             // fields directly since the stub index can't serve non-physical PSI.
             if (hits.isEmpty()) {
@@ -251,8 +378,63 @@ public final class MqlResolveUtil {
 
         // Tier 3: project-wide stub indexes (functions/classes only survive as stubs today; a
         // project-wide global-variable index, sketched in REVAMP_PLAN.md #3b, is a TODO).
-        collectIndexed(name, project, GlobalSearchScope.allScope(project), hits);
+        // The project first: the indexed MetaTrader Include folders can hold stale copies of its headers.
+        collectIndexed(name, project, GlobalSearchScope.projectScope(project), hits);
+        if (hits.isEmpty()) {
+            collectIndexed(name, project, GlobalSearchScope.allScope(project), hits);
+        }
+        if (hits.isEmpty()) {
+            collectFirstPerFile(MqlScopes.projectFirst(MQL4DefineNameIndex.getInstance().getKey(), name, project, MQL4DefineElement.class), name, hits);
+        }
         return hits;
+    }
+
+    /** The closure tiers of {@link #resolveNonLocal}, in order, over one closure scope. */
+    private static void collectInClosureScope(@NotNull String name, @NotNull Project project,
+                                              @NotNull GlobalSearchScope scope, @NotNull List<PsiElement> hits) {
+        collectIndexed(name, project, scope, hits);
+        for (MQL4EnumElement e : MQL4EnumNameIndex.getInstance().getElements(name, project, scope)) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            if (name.equals(e.getName())) {
+                hits.add(e);
+            }
+        }
+        if (hits.isEmpty()) {
+            collectClosureGlobals(name, project, scope, hits);
+        }
+        if (hits.isEmpty()) {
+            collectFirstPerFile(MQL4DefineNameIndex.getInstance().getElements(name, project, scope), name, hits);
+        }
+        // Enum-constant tier (LAST closure tier): a bare use of a constant (`RED`, or `Color::RED`
+        // whose member leaf is still `RED`) binds to its enum-field declaration. Gated on an empty
+        // result so it never overrides a function/class/enum-type/global/local that already claimed
+        // the name; poly-resolves if two enums in the closure both declare it (safe, never a pick).
+        if (hits.isEmpty()) {
+            for (MQL4EnumElement e : MQL4EnumFieldNameIndex.getInstance().getElements(name, project, scope)) {
+                com.intellij.openapi.progress.ProgressManager.checkCanceled();
+                collectEnumFieldsNamed(e, name, hits);
+            }
+        }
+    }
+
+    /**
+     * The document-first declaration named {@code name} per file: {@code #ifdef}/{@code #else}
+     * branches often define the same macro twice, and both are one name to the reader.
+     */
+    private static <T extends PsiElement & com.intellij.psi.PsiNamedElement> void collectFirstPerFile(
+            @NotNull java.util.Collection<T> candidates, @NotNull String name, @NotNull List<PsiElement> hits) {
+        Map<PsiFile, T> firstPerFile = new java.util.LinkedHashMap<>();
+        for (T candidate : candidates) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            if (!name.equals(candidate.getName())) {
+                continue;
+            }
+            T prev = firstPerFile.get(candidate.getContainingFile());
+            if (prev == null || candidate.getTextOffset() < prev.getTextOffset()) {
+                firstPerFile.put(candidate.getContainingFile(), candidate);
+            }
+        }
+        hits.addAll(firstPerFile.values());
     }
 
     /**
@@ -267,7 +449,7 @@ public final class MqlResolveUtil {
                                               @NotNull GlobalSearchScope scope,
                                               @NotNull List<PsiElement> hits) {
         Map<PsiFile, MQL4VarDefinitionElement> firstPerFile = new java.util.LinkedHashMap<>();
-        for (MQL4VarDefinitionElement v : MQL4GlobalVarNameIndex.getInstance().get(name, project, scope)) {
+        for (MQL4VarDefinitionElement v : MQL4GlobalVarNameIndex.getInstance().getElements(name, project, scope)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
             if (!name.equals(v.getName())) {
                 continue;
@@ -459,7 +641,7 @@ public final class MqlResolveUtil {
 
     /** Base-class type names read from {@code cls}'s CLASS_INHERITANCE_LIST / CLASS_INHERITANCE_ITEM. */
     @NotNull
-    private static List<String> baseClassNames(@NotNull MQL4ClassElement cls) {
+    public static List<String> baseClassNames(@NotNull MQL4ClassElement cls) {
         ASTNode list = cls.getNode().findChildByType(MQL4Elements.CLASS_INHERITANCE_LIST);
         if (list == null) {
             return java.util.Collections.emptyList();
@@ -513,7 +695,7 @@ public final class MqlResolveUtil {
             }
         }
         // No context / not in the closure: accept only an unambiguous project-wide match.
-        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
+        return lookupClassProjectFirst(name, project);
     }
 
     /**
@@ -535,7 +717,14 @@ public final class MqlResolveUtil {
                 return null;
             }
         }
-        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
+        GlobalSearchScope includerScope = includerScopeFor(file);
+        if (includerScope != null) {
+            ClassLookup inIncluders = lookupClassInScope(name, project, includerScope);
+            if (inIncluders.match != null || inIncluders.ambiguous) {
+                return inIncluders.match;
+            }
+        }
+        return lookupClassProjectFirst(name, project);
     }
 
     /** Backward-compatible context-less lookup — unambiguous project-wide match only. */
@@ -562,6 +751,16 @@ public final class MqlResolveUtil {
         }
     }
 
+    /** The unambiguous class in the project, or else in the indexed MetaTrader Include folders. */
+    @org.jetbrains.annotations.Nullable
+    private static MQL4ClassElement lookupClassProjectFirst(@NotNull String name, @NotNull Project project) {
+        ClassLookup own = lookupClassInScope(name, project, GlobalSearchScope.projectScope(project));
+        if (own.match != null || own.ambiguous) {
+            return own.match;
+        }
+        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
+    }
+
     /**
      * ONE pass over the class index for {@code name} in {@code scope}, classifying the result as the
      * unique match, {@link ClassLookup#AMBIGUOUS} (two or more), or {@link ClassLookup#NONE}. Merges
@@ -570,17 +769,29 @@ public final class MqlResolveUtil {
      */
     @NotNull
     private static ClassLookup lookupClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
+        // A forward declaration (class CFoo;) names the class but has no members: the definition
+        // wins, and only a lone forward declaration is returned as itself.
         MQL4ClassElement found = null;
-        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
+        MQL4ClassElement forward = null;
+        boolean forwardAmbiguous = false;
+        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().getElements(name, project, scope)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
             if (name.equals(c.getTypeName())) {
+                if (c.getInnerBlockNode() == null) {
+                    forwardAmbiguous |= forward != null;
+                    forward = c;
+                    continue;
+                }
                 if (found != null) {
                     return ClassLookup.AMBIGUOUS;
                 }
                 found = c;
             }
         }
-        return found == null ? ClassLookup.NONE : ClassLookup.unique(found);
+        if (found != null) {
+            return ClassLookup.unique(found);
+        }
+        return forward == null ? ClassLookup.NONE : forwardAmbiguous ? ClassLookup.AMBIGUOUS : ClassLookup.unique(forward);
     }
 
     /**
@@ -597,14 +808,19 @@ public final class MqlResolveUtil {
     }
 
     private static void collectIndexed(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope, @NotNull List<PsiElement> out) {
-        for (MQL4FunctionElement f : MQL4FunctionNameIndex.getInstance().get(name, project, scope)) {
+        for (MQL4FunctionElement f : MQL4FunctionNameIndex.getInstance().getElements(name, project, scope)) {
             if (name.equals(f.getFunctionName())) {
                 out.add(f);
             }
         }
-        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().get(name, project, scope)) {
+        for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().getElements(name, project, scope)) {
             if (name.equals(c.getTypeName())) {
                 out.add(c);
+            }
+        }
+        for (MQL4TypedefElement t : MQL4TypedefNameIndex.getInstance().getElements(name, project, scope)) {
+            if (name.equals(t.getName())) {
+                out.add(t);
             }
         }
     }
@@ -621,6 +837,23 @@ public final class MqlResolveUtil {
         return CachedValuesManager.getCachedValue(file, () ->
                 CachedValueProvider.Result.create(closureScope(file.getProject(), includeClosure(file)),
                         PsiModificationTracker.MODIFICATION_COUNT));
+    }
+
+    /**
+     * For a header, the union of the {@code #include} closures of the project {@code .mq5}/{@code .mq4}
+     * files that include it, cached like {@link #closureScopeFor}; {@code null} for anything else.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static GlobalSearchScope includerScopeFor(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> {
+            Set<PsiFile> union = new LinkedHashSet<>();
+            for (PsiFile includer : MqlVisibleNames.includers(file)) {
+                union.addAll(includeClosure(includer));
+            }
+            union.remove(file);
+            return CachedValueProvider.Result.create(union.isEmpty() ? null : closureScope(file.getProject(), union),
+                    PsiModificationTracker.MODIFICATION_COUNT, VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS);
+        });
     }
 
     @org.jetbrains.annotations.Nullable

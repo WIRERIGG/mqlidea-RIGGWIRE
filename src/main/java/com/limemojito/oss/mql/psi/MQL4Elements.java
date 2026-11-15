@@ -11,13 +11,16 @@ import com.limemojito.oss.mql.psi.stub.MQL4StubElements;
 public interface MQL4Elements extends MQL4StubElements, MQL4LexerElements {
 
     // Composite elements: blocks, statements, lists
-    IElementType PREPROCESSOR_DEFINE_BLOCK = new MQL4ElementType("PREPROCESSOR_DEFINE_BLOCK");
+    // PREPROCESSOR_DEFINE_BLOCK and TYPEDEF are stub element types declared in MQL4StubElements.
+    IElementType TYPEDEF_RETURN_TYPE = new MQL4ElementType("TYPEDEF_RETURN_TYPE");
     IElementType PREPROCESSOR_IMPORT_BLOCK = new MQL4ElementType("PREPROCESSOR_IMPORT_BLOCK");
     IElementType PREPROCESSOR_INCLUDE_BLOCK = new MQL4ElementType("PREPROCESSOR_INCLUDE_BLOCK");
     IElementType PREPROCESSOR_PROPERTY_BLOCK = new MQL4ElementType("PREPROCESSOR_PROPERTY_BLOCK");
     IElementType PREPROCESSOR_UNDEF_BLOCK = new MQL4ElementType("PREPROCESSOR_UNDEF_BLOCK");
 
     IElementType FUNCTION_ARG = new MQL4ElementType("FUNCTION_ARG");
+    // `operator==`, `operator[]`, `operator()`: an overloaded operator's name
+    IElementType OPERATOR_NAME = new MQL4ElementType("OPERATOR_NAME");
     IElementType FUNCTION_ARGS_LIST = new MQL4ElementType("FUNCTION_ARGS_LIST");
 
     // ENUM_STATEMENT is a stub element type declared in MQL4StubElements (inherited here).
@@ -45,6 +48,11 @@ public interface MQL4Elements extends MQL4StubElements, MQL4LexerElements {
     IElementType EXPRESSION_STATEMENT = new MQL4ElementType("EXPRESSION_STATEMENT");
 
     IElementType VAR_DECLARATION_STATEMENT = new MQL4ElementType("VAR_DECLARATION_STATEMENT");
+    // `input group "Signal"`: a heading in the inputs dialog, not a variable
+    IElementType INPUT_GROUP = new MQL4ElementType("INPUT_GROUP");
+    // `namespace Name { ... }`; the body runs the top-level declaration loop
+    IElementType NAMESPACE_BLOCK = new MQL4ElementType("NAMESPACE_BLOCK");
+    IElementType NAMESPACE_BODY = new MQL4ElementType("NAMESPACE_BODY");
     IElementType VAR_DEFINITION_LIST = new MQL4ElementType("VAR_DEFINITION_LIST");
     // VAR_DEFINITION is a stub element type declared in MQL4StubElements (inherited here).
 

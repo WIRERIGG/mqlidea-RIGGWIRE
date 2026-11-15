@@ -46,7 +46,8 @@ public class FunctionsParsing implements MQL4Elements {
 
     private static final TokenSet FUNCTION_DESCRIPTION_TOKENS = TokenSet.create(MQL4Elements.VIRTUAL_KEYWORD, MQL4Elements.CONST_KEYWORD, MQL4Elements.ABSTRACT_KEYWORD);
 
-    private static final TokenSet FUNCTION_SUFFIX_TOKENS = TokenSet.create(MQL4Elements.OVERRIDE_KEYWORD, MQL4Elements.FINAL_KEYWORD);
+    private static final TokenSet FUNCTION_SUFFIX_TOKENS = TokenSet.create(MQL4Elements.OVERRIDE_KEYWORD, MQL4Elements.FINAL_KEYWORD,
+            MQL4Elements.EXPORT_KEYWORD);
 
     private static final List<PatternMatcher> FUNCTION_MATCHER = Arrays.asList(
             (b, ahead) -> { // return type: custom type or data type
@@ -57,14 +58,28 @@ public class FunctionsParsing implements MQL4Elements {
                     return -1;
                 }
                 pos++; // 'type'
+                if (t == IDENTIFIER && b.lookAhead(ahead + pos) == LT) {
+                    int args = templateArgsLength(b, ahead + pos); // vector<double> operator+(...)
+                    if (args < 0) {
+                        return -1;
+                    }
+                    pos += args;
+                }
+                if (t == IDENTIFIER && b.lookAhead(ahead + pos) == MUL) {
+                    pos++; // 'CObject *Next()': an object pointer return (file/class scope only, so never 'a * f(x)')
+                }
                 pos += ParsingUtils.countLookAhead(b, pos, FUNCTION_DESCRIPTION_TOKENS);
                 return pos;
             },
-            (b, ahead) -> { // name or ClassName::name
+            (b, ahead) -> { // name, operator<op>, ClassName::name or ClassName::operator<op>
                 ParsingScope scope = ParsingScope.getScope(b);
                 int pos = 0;
                 if (scope == ParsingScope.TOP_LEVEL && b.lookAhead(ahead) == IDENTIFIER && b.lookAhead(ahead + 1) == COLON_COLON) {
                     pos += 2; // 'ClassName' + '::'
+                }
+                int operatorLength = operatorNameLength(b, ahead + pos);
+                if (operatorLength > 0) {
+                    return pos + operatorLength;
                 }
                 return b.lookAhead(ahead + pos) != IDENTIFIER ? -1 : pos + 1; // function name
             },
@@ -101,7 +116,71 @@ public class FunctionsParsing implements MQL4Elements {
             (b, ahead) -> b.lookAhead(ahead) == L_ROUND_BRACKET ? 1 : -1 // opening bracket
     );
 
+    private static final TokenSet TEMPLATE_ARG_TOKENS = TokenSet.orSet(MQL4TokenSets.DATA_TYPES,
+            TokenSet.create(IDENTIFIER, COMMA, MUL, AND, COLON_COLON, CONST_KEYWORD, LT, GT, SH_RIGHT));
+
+    /** Token count of the {@code <...>} starting at {@code lt} in a return type, or -1 if it isn't one. */
+    private static int templateArgsLength(@NotNull PsiBuilder b, int lt) {
+        int depth = 0;
+        for (int n = lt; n < lt + 32; n++) {
+            IElementType t = b.lookAhead(n);
+            if (t == null || !TEMPLATE_ARG_TOKENS.contains(t)) {
+                return -1;
+            }
+            depth += t == LT ? 1 : t == GT ? -1 : t == SH_RIGHT ? -2 : 0;
+            if (depth <= 0) {
+                return depth == 0 ? n + 1 - lt : -1;
+            }
+        }
+        return -1;
+    }
+
     public static final TokenSet ON_ERROR_STOP_TOKENS = TokenSet.create(SEMICOLON, R_ROUND_BRACKET, R_CURLY_BRACKET);
+
+    /** Single-token operators that can follow {@code operator} (Operation Overloading page). */
+    private static final TokenSet OVERLOADABLE_OPERATORS = TokenSet.orSet(MQL4TokenSets.OPERATORS,
+            TokenSet.create(LT, GT, COMMA));
+
+    /**
+     * Length of {@code operator <op>} at {@code ahead} ({@code operator==}, {@code operator[]},
+     * {@code operator()}) when the argument list's {@code (} follows it, else -1.
+     */
+    private static int operatorNameLength(@NotNull PsiBuilder b, int ahead) {
+        if (b.lookAhead(ahead) != OPERATOR_KEYWORD) {
+            return -1;
+        }
+        IElementType op = b.lookAhead(ahead + 1);
+        int length;
+        if ((op == L_ROUND_BRACKET && b.lookAhead(ahead + 2) == R_ROUND_BRACKET)
+                || (op == L_SQUARE_BRACKET && b.lookAhead(ahead + 2) == R_SQUARE_BRACKET)) {
+            length = 3;
+        } else if (OVERLOADABLE_OPERATORS.contains(op)) {
+            length = 2;
+        } else {
+            return -1;
+        }
+        return b.lookAhead(ahead + length) == L_ROUND_BRACKET ? length : -1;
+    }
+
+    /**
+     * Advances over the matched function prefix, wrapping {@code operator <op>} (if any) in an
+     * OPERATOR_NAME node, so the argument list's {@code (} is the function's first direct one.
+     */
+    private static void advanceFunctionPrefix(@NotNull PsiBuilder b, int prefixLength) {
+        for (int i = 0; i < prefixLength; i++) {
+            if (b.getTokenType() == OPERATOR_KEYWORD) {
+                int length = operatorNameLength(b, 0);
+                if (length > 0) {
+                    PsiBuilder.Marker name = b.mark();
+                    ParsingUtils.advanceLexer(b, length);
+                    name.done(OPERATOR_NAME);
+                    i += length - 1;
+                    continue;
+                }
+            }
+            b.advanceLexer();
+        }
+    }
 
     public static boolean parseFunction(PsiBuilder b) {
         return parseFunction(b, 0, null) != NotMatched;
@@ -131,7 +210,7 @@ public class FunctionsParsing implements MQL4Elements {
         PsiBuilder.Marker m = b.mark();
         FunctionParsingResult actualResult = null;
         try {
-            ParsingUtils.advanceLexer(b, matchedPrefixLen); // data type, identifier(::identifier), left round brace.
+            advanceFunctionPrefix(b, matchedPrefixLen); // data type, identifier(::identifier), left round brace.
 
             boolean argsParsed = parseFunctionArgs(b, l);
             if (!argsParsed) {
@@ -148,9 +227,9 @@ public class FunctionsParsing implements MQL4Elements {
                 b.advanceLexer(); // 'const'
             }
 
-            // consume optional MQL5 override/final suffixes
+            // consume optional MQL5 override/final suffixes and the library export modifier
             while (FUNCTION_SUFFIX_TOKENS.contains(b.getTokenType())) {
-                b.advanceLexer(); // 'override' or 'final'
+                b.advanceLexer(); // 'override', 'final' or 'export'
             }
 
             boolean hasFieldsInitBlock = false;
@@ -274,6 +353,9 @@ public class FunctionsParsing implements MQL4Elements {
                         if (t2 == AND || t2 == MUL) {
                             t2 = ParsingUtils.advanceLexer(b); // '&' || '*'
                         }
+                        if (t2 == AND) {
+                            t2 = ParsingUtils.advanceLexer(b); // the '&' of a pointer reference: CFoo *&p
+                        }
                         if (t2 == COMMA) {
                             b.advanceLexer(); // COMMA
                             continue; // end of argument
@@ -292,7 +374,7 @@ public class FunctionsParsing implements MQL4Elements {
                             b.advanceLexer(); // identifier
                         }
 
-                        if (b.getTokenType() == L_SQUARE_BRACKET) {
+                        while (b.getTokenType() == L_SQUARE_BRACKET) { // info[], m[][4]
                             t2 = ParsingUtils.advanceLexer(b); // '['
                             if (t2 == INTEGER_LITERAL || t2 == IDENTIFIER) {
                                 t2 = ParsingUtils.advanceLexer(b); // array size

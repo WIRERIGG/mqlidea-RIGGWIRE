@@ -18,7 +18,10 @@ import com.intellij.psi.tree.ILightStubFileElementType;
 import com.intellij.util.diff.FlyweightCapableTreeStructure;
 import com.limemojito.oss.mql.MQL4Language;
 import com.limemojito.oss.mql.parser.MQL4Parser;
+import com.limemojito.oss.mql.index.MQL4IndexKeys;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
+import com.limemojito.oss.mql.psi.impl.MQL4DefineElement;
+import com.limemojito.oss.mql.psi.impl.MQL4TypedefElement;
 import com.limemojito.oss.mql.psi.impl.MQL4EnumElement;
 import com.limemojito.oss.mql.psi.impl.MQL4FunctionElement;
 import com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement;
@@ -26,6 +29,7 @@ import com.limemojito.oss.mql.psi.stub.type.MQL4ClassElementStubType;
 import com.limemojito.oss.mql.psi.stub.type.MQL4EnumElementStubType;
 import com.limemojito.oss.mql.psi.stub.type.MQL4FunctionElementStubType;
 import com.limemojito.oss.mql.psi.stub.type.MQL4GlobalVarElementStubType;
+import com.limemojito.oss.mql.psi.stub.type.MQL4NamedElementStubType;
 
 public interface MQL4StubElements {
 
@@ -38,9 +42,15 @@ public interface MQL4StubElements {
     // v23: the ENUM_STATEMENT stub now also carries its constant (field) names, indexed into the new
     // enum-field-name stub index so a bare enum-constant use resolves to its declaration; the changed
     // stub serialization forces a one-time rebuild.
-    int STUB_SCHEMA_VERSION = 23;
+    // v24: user-type, pointer, array and comma-list declarations parse as VAR_DEFINITIONs, adding
+    // global-var stubs.
+    // v25: `export` functions and `pack(n)` classes/structs parse into FUNCTION / CLASS nodes.
+    // v26: unions are CLASS stubs of kind Union; TYPEDEF and #define (PREPROCESSOR_DEFINE_BLOCK) stubs;
+    // namespace bodies, operator methods and operator-like functions now produce FUNCTION/CLASS stubs.
+    int STUB_SCHEMA_VERSION = 27;
 
-    ILightStubFileElementType FILE = new ILightStubFileElementType(MQL4Language.INSTANCE) {
+    // The debug name goes through the constructor: getDebugName() is internal API and not for overriding.
+    ILightStubFileElementType FILE = new ILightStubFileElementType("RIGGWIRE MQL File", MQL4Language.INSTANCE) {
         @Override
         public String getExternalId() {
             // Distinctive, plugin-unique id so the platform can tell this stub file element
@@ -48,11 +58,6 @@ public interface MQL4StubElements {
             // which uses the default "MQL4.FILE"). Avoids the "Cannot distinguish
             // StubFileElementTypes" warning.
             return "riggwire.mql.FILE";
-        }
-
-        @Override
-        public String getDebugName() {
-            return "RIGGWIRE MQL File";
         }
 
         @Override
@@ -90,4 +95,11 @@ public interface MQL4StubElements {
     IStubElementType<MQL4EnumElementStub, MQL4EnumElement> ENUM_STATEMENT = new MQL4EnumElementStubType();
 
     IStubElementType<MQL4GlobalVarElementStub, MQL4VarDefinitionElement> VAR_DEFINITION = new MQL4GlobalVarElementStubType();
+
+    // v26: `typedef int (*TName)(...)` and `#define NAME` are named, indexed declarations.
+    IStubElementType<MQL4NamedElementStub<MQL4TypedefElement>, MQL4TypedefElement> TYPEDEF =
+            new MQL4NamedElementStubType<>("TYPEDEF", "mqlidea.typedef", MQL4IndexKeys.TYPEDEF_NAME_INDEX_KEY, MQL4TypedefElement::new);
+
+    IStubElementType<MQL4NamedElementStub<MQL4DefineElement>, MQL4DefineElement> PREPROCESSOR_DEFINE_BLOCK =
+            new MQL4NamedElementStubType<>("PREPROCESSOR_DEFINE_BLOCK", "mqlidea.define", MQL4IndexKeys.DEFINE_NAME_INDEX_KEY, MQL4DefineElement::new);
 }

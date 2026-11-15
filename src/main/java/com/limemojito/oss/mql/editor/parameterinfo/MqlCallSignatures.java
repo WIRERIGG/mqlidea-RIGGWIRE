@@ -9,7 +9,6 @@ package com.limemojito.oss.mql.editor.parameterinfo;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.limemojito.oss.mql.doc.BuiltinSignature;
@@ -91,13 +90,14 @@ public final class MqlCallSignatures {
         // Documented built-ins are never project symbols (the same assumption MqlResolveUtil encodes
         // when it short-circuits the project index for a documented built-in). Consult the bundled
         // catalog FIRST so a built-in call (Print, OrderSend, iMA, ...) — the common case — skips the
-        // project-wide allScope FUNCTION index query entirely. The signature returned is identical to
+        // project-wide FUNCTION index query entirely. The signature returned is identical to
         // what the previous project-first path would have fallen through to for such a name.
         BuiltinSignature builtin = BuiltinSignatureCatalog.get(name);
         if (builtin != null) {
             return new Object[]{builtin};
         }
-        var projectFunctions = MQL4FunctionNameIndex.getInstance().get(name, project, GlobalSearchScope.allScope(project));
+        var projectFunctions = com.limemojito.oss.mql.reference.MqlScopes.projectFirst(
+                MQL4FunctionNameIndex.getInstance().getKey(), name, project, MQL4FunctionElement.class);
         List<MQL4FunctionElement> matching = new ArrayList<>();
         for (MQL4FunctionElement f : projectFunctions) {
             if (name.equals(f.getFunctionName())) {

@@ -31,7 +31,7 @@ public class MQL4TokenSets implements MQL4Elements {
     );
 
     public static final TokenSet LITERALS = TokenSet.create(STRING_LITERAL, CHAR_LITERAL, INTEGER_LITERAL, DOUBLE_LITERAL,
-            FALSE_KEYWORD, TRUE_KEYWORD, COLOR_CONSTANT_LITERAL, COLOR_STRING_LITERAL);
+            FALSE_KEYWORD, TRUE_KEYWORD, COLOR_CONSTANT_LITERAL, COLOR_STRING_LITERAL, DATETIME_LITERAL);
 
     public static final TokenSet STRINGS_AND_CHARS = TokenSet.create(STRING_LITERAL, CHAR_LITERAL, INCLUDE_STRING_LITERAL);
 
@@ -44,7 +44,7 @@ public class MQL4TokenSets implements MQL4Elements {
     public static final TokenSet OPERATORS = TokenSet.create(
             EQ, EQ_EQ, PLUS_EQ, MINUS_EQ, MUL_EQ, DIV_EQ, MOD_EQ, AND_EQ, OR_EQ, XOR_EQ, TILDA_EQ, SH_LEFT_EQ, SH_RIGHT_EQ, USH_RIGHT_EQ,
             POW_EQ, PLUS_PLUS, MINUS_MINUS, BOOL_OR, BOOL_AND, USH_RIGHT, SH_RIGHT, SH_LEFT, POW, LESS_EQ, GT_EQ, NOT_EQ, OR, XOR, PLUS, MINUS, MUL,
-            TILDA, DIV, MOD, AND, NOT, QUESTION
+            TILDA, DIV, MOD, AND, NOT, QUESTION, PP_STRINGIZE, PP_CONCAT
     );
 
     public static final TokenSet DATA_TYPES = TokenSet.create(
@@ -88,6 +88,13 @@ public class MQL4TokenSets implements MQL4Elements {
     public static final TokenSet MEMORY_CLASSES = TokenSet.create(EXTERN_KEYWORD, INPUT_KEYWORD, SINPUT_KEYWORD, STATIC_KEYWORD);
 
     public static final TokenSet CLASS_STRUCT_INTERFACE = TokenSet.create(CLASS_KEYWORD, STRUCT_KEYWORD, INTERFACE_KEYWORD);
+
+    /** The keyword that opens a CLASS node, including a {@code union} remapped by the parser. */
+    public static final TokenSet CLASS_KIND_KEYWORDS = TokenSet.create(CLASS_KEYWORD, STRUCT_KEYWORD, INTERFACE_KEYWORD, UNION_KEYWORD);
+
+    /** Keywords the parser remaps from IDENTIFIER in their one position (see MQL4LexerElements). */
+    public static final TokenSet CONTEXTUAL_KEYWORDS = TokenSet.create(UNION_KEYWORD, TYPEDEF_KEYWORD, PACK_KEYWORD,
+            GROUP_KEYWORD, OFFSETOF_KEYWORD);
 
     @NotNull
     public static IElementType getLeftBracketFor(@NotNull IElementType rightBracket) {

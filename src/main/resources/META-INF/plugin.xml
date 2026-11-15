@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.0</version>
+    <version>2026.1.8</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,56 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.8</b> &ndash; the backtest guard now actually sees MetaTrader under Wine (on macOS the
+               process list showed only <code>wine64</code>), also waits while an <code>mt5 backtest</code> is starting, and
+               refuses to start when it can't read the process list.</p>
+            <p><b>2026.1.7</b> &ndash; the backtest guard no longer mistakes a shell or script that merely
+               mentions <code>terminal64</code> for a running MetaTrader; only the <code>terminal64.exe</code> and
+               <code>metatester64.exe</code> processes count.</p>
+            <p><b>2026.1.6</b> &ndash; EA development beyond the editor.
+               New <i>Indicator buffer contract</i> check: an <code>INDICATOR_DATA</code> buffer past the ones the plots
+               use (another program's <code>CopyBuffer</code> gets -1, error 4806), a <code>SetIndexBuffer</code> index past
+               <code>indicator_buffers</code>, and an EA's <code>CopyBuffer</code>/<code>iCustom</code> calls that don't match
+               the indicator in the project. Compile errors now show in <code>.mqh</code> headers (compiled through the
+               program including them; saving a header recompiles its programs). An <i>MQL5 Backtest</i> run
+               configuration drives <code>mt5 backtest</code> and never stops a running MetaTrader. A banner warns when
+               MetaTrader's copy of an EA source has drifted from the repository, and another when a <code>.set</code> file
+               names inputs its EA doesn't declare. Also: <code>//noinspection</code> for one statement or line,
+               members through casts, and quick-fixes for unchecked <code>OrderSend</code> and missing
+               <code>IndicatorRelease</code>. Background compiles pause while a backtest runs.</p>
+            <p><b>2026.1.5</b> &ndash; no false "undeclared" errors left on MetaQuotes' Standard Library and
+               examples: operators with a template return type (<code>vector&lt;double&gt; operator+(...)</code>) parse
+               as functions, structs and unions defined inside a function are understood, and parameters a
+               macro's expansion declares (<code>EVENT_MAP_BEGIN</code>'s <code>id</code>, <code>lparam</code>, ...) are known.
+               Operators (<code>operator+</code>, <code>operator[]</code>) are no longer reported for PascalCase naming.</p>
+            <p><b>2026.1.4</b> &ndash; far fewer false errors, measured on MetaQuotes' own Standard Library
+               and examples (code MetaEditor compiles cleanly): "undeclared identifier" and "undefined
+               function" reports there fell from 2,019 to 19, and parse errors to zero. Now understood:
+               constructor-style declarations (<code>CFoo f(1);</code>, <code>CArrayList&lt;int&gt; list(n);</code>),
+               template parameters, <code>#resource ... as string name</code>, <code>datetime static x</code>,
+               <code>const</code> per name in a list, <code>*&amp;</code> and <code>[][]</code> parameters, number suffixes
+               (<code>0.5f</code>, <code>2ull</code>), backslashes in quoted <code>#include</code> paths, members inherited from
+               built-in structures, and <code>x[i]</code> on objects with <code>operator[]</code>. A forward declaration
+               (<code>class CFoo;</code>) no longer hides the class's members. Built-in structure fields
+               (<code>MqlDateTime</code>, <code>MqlTradeRequest</code>, ...) complete after a dot and misspelt ones are flagged.
+               A file including a header too large for the IDE to analyse isn't checked for undeclared names.
+               The background problem scan waits for indexing instead of failing.</p>
+            <p><b>2026.1.3</b> &ndash; navigation across headers: a header now resolves what the .mq5 that
+               includes it declared or included before it (sibling headers' globals, enums and structs), so
+               Ctrl-click, find usages and rename reach those uses. The MetaTrader <code>Include</code> folders
+               are indexed as a library, so names from <code>#include &lt;...&gt;</code> headers resolve
+               (<code>CTrade</code>, third-party headers). Project declarations always win over copies in
+               <code>Include</code>.</p>
+            <p><b>2026.1.2</b> &ndash; fewer false alarms, found on a real EA: ArrayResize checks skip resizes
+               that only shrink, roll back or trim; a switch covering every value of its enum, or followed
+               by a <code>return</code>, needs no default; repeated-ArrayResize counts only growth of the same
+               array; string-building-in-loop ignores reassignment and short fixed loops and now suggests
+               <code>StringAdd()</code>; account details mailed or pushed to the owner are a weak warning.</p>
+            <p><b>2026.1.1</b> &ndash; undeclared-name checks: calls to undefined functions, undeclared
+               variables, constants and types, members a class doesn't have, and MQL4-only functions
+               (<code>OrderLots</code>, <code>TimeHour</code>, ...) called in MQL5 files. Fixes: a parameter
+               with a default value is named correctly, <code>#ifdef</code> inside a function no longer hides
+               the next declaration, and <code>#include</code> paths with backslashes resolve.</p>
             <p><b>2026.1.0 &ndash; major revamp</b> (see docs/REVAMP_PLAN.md). RIGGWIRE MQL is now
                focused on honest, everyday help for MQL4/MQL5 projects, especially catching errors early.</p>
             <p><b>New:</b></p>
@@ -162,9 +212,16 @@
                                    implementationClass="com.limemojito.oss.mql.editor.parameterinfo.MQL4ParameterInfoHandler"/>
 
         <!-- Parameter-name inlay hints (Phase 3a): labels each positional argument of a resolved
-             call with its parameter name, reusing the Ctrl-P signature resolution. -->
-        <codeInsight.parameterNameHints language="MQL4"
-                                        implementationClass="com.limemojito.oss.mql.editor.MqlParameterHintsProvider"/>
+             call with its parameter name, reusing the Ctrl-P signature resolution. Declarative
+             API: the old parameterNameHints EP's interface is @ApiStatus.Experimental. -->
+        <codeInsight.declarativeInlayProvider language="MQL4"
+                                              implementationClass="com.limemojito.oss.mql.editor.MqlParameterHintsProvider"
+                                              isEnabledByDefault="true"
+                                              group="PARAMETERS_GROUP"
+                                              providerId="riggwire.mql.parameter.names"
+                                              bundle="messages.plugin"
+                                              nameKey="inlay.parameter.names.name"
+                                              descriptionKey="inlay.parameter.names.description"/>
 
         <!-- Spellchecking (Phase 2c): comments/strings as free text, identifiers split on
              case/underscore boundaries; common MQL/MetaTrader jargon is allow-listed via the
@@ -189,6 +246,8 @@
         <runConfigurationProducer
                 implementation="com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfigurationProducer"/>
         <configurationType implementation="com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfigurationType"/>
+        <configurationType implementation="com.limemojito.oss.mql.runconfig.MqlBacktestConfigurationType"/>
+        <runConfigurationProducer implementation="com.limemojito.oss.mql.runconfig.MqlBacktestConfigurationProducer"/>
 
         <!--
         https://confluence.jetbrains.com/display/IDEADEV/Customizing+the+IDEA+Settings+Dialog
@@ -215,6 +274,10 @@
         <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
                          displayName="Unchecked indicator handle"
                          implementationClass="com.limemojito.oss.mql.inspection.UncheckedHandleInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+                         displayName="Indicator buffer contract (SetIndexBuffer, CopyBuffer, iCustom)"
+                         implementationClass="com.limemojito.oss.mql.inspection.IndicatorBufferContractInspection"/>
         <!--suppress PluginXmlI18n -->
         <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
                          displayName="Missing IndicatorRelease() in OnDeinit"
@@ -273,7 +336,7 @@
                          displayName="OnInit() returns void instead of int"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingOnInitReturnInspection"/>
         <!--suppress PluginXmlI18n -->
-        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+        <localInspection language="MQL4" groupName="Function Signature" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
                          displayName="Empty event handler"
                          implementationClass="com.limemojito.oss.mql.inspection.EmptyEventHandlerInspection"/>
         <!--suppress PluginXmlI18n -->
@@ -515,6 +578,14 @@
                          displayName="Suspicious semicolon after control statement"
                          implementationClass="com.limemojito.oss.mql.inspection.SuspiciousSemicolonInspection"/>
         <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Control Flow" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="ERROR"
+                         displayName="Call to an undefined function"
+                         implementationClass="com.limemojito.oss.mql.inspection.UndefinedFunctionCallInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Control Flow" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="ERROR"
+                         displayName="Undeclared variable or member"
+                         implementationClass="com.limemojito.oss.mql.inspection.UndeclaredIdentifierInspection"/>
+        <!--suppress PluginXmlI18n -->
         <localInspection language="MQL4" groupName="Control Flow" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WEAK WARNING"
                          displayName="Empty loop body"
                          implementationClass="com.limemojito.oss.mql.inspection.EmptyLoopBodyInspection"/>
@@ -609,7 +680,9 @@
         <externalAnnotator language="MQL4"
                            implementationClass="com.limemojito.oss.mql.compiler.MqlCompilerExternalAnnotator"/>
         <notificationGroup id="MQL Compiler" displayType="BALLOON"/>
-        <statusBarWidgetFactory implementation="com.limemojito.oss.mql.compiler.MqlCompileStatusBarWidgetFactory"/>
+        <notificationGroup id="MQL Backtest" displayType="BALLOON"/>
+        <statusBarWidgetFactory id="com.limemojito.oss.mql.compiler.status"
+                                implementation="com.limemojito.oss.mql.compiler.MqlCompileStatusBarWidgetFactory"/>
 
         <!--File icons-->
         <iconProvider implementation="com.limemojito.oss.mql.MQL4FileIconProvider"/>
@@ -628,6 +701,8 @@
         <stubIndex implementation="com.limemojito.oss.mql.index.MQL4EnumNameIndex"/>
         <stubIndex implementation="com.limemojito.oss.mql.index.MQL4EnumFieldNameIndex"/>
         <stubIndex implementation="com.limemojito.oss.mql.index.MQL4GlobalVarNameIndex"/>
+        <stubIndex implementation="com.limemojito.oss.mql.index.MQL4TypedefNameIndex"/>
+        <stubIndex implementation="com.limemojito.oss.mql.index.MQL4DefineNameIndex"/>
 
         <gotoClassContributor implementation="com.limemojito.oss.mql.index.MQL4GotoClassContributor"/>
         <gotoSymbolContributor implementation="com.limemojito.oss.mql.index.MQL4GotoSymbolContributor"/>
@@ -642,6 +717,8 @@
              ever be consulted by Ctrl-click/Find Usages/rename. -->
         <lang.ast.factory language="MQL4" implementationClass="com.limemojito.oss.mql.psi.impl.MQL4ASTFactory"/>
         <psi.referenceContributor language="MQL4" implementation="com.limemojito.oss.mql.reference.MqlReferenceContributor"/>
+        <!-- MetaTrader Include folders as a library, so names declared in <...> headers resolve -->
+        <additionalLibraryRootsProvider implementation="com.limemojito.oss.mql.reference.MqlIncludeLibraryProvider"/>
         <lang.findUsagesProvider language="MQL4" implementationClass="com.limemojito.oss.mql.findusages.MqlFindUsagesProvider"/>
         <lang.refactoringSupport language="MQL4" implementationClass="com.limemojito.oss.mql.refactoring.MqlRefactoringSupportProvider"/>
 
@@ -663,12 +740,18 @@
         <readWriteAccessDetector implementation="com.limemojito.oss.mql.editor.MqlReadWriteAccessDetector"/>
         <lang.namesValidator language="MQL4" implementationClass="com.limemojito.oss.mql.refactoring.MqlNamesValidator"/>
 
+        <!-- Read-only: warns when MetaTrader's copy of an EA source has drifted from the repository. -->
+        <editorNotificationProvider implementation="com.limemojito.oss.mql.deploy.Mt5DriftNotificationProvider"/>
+        <!-- .set files: inputs the EA doesn't declare (MetaTrader silently tests the default instead). -->
+        <editorNotificationProvider implementation="com.limemojito.oss.mql.tester.SetFileNotificationProvider"/>
     </extensions>
 
     <!-- Phase 0 (REVAMP_PLAN.md): replaces the deprecated StartupActivity-based wiring that used
          to manually connect MqlProblemsLoggerFileListener to the project message bus. -->
     <projectListeners>
         <listener class="com.limemojito.oss.mql.inspection.MqlProblemsLoggerFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener class="com.limemojito.oss.mql.deploy.Mt5DriftRefresher"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
 </idea-plugin>

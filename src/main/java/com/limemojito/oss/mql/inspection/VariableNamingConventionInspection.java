@@ -25,11 +25,11 @@ public class VariableNamingConventionInspection extends MQL5SafetyInspectionBase
         List<ProblemDescriptor> problems = new SmartList<>();
         for (PsiElement child : findTopLevelVarDeclarations(file)) {
             ProgressManager.checkCanceled();
-            String name = getVariableName(child);
-            if (name == null) continue;
-            if (!isCamelCase(name) && !isSnakeCase(name) && !isAllCaps(name)) {
-                problems.add(createWeakWarning(manager, child,
-                        String.format(MESSAGE, name)));
+            for (String name : getVariableNames(child)) { // every name of `int a, b;`
+                if (!isCamelCase(name) && !isSnakeCase(name) && !isAllCaps(name)) {
+                    problems.add(createWeakWarning(manager, child,
+                            String.format(MESSAGE, name)));
+                }
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);

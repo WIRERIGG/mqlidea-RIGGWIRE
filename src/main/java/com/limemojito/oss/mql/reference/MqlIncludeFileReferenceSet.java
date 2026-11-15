@@ -31,6 +31,23 @@ public class MqlIncludeFileReferenceSet extends FileReferenceSet {
         this.angleBracket = angleBracket;
     }
 
+    /** MetaEditor takes either slash: {@code #include <Trade\Trade.mqh>} is as common as the {@code /} form. */
+    @Override
+    protected int findSeparatorOffset(@NotNull CharSequence sequence, int from) {
+        for (int i = Math.max(from, 0); i < sequence.length(); i++) {
+            char c = sequence.charAt(i);
+            if (c == '/' || c == '\\') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    protected int findSeparatorLength(@NotNull CharSequence sequence, int atOffset) {
+        return 1;
+    }
+
     @Override
     public boolean useIncludingFileAsContext() {
         // Quoted relative includes resolve against the including file's directory; angle-bracket

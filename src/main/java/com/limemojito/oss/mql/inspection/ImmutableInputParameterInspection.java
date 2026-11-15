@@ -47,17 +47,16 @@ public class ImmutableInputParameterInspection extends MQL5SafetyInspectionBase 
         List<ProblemDescriptor> problems = new SmartList<>();
         List<String> inputNames = new ArrayList<>();
 
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child.getNode().getElementType() == com.limemojito.oss.mql.psi.MQL4Elements.VAR_DECLARATION_STATEMENT
                     && isInputVariable(child)) {
-                String name = getVariableName(child);
-                if (name != null) inputNames.add(name);
+                inputNames.addAll(getVariableNames(child)); // input int A=1, B=2; -> A and B
             }
         }
         if (inputNames.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
 
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);

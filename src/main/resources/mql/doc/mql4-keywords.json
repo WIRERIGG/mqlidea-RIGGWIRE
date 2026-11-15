@@ -208,6 +208,10 @@
     "/basis/syntax/namespace"
   ],
   [
+    "export",
+    "/basis/function/export"
+  ],
+  [
     "override",
     "/basis/oop/polymorphism#override"
   ],

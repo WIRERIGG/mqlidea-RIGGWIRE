@@ -7,12 +7,11 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.9.25"
     id("org.jetbrains.intellij.platform") version "2.11.0"
 }
 
 group = "com.limemojito.oss.mqlidea"
-version = "2026.1.0"
+version = "2026.1.8"
 
 repositories {
     mavenCentral()
@@ -49,6 +48,18 @@ dependencies {
 intellijPlatform {
     // fails on auto builds for unknown reasons.
     buildSearchableOptions = false
+
+    // ./gradlew verifyPlugin: the build's own target IDE plus the CLion this plugin is used in.
+    // MQL_VERIFY_IDE overrides the local IDE path (machines without /Applications/CLion.app).
+    pluginVerification {
+        ides {
+            create(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdea, "2025.3.2")
+            val localIde = file(System.getenv("MQL_VERIFY_IDE") ?: "/Applications/CLion.app")
+            if (localIde.exists()) {
+                local(localIde)
+            }
+        }
+    }
 }
 
 tasks {
@@ -58,6 +69,10 @@ tasks {
     // specified source release" error.
     withType<JavaCompile> {
         options.release.set(21)
+        // Deprecated or for-removal platform API is a build error, so it is replaced when it
+        // appears instead of piling up. An override the oldest supported platform still requires
+        // carries an explained @SuppressWarnings("deprecation").
+        options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:removal", "-Werror"))
     }
 
     test {

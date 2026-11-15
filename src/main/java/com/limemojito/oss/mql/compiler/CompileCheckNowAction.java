@@ -91,9 +91,10 @@ public final class CompileCheckNowAction extends AnAction {
         }
         notify(project, file, result);
 
-        // restart(PsiFile) is deprecated on this platform version; a full restart is cheap enough
-        // for a user-triggered, one-off "Compile Check Now" (unlike the per-save daemon pass).
-        DaemonCodeAnalyzer.getInstance(project).restart();
+        // A full restart is cheap enough for a user-triggered, one-off "Compile Check Now" (unlike
+        // the per-save daemon pass). restart() and restart(PsiFile) are deprecated; the reason
+        // overload exists on every supported platform version.
+        DaemonCodeAnalyzer.getInstance(project).restart("MQL Compile Check Now finished");
 
         StatusBar bar = WindowManager.getInstance().getStatusBar(project);
         if (bar != null) {

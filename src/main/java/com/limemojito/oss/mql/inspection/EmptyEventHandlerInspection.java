@@ -47,7 +47,7 @@ public class EmptyEventHandlerInspection extends MQL5SafetyInspectionBase {
                     problems.add(manager.createProblemDescriptor(
                             child.getNavigationElement(), child.getNavigationElement(),
                             String.format(MESSAGE, funcName),
-                            ProblemHighlightType.WARNING, true,
+                            ProblemHighlightType.WEAK_WARNING, true,
                             new InsertTodoInEmptyHandlerFix(funcName)));
                 }
             }

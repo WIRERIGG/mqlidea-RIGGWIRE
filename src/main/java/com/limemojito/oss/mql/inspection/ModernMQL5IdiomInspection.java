@@ -51,7 +51,7 @@ public class ModernMQL5IdiomInspection extends MQL5SafetyInspectionBase {
         if (!file.getName().toLowerCase().endsWith(".mq5")) return ProblemDescriptor.EMPTY_ARRAY;
 
         List<ProblemDescriptor> problems = new SmartList<>();
-        for (PsiElement child : file.getChildren()) {
+        for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 ASTNode body = findBracketsBlock(child);
