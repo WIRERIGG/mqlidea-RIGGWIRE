@@ -257,6 +257,10 @@
                          implementationClass="com.limemojito.oss.mql.inspection.UncheckedHandleInspection"/>
         <!--suppress PluginXmlI18n -->
         <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
+                         displayName="Indicator buffer contract (SetIndexBuffer, CopyBuffer, iCustom)"
+                         implementationClass="com.limemojito.oss.mql.inspection.IndicatorBufferContractInspection"/>
+        <!--suppress PluginXmlI18n -->
+        <localInspection language="MQL4" groupName="Trading Safety" groupPath="RIGGWIRE MQL" enabledByDefault="true" level="WARNING"
                          displayName="Missing IndicatorRelease() in OnDeinit"
                          implementationClass="com.limemojito.oss.mql.inspection.MissingIndicatorReleaseInspection"/>
         <!--suppress PluginXmlI18n -->
