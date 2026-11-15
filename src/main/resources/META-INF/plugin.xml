@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.6</version>
+    <version>2026.1.7</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,9 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.7</b> &ndash; the backtest guard no longer mistakes a shell or script that merely
+               mentions <code>terminal64</code> for a running MetaTrader; only the <code>terminal64.exe</code> and
+               <code>metatester64.exe</code> processes count.</p>
             <p><b>2026.1.6</b> &ndash; EA development beyond the editor.
                New <i>Indicator buffer contract</i> check: an <code>INDICATOR_DATA</code> buffer past the ones the plots
                use (another program's <code>CopyBuffer</code> gets -1, error 4806), a <code>SetIndexBuffer</code> index past

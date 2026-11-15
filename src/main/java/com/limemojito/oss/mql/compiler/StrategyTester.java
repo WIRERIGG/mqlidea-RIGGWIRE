@@ -13,7 +13,7 @@ import java.util.Optional;
 
 /**
  * Whether MetaTrader is running, read from the process table (native or under Wine, where the
- * {@code .exe} path is in the arguments). Cached for a few seconds: the annotator asks on every pass.
+ * {@code .exe} path is the command line). Cached for a few seconds: the annotator asks on every pass.
  */
 public final class StrategyTester {
 
@@ -51,16 +51,34 @@ public final class StrategyTester {
         boolean[] found = new boolean[2];
         ProcessHandle.allProcesses().forEach(p -> {
             String text = describe(p);
-            if (text.contains("metatester64")) {
+            if (runs(text, "metatester64")) {
                 found[0] = true;
             }
-            if (text.contains("terminal64")) {
+            if (runs(text, "terminal64")) {
                 found[1] = true;
             }
         });
         testerRunning = found[0];
         terminalRunning = found[1];
         checkedAt = now;
+    }
+
+    /**
+     * True when {@code commandLine} runs {@code exe}: its {@code .exe} path, after a folder separator
+     * (native, or Wine's {@code C:\\...\\terminal64.exe}). A shell or script that merely mentions the
+     * name ({@code pgrep -f terminal64}) is not MetaTrader.
+     */
+    static boolean runs(@NotNull String commandLine, @NotNull String exe) {
+        String line = commandLine.toLowerCase(Locale.ROOT);
+        for (int at = line.indexOf(exe + ".exe"); at >= 0; at = line.indexOf(exe + ".exe", at + 1)) {
+            if (at > 0 && (line.charAt(at - 1) == '\\' || line.charAt(at - 1) == '/')) {
+                int end = at + exe.length() + 4;
+                if (end == line.length() || Character.isWhitespace(line.charAt(end)) || line.charAt(end) == '"') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @NotNull
