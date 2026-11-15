@@ -2,7 +2,7 @@
 
 ## What This Is
 
-An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.4) providing MQL4/MQL5 language support for MetaTrader trading development in IntelliJ IDEA and CLion. It focuses on being honest and genuinely helpful for real MQL projects: early, inline detection of syntactic/semantic errors, and full IDE assistance (navigation, refactoring, completion, docs, formatting) plus a compiler-backed error annotator.
+An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.5) providing MQL4/MQL5 language support for MetaTrader trading development in IntelliJ IDEA and CLion. It focuses on being honest and genuinely helpful for real MQL projects: early, inline detection of syntactic/semantic errors, and full IDE assistance (navigation, refactoring, completion, docs, formatting) plus a compiler-backed error annotator.
 
 > The former **AI Code Healing** subsystem (Grok analysis + Claude diff apply, SQLite DB, healing tool window, gutter markers, pre-commit prompts) was **removed in the 2026.1.0 revamp**. Only the AI-free "Generate MQL Inspection Catalog" action (`catalog/`) survives. Do not re-add healing.
 
@@ -13,7 +13,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.4) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (582 pass)
+./gradlew test           # tests only (586 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
 tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 tools/corpus-gate.sh          # ratchet over real MQL corpora (needs a local MetaTrader install)
@@ -73,7 +73,7 @@ src/test/                               # parser + inspection tests (219)
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 582). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 586). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **27** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.
@@ -90,7 +90,7 @@ src/test/                               # parser + inspection tests (219)
 - Names resolve the way MetaEditor compiles: a file's own `#include` closure, then (for a header) the closures of the `.mq5`/`.mq4` files that include it (`MqlResolveUtil.includerScopeFor`). The MetaTrader `MQL5/Include` and `MQL4/Include` folders are indexed as a library (`MqlIncludeLibraryProvider`). They often hold stale copies of project headers, so every project-wide lookup goes through `MqlScopes.projectFirst` (project wins; a library declaration never stands in for a documented built-in), dialect inference and the undeclared-name fallback use project scope only, and Goto Class/Symbol honour "include non-project items". Macro parameters still resolve to nothing, by design.
 - CLion's MCP `search_symbol` never sees MQL symbols: CLion routes it to its C++ engine (`RadSymbolSearchEngine`), and the only hook (`SymbolSearchEngine`) is `@ApiStatus.Internal`. Platform limitation, not fixable within the rules above; agents use `search_text`/`search_regex`. IntelliJ IDEA has no such engine, so it falls back to Goto Symbol.
 - Built-in structure members (`MqlDateTime dt; dt.hour`) complete and are checked by name (`StructCatalog`); they have no PSI, so they don't navigate.
-- False errors left on MetaQuotes' own code (19, all in `Include`, held by the corpus gate): parameters of `operator+(const vector<double> &vect)` (11), names from the `EVENT_MAP_*` macros (`id`/`lparam`/`dparam`, 6), a local `union` (1), one `BitmapHeader` (1).
+- MetaQuotes' Standard Library and examples have no false undeclared-name errors (corpus gate holds them at 0); parse errors there are 0 too.
 - Header (`.mqh`) compile errors from the ExternalAnnotator are not yet surfaced.
 - Compile-checking runs on macOS (`mt5`/Wine), Windows (native `metaeditor64.exe` via a registered MQL SDK), and Linux (explicit Wine) through the `MqlCompilerService` launcher strategy; macOS is the actively-exercised path.
 - Plugin Verifier: Compatible on IU 2025.3.2 and CL 2026.3, with no experimental or internal API. One deprecated usage is unavoidable: `MQL4SdkType.suggestHomePath()`, which is still abstract on 2025.3. `suggestHomePaths(Project)` is overridden alongside it, so SDK suggestions keep working after the platform removes it. Drop the override once since-build passes 253.

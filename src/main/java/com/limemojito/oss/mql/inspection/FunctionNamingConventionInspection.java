@@ -28,7 +28,7 @@ public class FunctionNamingConventionInspection extends MQL5SafetyInspectionBase
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 String name = func.getFunctionName();
-                if (name.startsWith("~") || name.equals(MQL4FunctionElement.UNKNOWN_NAME)) continue;
+                if (name.startsWith("~") || isOperator(name) || name.equals(MQL4FunctionElement.UNKNOWN_NAME)) continue;
                 if (MQL5_EVENT_HANDLERS.contains(name)) continue;
                 if (!isPascalCase(name)) {
                     problems.add(createWeakWarning(manager, child.getNavigationElement(),
@@ -37,6 +37,11 @@ public class FunctionNamingConventionInspection extends MQL5SafetyInspectionBase
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+
+    /** {@code operator+}, {@code operator[]}: a name with no naming choice (unlike {@code operatorName}). */
+    private static boolean isOperator(@NotNull String name) {
+        return name.length() > 8 && name.startsWith("operator") && !Character.isJavaIdentifierPart(name.charAt(8));
     }
 
     private boolean isPascalCase(@NotNull String name) {

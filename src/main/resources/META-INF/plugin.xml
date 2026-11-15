@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.4</version>
+    <version>2026.1.5</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,11 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.5</b> &ndash; no false "undeclared" errors left on MetaQuotes' Standard Library and
+               examples: operators with a template return type (<code>vector&lt;double&gt; operator+(...)</code>) parse
+               as functions, structs and unions defined inside a function are understood, and parameters a
+               macro's expansion declares (<code>EVENT_MAP_BEGIN</code>'s <code>id</code>, <code>lparam</code>, ...) are known.
+               Operators (<code>operator+</code>, <code>operator[]</code>) are no longer reported for PascalCase naming.</p>
             <p><b>2026.1.4</b> &ndash; far fewer false errors, measured on MetaQuotes' own Standard Library
                and examples (code MetaEditor compiles cleanly): "undeclared identifier" and "undefined
                function" reports there fell from 2,019 to 19, and parse errors to zero. Now understood:

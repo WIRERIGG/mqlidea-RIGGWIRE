@@ -94,8 +94,9 @@ final class UndeclaredNames {
 
     /**
      * Names a file declares outside the PSI the resolver sees: template parameters
-     * ({@code template<typename T>}, visible to the template they head) and {@code #resource}
-     * variables ({@code #resource "k.cl" as string src}). Template parameters are matched by name
+     * ({@code template<typename T>}, visible to the template they head), {@code #resource}
+     * variables ({@code #resource "k.cl" as string src}) and parameters that an invoked macro's
+     * expansion declares ({@code EVENT_MAP_BEGIN(C)} opens {@code OnEvent(const int id, ...)}). Template parameters are matched by name
      * across the file, which can only hide a real error named like one.
      */
     static boolean isDeclaredOutsidePsi(@NotNull String name, @NotNull PsiFile file) {
@@ -103,14 +104,35 @@ final class UndeclaredNames {
                 collectOutsidePsi(file), PsiModificationTracker.MODIFICATION_COUNT)).contains(name);
     }
 
+    /** {@code (const long& lparam,} in a macro body: group 1 is a parameter the expansion declares. */
+    private static final java.util.regex.Pattern MACRO_BODY_PARAMETER = java.util.regex.Pattern.compile(
+            "[(,]\\s*(?:const\\s+)?[A-Za-z_]\\w*\\s*[&*]?\\s*([A-Za-z_]\\w*)\\s*(?:\\[\\s*\\]\\s*)?(?=[,)=])");
+
+    /** An upper-case name (the macro convention) is looked up as a possible macro invocation. */
+    private static final java.util.regex.Pattern MACRO_NAME = java.util.regex.Pattern.compile("[A-Z][A-Z0-9_]+");
+
     private static Set<String> collectOutsidePsi(@NotNull PsiFile file) {
         Set<String> names = new HashSet<>();
+        Set<String> macrosSeen = new HashSet<>();
         for (ASTNode leaf = firstLeaf(file.getNode()); leaf != null; leaf = nextLeaf(leaf)) {
             IElementType t = leaf.getElementType();
             if ((t == MQL4Elements.TYPENAME_KEYWORD || t == MQL4Elements.CLASS_KEYWORD) && inTemplateHeader(leaf)) {
                 ASTNode next = nextMeaningful(leaf);
                 if (next != null && next.getElementType() == MQL4Elements.IDENTIFIER) {
                     names.add(next.getText());
+                }
+            } else if (t == MQL4Elements.IDENTIFIER && MACRO_NAME.matcher(leaf.getText()).matches()
+                    && macrosSeen.add(leaf.getText())) {
+                // EVENT_MAP_BEGIN(CBox) expands to bool CBox::OnEvent(const int id,const long& lparam,...) {
+                for (PsiElement target : MqlResolveUtil.resolve(leaf.getPsi(), leaf.getText())) {
+                    if (target instanceof com.limemojito.oss.mql.psi.impl.MQL4DefineElement define) {
+                        String body = define.getText();
+                        int open = body.indexOf('(', body.indexOf(leaf.getText()) + leaf.getText().length() + 1);
+                        java.util.regex.Matcher m = MACRO_BODY_PARAMETER.matcher(open < 0 ? "" : body.substring(open));
+                        while (m.find()) {
+                            names.add(m.group(1));
+                        }
+                    }
                 }
             } else if (t == MQL4Elements.RESOURCE_PP_KEYWORD) {
                 String last = null;

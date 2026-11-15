@@ -69,6 +69,7 @@ public class StatementParsing implements MQL4Elements {
                 || parseDoStatement(b, l)
                 || parseSwitchStatement(b, l)
                 || parseTypedef(b, l)
+                || parseLocalType(b, l)
                 || parseVarDeclaration(b, l, true) // a code block: CFoo f(1); declares f
                 || parseBlockStatement(b, l)
                 || parseExpressionStatement(b, l);
@@ -213,6 +214,31 @@ public class StatementParsing implements MQL4Elements {
         // VarDeclarationStatement uses raw mark()/done() (no enter_section_), so it is safe to call
         // with the bracket block's raw PsiBuilder.
         return parseVarDeclaration(b, l);
+    }
+
+    /**
+     * A struct, class or union defined inside a function ({@code struct SHeader { ... };}), with any
+     * variables declared after its body ({@code union U { ... } res;}).
+     */
+    private static boolean parseLocalType(PsiBuilder b, int l) {
+        IElementType t = b.getTokenType();
+        boolean union = t == IDENTIFIER && "union".equals(b.getTokenText()) && b.lookAhead(1) == IDENTIFIER;
+        if (!union && t != STRUCT_KEYWORD && t != CLASS_KEYWORD) {
+            return false;
+        }
+        if (!com.limemojito.oss.mql.parser.parsing.ClassParsing.parseClassOrStruct(b, l)) {
+            return false;
+        }
+        if (b.getTokenType() == IDENTIFIER || b.getTokenType() == MUL) {
+            PsiBuilder.Marker vars = b.mark();
+            if (VarDeclarationStatement.parseVarDefinitionList(b, l + 1) == VarDeclarationStatement.ListEnd.INITIALIZER) {
+                b.advanceLexer(); // ';' after the last initializer
+            }
+            vars.done(VAR_DECLARATION_STATEMENT);
+        } else if (b.getTokenType() == SEMICOLON) {
+            b.advanceLexer();
+        }
+        return true;
     }
 
     /**

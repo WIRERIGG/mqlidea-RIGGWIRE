@@ -58,6 +58,13 @@ public class FunctionsParsing implements MQL4Elements {
                     return -1;
                 }
                 pos++; // 'type'
+                if (t == IDENTIFIER && b.lookAhead(ahead + pos) == LT) {
+                    int args = templateArgsLength(b, ahead + pos); // vector<double> operator+(...)
+                    if (args < 0) {
+                        return -1;
+                    }
+                    pos += args;
+                }
                 if (t == IDENTIFIER && b.lookAhead(ahead + pos) == MUL) {
                     pos++; // 'CObject *Next()': an object pointer return (file/class scope only, so never 'a * f(x)')
                 }
@@ -108,6 +115,25 @@ public class FunctionsParsing implements MQL4Elements {
             },
             (b, ahead) -> b.lookAhead(ahead) == L_ROUND_BRACKET ? 1 : -1 // opening bracket
     );
+
+    private static final TokenSet TEMPLATE_ARG_TOKENS = TokenSet.orSet(MQL4TokenSets.DATA_TYPES,
+            TokenSet.create(IDENTIFIER, COMMA, MUL, AND, COLON_COLON, CONST_KEYWORD, LT, GT, SH_RIGHT));
+
+    /** Token count of the {@code <...>} starting at {@code lt} in a return type, or -1 if it isn't one. */
+    private static int templateArgsLength(@NotNull PsiBuilder b, int lt) {
+        int depth = 0;
+        for (int n = lt; n < lt + 32; n++) {
+            IElementType t = b.lookAhead(n);
+            if (t == null || !TEMPLATE_ARG_TOKENS.contains(t)) {
+                return -1;
+            }
+            depth += t == LT ? 1 : t == GT ? -1 : t == SH_RIGHT ? -2 : 0;
+            if (depth <= 0) {
+                return depth == 0 ? n + 1 - lt : -1;
+            }
+        }
+        return -1;
+    }
 
     public static final TokenSet ON_ERROR_STOP_TOKENS = TokenSet.create(SEMICOLON, R_ROUND_BRACKET, R_CURLY_BRACKET);
 

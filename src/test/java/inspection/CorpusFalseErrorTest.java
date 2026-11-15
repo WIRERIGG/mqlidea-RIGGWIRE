@@ -172,4 +172,64 @@ public class CorpusFalseErrorTest extends BasePlatformTestCase {
         PsiElement set = myFixture.getFile().findReferenceAt(myFixture.getFile().getText().indexOf("Set(1") + 1).resolve();
         assertNotNull("g[0].Set resolves through operator[]'s return type", set);
     }
+
+    public void testOperatorParameters() {
+        assertEquals(List.of(), errors("""
+                class CRowD
+                  {
+                public:
+                   vector<double> m_array;
+                   vector<double> operator+(const vector<double> &vect) const { return(m_array + vect); }
+                   vector<double> operator-(const CRowD &vect) const          { return(m_array - vect.m_array); }
+                   bool           operator==(const double value) const        { return(m_array.Size() > 0 && value == 0); }
+                  };
+                void OnStart() { }
+                """));
+    }
+
+    public void testParametersDeclaredByAMacroSignature() {
+        assertEquals(List.of(), errors("""
+                #define HANDLER_BEGIN(cls) bool cls::OnEvent(const int id,const long& lparam,const double& dparam,const string& sparam) {
+                #define HANDLER_END return(false); }
+                class CBox { public: bool OnEvent(const int id,const long& lparam,const double& dparam,const string& sparam); void Hide(int a, int b, int c) { } };
+                HANDLER_BEGIN(CBox)
+                   Hide(id,(int)lparam,(int)dparam);
+                HANDLER_END
+                """));
+    }
+
+    public void testLocalUnionAndStruct() {
+        assertEquals(List.of(), errors("""
+                long Pack(const uchar &src[])
+                  {
+                   union res_data
+                     {
+                      uchar cdata[8];
+                      long  ldata;
+                     } res;
+                   res.ldata = 0;
+                   struct SHeader { uint width; uint height; };
+                   SHeader header;
+                   header.width = (uint)ArraySize(src);
+                   return(res.ldata + header.width);
+                  }
+                """));
+    }
+
+    public void testOperatorsHaveNoNamingConvention() {
+        myFixture.configureByText("test.mq5", """
+                class CVec
+                  {
+                public:
+                   double m_v;
+                   double operator+(const CVec &o) const { return(m_v + o.m_v); }
+                   double operator[](const int i) const  { return(m_v); }
+                   double operatorish() const            { return(m_v); }
+                  };
+                """);
+        myFixture.enableInspections(new com.limemojito.oss.mql.inspection.FunctionNamingConventionInspection());
+        List<String> names = myFixture.doHighlighting().stream().map(HighlightInfo::getDescription)
+                .filter(d -> d != null && d.contains("PascalCase")).toList();
+        assertEquals(List.of("Function 'operatorish' should use PascalCase naming convention"), names);
+    }
 }
