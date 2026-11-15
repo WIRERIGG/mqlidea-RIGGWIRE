@@ -63,13 +63,13 @@ public final class CompilerOutputParser {
             if (m.matches()) {
                 out.add(new CompilerDiagnostic(fileName(m.group(1)),
                         Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)),
-                        severity(m.group(4)), m.group(5), m.group(6)));
+                        severity(m.group(4)), m.group(5), m.group(6), m.group(1).trim()));
                 continue;
             }
             m = FILE_LEVEL.matcher(line);
             if (m.matches()) {
                 out.add(new CompilerDiagnostic(fileName(m.group(1)), 0, 0,
-                        severity(m.group(2)), m.group(3), m.group(4)));
+                        severity(m.group(2)), m.group(3), m.group(4), m.group(1).trim()));
             }
             // anything else (banners, blank lines, the Result: trailer) is ignored here
         }

@@ -71,10 +71,14 @@ final class MqlCompileStatusBarWidget implements StatusBarWidget, StatusBarWidge
         if (file == null) {
             return "MQL: no file";
         }
+        MqlCompilerService service = project.getService(MqlCompilerService.class);
+        if (MqlCompilerExternalAnnotator.isHeader(file.getName())) {
+            return headerText(service, file);
+        }
         if (!MqlCompilerExternalAnnotator.isCompilableProgram(file.getName())) {
             return "MQL";
         }
-        MqlCompilerService.CompileResult result = project.getService(MqlCompilerService.class).getLastResult(file);
+        MqlCompilerService.CompileResult result = service.getLastResult(file);
         if (result == null) {
             return "MQL: not compiled";
         }
@@ -82,6 +86,21 @@ final class MqlCompileStatusBarWidget implements StatusBarWidget, StatusBarWidge
             return "MQL: compiler N/A";
         }
         return "MQL: " + plural(result.errors(), "error") + ", " + plural(result.warnings(), "warning");
+    }
+
+    /** A header's own counts, from the log of the program compiled on its behalf. */
+    @NotNull
+    private static String headerText(@NotNull MqlCompilerService service, @NotNull VirtualFile header) {
+        VirtualFile program = service.headerProgramOf(header);
+        MqlCompilerService.CompileResult result = program == null ? null : service.getLastResult(program);
+        if (result == null) {
+            return "MQL: not compiled";
+        }
+        if (!result.compilerAvailable()) {
+            return "MQL: compiler N/A";
+        }
+        int[] counts = MqlCompilerExternalAnnotator.headerCounts(result, header);
+        return "MQL: " + plural(counts[0], "error") + ", " + plural(counts[1], "warning") + " (via " + program.getName() + ")";
     }
 
     @Override

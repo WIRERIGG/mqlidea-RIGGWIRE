@@ -64,6 +64,10 @@ public class MqlCompilerExternalAnnotator
         }
         PsiFile program = isCompilableProgram(vFile.getName()) ? file
                 : isHeader(vFile.getName()) ? programFor(file) : null;
+        if (isHeader(vFile.getName())) {
+            file.getProject().getService(MqlCompilerService.class)
+                    .rememberHeaderProgram(vFile, program == null ? null : program.getVirtualFile());
+        }
         if (program == null || program.getVirtualFile() == null || !program.getVirtualFile().isInLocalFileSystem()) {
             return null;
         }
@@ -140,13 +144,14 @@ public class MqlCompilerExternalAnnotator
         if (doc == null) {
             return;
         }
-        String thisFile = file.getName();
-        for (CompilerDiagnostic d : result.diagnostics()) {
+        VirtualFile vFile = file.getVirtualFile();
+        if (vFile == null) {
+            return;
+        }
+        boolean program = isCompilableProgram(vFile.getName());
+        List<CompilerDiagnostic> own = diagnosticsFor(result, vFile, program);
+        for (CompilerDiagnostic d : own) {
             if (d.severity() == CompilerDiagnostic.Severity.INFORMATION || !d.hasLocation()) {
-                continue;
-            }
-            // Diagnostics attributed to an #include'd header belong to that file, not this one.
-            if (!thisFile.equalsIgnoreCase(d.fileName())) {
                 continue;
             }
             TextRange range = rangeFor(doc, d.line(), d.column());
@@ -158,6 +163,63 @@ public class MqlCompilerExternalAnnotator
             String tag = d.code() != null ? " [metaeditor " + d.code() + "]" : " [metaeditor]";
             holder.newAnnotation(severity, d.message() + tag).range(range).create();
         }
+        if (program) {
+            String failed = includedFailures(result, own);
+            if (failed != null) {
+                holder.newAnnotation(HighlightSeverity.WARNING, "Included files fail to compile: " + failed).fileLevel().create();
+            }
+        }
+    }
+
+    /**
+     * The diagnostics MetaEditor attributed to {@code file}, matched by the path it printed
+     * ({@link DiagnosticFileMatcher}): two headers with one name in different folders never trade
+     * errors. Only the compiled program may fall back to its bare name.
+     */
+    @NotNull
+    static List<CompilerDiagnostic> diagnosticsFor(@NotNull MqlCompilerService.CompileResult result,
+                                                   @NotNull VirtualFile file, boolean compiledProgram) {
+        List<String> paths = new ArrayList<>();
+        paths.add(file.getPath());
+        String canonical = file.getCanonicalPath();
+        if (canonical != null && !canonical.equals(file.getPath())) {
+            paths.add(canonical);
+        }
+        return DiagnosticFileMatcher.forFile(result.diagnostics(), paths, compiledProgram);
+    }
+
+    /** {errors, warnings} MetaEditor reported in {@code header} when it compiled the program including it. */
+    @NotNull
+    public static int[] headerCounts(@NotNull MqlCompilerService.CompileResult result, @NotNull VirtualFile header) {
+        int[] counts = new int[2];
+        for (CompilerDiagnostic d : diagnosticsFor(result, header, false)) {
+            if (d.severity() == CompilerDiagnostic.Severity.ERROR) {
+                counts[0]++;
+            } else if (d.severity() == CompilerDiagnostic.Severity.WARNING) {
+                counts[1]++;
+            }
+        }
+        return counts;
+    }
+
+    /**
+     * The included files with errors ({@code "RiskManager.mqh (2), Clock.mqh (1)"}), or null: a
+     * program whose own lines are clean still fails to build when a header doesn't compile.
+     */
+    @Nullable
+    static String includedFailures(@NotNull MqlCompilerService.CompileResult result, @NotNull List<CompilerDiagnostic> own) {
+        java.util.Map<String, Integer> byFile = new java.util.LinkedHashMap<>();
+        for (CompilerDiagnostic d : result.diagnostics()) {
+            if (d.severity() == CompilerDiagnostic.Severity.ERROR && !own.contains(d)) {
+                byFile.merge(d.fileName(), 1, Integer::sum);
+            }
+        }
+        if (byFile.isEmpty()) {
+            return null;
+        }
+        StringBuilder text = new StringBuilder();
+        byFile.forEach((name, n) -> text.append(text.isEmpty() ? "" : ", ").append(name).append(" (").append(n).append(')'));
+        return text.toString();
     }
 
     /** Package-visible so {@link CompileCheckNowAction} shares the same "is this compilable" rule. */

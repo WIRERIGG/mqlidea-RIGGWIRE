@@ -15,6 +15,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -23,6 +24,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.WindowManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -49,8 +52,7 @@ public final class CompileCheckNowAction extends AnAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         VirtualFile file = e.getData(CommonDataKeys.VIRTUAL_FILE);
-        boolean enabled = e.getProject() != null && file != null
-                && MqlCompilerExternalAnnotator.isCompilableProgram(file.getName());
+        boolean enabled = e.getProject() != null && file != null && isCheckable(file);
         e.getPresentation().setEnabledAndVisible(enabled);
     }
 
@@ -66,30 +68,51 @@ public final class CompileCheckNowAction extends AnAction {
     /**
      * Force a fresh compile of {@code file} and refresh diagnostics/status — the shared entry point
      * for both the "Compile Check Now" action and a click on the status-bar widget. No-op when the
-     * file isn't a compilable MQL program.
+     * file isn't a compilable MQL program or header. A header is checked by compiling the program
+     * that includes it ({@link MqlCompilerExternalAnnotator#programFor}); its own diagnostics are reported.
      */
     public static void runCompileCheck(@NotNull Project project, @NotNull VirtualFile file) {
-        if (!MqlCompilerExternalAnnotator.isCompilableProgram(file.getName())) {
+        if (!isCheckable(file)) {
             return;
         }
         FileDocumentManager.getInstance().saveAllDocuments();
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Compiling " + file.getName(), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                indicator.setText("Running MQL compiler on " + file.getName() + "…");
                 MqlCompilerService service = project.getService(MqlCompilerService.class);
-                MqlCompilerService.CompileResult result = service.recompile(file);
-                ApplicationManager.getApplication().invokeLater(() -> onCompiled(project, file, result));
+                VirtualFile target = file;
+                if (MqlCompilerExternalAnnotator.isHeader(file.getName())) {
+                    indicator.setText("Finding a program that includes " + file.getName() + "…");
+                    target = ReadAction.nonBlocking(() -> {
+                        PsiFile psi = PsiManager.getInstance(project).findFile(file);
+                        PsiFile program = psi == null ? null : MqlCompilerExternalAnnotator.programFor(psi);
+                        return program == null ? null : program.getVirtualFile();
+                    }).inSmartMode(project).executeSynchronously();
+                    service.rememberHeaderProgram(file, target);
+                    if (target == null) {
+                        ApplicationManager.getApplication().invokeLater(() -> notifyNoProgram(project, file));
+                        return;
+                    }
+                }
+                indicator.setText("Running MQL compiler on " + target.getName() + "…");
+                MqlCompilerService.CompileResult result = service.recompile(target);
+                VirtualFile compiled = target;
+                ApplicationManager.getApplication().invokeLater(() -> onCompiled(project, file, compiled, result));
             }
         });
     }
 
-    private static void onCompiled(@NotNull Project project, @NotNull VirtualFile file,
+    private static boolean isCheckable(@NotNull VirtualFile file) {
+        return MqlCompilerExternalAnnotator.isCompilableProgram(file.getName())
+                || MqlCompilerExternalAnnotator.isHeader(file.getName());
+    }
+
+    private static void onCompiled(@NotNull Project project, @NotNull VirtualFile file, @NotNull VirtualFile compiled,
                                     @NotNull MqlCompilerService.CompileResult result) {
         if (project.isDisposed()) {
             return;
         }
-        notify(project, file, result);
+        notify(project, file, compiled, result);
 
         // A full restart is cheap enough for a user-triggered, one-off "Compile Check Now" (unlike
         // the per-save daemon pass). restart() and restart(PsiFile) are deprecated; the reason
@@ -102,17 +125,32 @@ public final class CompileCheckNowAction extends AnAction {
         }
     }
 
-    private static void notify(@NotNull Project project, @NotNull VirtualFile file,
+    private static void notify(@NotNull Project project, @NotNull VirtualFile file, @NotNull VirtualFile compiled,
                                 @NotNull MqlCompilerService.CompileResult result) {
         String message;
         NotificationType type;
         if (!result.compilerAvailable()) {
             message = "MQL compiler is not available — no mt5/MetaEditor/Wine launcher could be found on this machine.";
             type = NotificationType.WARNING;
+        } else if (!file.equals(compiled)) {
+            int[] counts = MqlCompilerExternalAnnotator.headerCounts(result, file);
+            message = file.getName() + ": " + counts[0] + " error(s), " + counts[1] + " warning(s) (compiled via "
+                    + compiled.getName() + ": " + result.errors() + " error(s) in total).";
+            type = counts[0] > 0 ? NotificationType.ERROR : NotificationType.INFORMATION;
         } else {
             message = file.getName() + ": " + result.errors() + " error(s), " + result.warnings() + " warning(s).";
             type = result.errors() > 0 ? NotificationType.ERROR : NotificationType.INFORMATION;
         }
         Notifications.Bus.notify(new Notification(NOTIFICATION_GROUP, "MQL Compile Check", message, type), project);
+    }
+
+    private static void notifyNoProgram(@NotNull Project project, @NotNull VirtualFile header) {
+        if (project.isDisposed()) {
+            return;
+        }
+        String message = header.getName() + " isn't #included by any .mq4/.mq5 program in this project, "
+                + "so there is nothing to compile it through.";
+        Notifications.Bus.notify(new Notification(NOTIFICATION_GROUP, "MQL Compile Check", message,
+                NotificationType.WARNING), project);
     }
 }

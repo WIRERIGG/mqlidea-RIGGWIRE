@@ -20,15 +20,25 @@ import org.jetbrains.annotations.Nullable;
  * @param severity error / warning / information
  * @param code     MetaEditor's numeric code (e.g. {@code "100"}), or null when absent
  * @param message  the human-readable text
+ * @param path     the path exactly as MetaEditor printed it ({@code MQL5\Experts\X\Y.mqh}, relative
+ *                 to the terminal folder, or absolute such as {@code Z:\Users\...\Y.mqh}); tells
+ *                 apart two headers that share a {@link #fileName}
  */
 public record CompilerDiagnostic(@NotNull String fileName,
                                  int line,
                                  int column,
                                  @NotNull Severity severity,
                                  @Nullable String code,
-                                 @NotNull String message) {
+                                 @NotNull String message,
+                                 @NotNull String path) {
 
     public enum Severity {ERROR, WARNING, INFORMATION}
+
+    /** A diagnostic whose printed path is just its bare file name. */
+    public CompilerDiagnostic(@NotNull String fileName, int line, int column, @NotNull Severity severity,
+                              @Nullable String code, @NotNull String message) {
+        this(fileName, line, column, severity, code, message, fileName);
+    }
 
     public boolean hasLocation() {
         return line > 0;

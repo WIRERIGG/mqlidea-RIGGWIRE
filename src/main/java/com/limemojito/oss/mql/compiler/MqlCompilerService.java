@@ -55,6 +55,9 @@ public final class MqlCompilerService {
     /** path -> most recent result (available or not) for UI display; not used to skip recompiling. */
     private final Map<String, CompileResult> lastResults = new ConcurrentHashMap<>();
 
+    /** header path -> the program compiled on its behalf (the header's diagnostics come from that log). */
+    private final Map<String, VirtualFile> headerPrograms = new ConcurrentHashMap<>();
+
     public MqlCompilerService() {
         this(List.of(new Mt5CliLauncher(), new MetaEditorLauncher(), new WineLauncher()));
     }
@@ -129,6 +132,21 @@ public final class MqlCompilerService {
     @Nullable
     public CompileResult getLastResult(@NotNull VirtualFile file) {
         return lastResults.get(file.getPath());
+    }
+
+    /** Records the program compiled on behalf of {@code header}; null forgets it. */
+    public void rememberHeaderProgram(@NotNull VirtualFile header, @Nullable VirtualFile program) {
+        if (program != null) {
+            headerPrograms.put(header.getPath(), program);
+        } else {
+            headerPrograms.remove(header.getPath());
+        }
+    }
+
+    /** The program last compiled for {@code header}, or null. No PSI access: the status bar calls it on the EDT. */
+    @Nullable
+    public VirtualFile headerProgramOf(@NotNull VirtualFile header) {
+        return headerPrograms.get(header.getPath());
     }
 
     @Nullable
