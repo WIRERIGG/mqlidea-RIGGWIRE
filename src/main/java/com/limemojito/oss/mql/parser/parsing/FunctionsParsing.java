@@ -327,6 +327,9 @@ public class FunctionsParsing implements MQL4Elements {
                         if (t2 == AND || t2 == MUL) {
                             t2 = ParsingUtils.advanceLexer(b); // '&' || '*'
                         }
+                        if (t2 == AND) {
+                            t2 = ParsingUtils.advanceLexer(b); // the '&' of a pointer reference: CFoo *&p
+                        }
                         if (t2 == COMMA) {
                             b.advanceLexer(); // COMMA
                             continue; // end of argument
@@ -345,7 +348,7 @@ public class FunctionsParsing implements MQL4Elements {
                             b.advanceLexer(); // identifier
                         }
 
-                        if (b.getTokenType() == L_SQUARE_BRACKET) {
+                        while (b.getTokenType() == L_SQUARE_BRACKET) { // info[], m[][4]
                             t2 = ParsingUtils.advanceLexer(b); // '['
                             if (t2 == INTEGER_LITERAL || t2 == IDENTIFIER) {
                                 t2 = ParsingUtils.advanceLexer(b); // array size

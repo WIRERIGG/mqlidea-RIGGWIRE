@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.3</version>
+    <version>2026.1.4</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,18 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.4</b> &ndash; far fewer false errors, measured on MetaQuotes' own Standard Library
+               and examples (code MetaEditor compiles cleanly): "undeclared identifier" and "undefined
+               function" reports there fell from 2,019 to 19, and parse errors to zero. Now understood:
+               constructor-style declarations (<code>CFoo f(1);</code>, <code>CArrayList&lt;int&gt; list(n);</code>),
+               template parameters, <code>#resource ... as string name</code>, <code>datetime static x</code>,
+               <code>const</code> per name in a list, <code>*&amp;</code> and <code>[][]</code> parameters, number suffixes
+               (<code>0.5f</code>, <code>2ull</code>), backslashes in quoted <code>#include</code> paths, members inherited from
+               built-in structures, and <code>x[i]</code> on objects with <code>operator[]</code>. A forward declaration
+               (<code>class CFoo;</code>) no longer hides the class's members. Built-in structure fields
+               (<code>MqlDateTime</code>, <code>MqlTradeRequest</code>, ...) complete after a dot and misspelt ones are flagged.
+               A file including a header too large for the IDE to analyse isn't checked for undeclared names.
+               The background problem scan waits for indexing instead of failing.</p>
             <p><b>2026.1.3</b> &ndash; navigation across headers: a header now resolves what the .mq5 that
                includes it declared or included before it (sibling headers' globals, enums and structs), so
                Ctrl-click, find usages and rename reach those uses. The MetaTrader <code>Include</code> folders

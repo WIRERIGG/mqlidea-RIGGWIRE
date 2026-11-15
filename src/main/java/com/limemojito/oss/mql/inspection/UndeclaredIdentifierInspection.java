@@ -13,6 +13,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.limemojito.oss.mql.doc.StructCatalog;
 import com.intellij.util.SmartList;
 import com.limemojito.oss.mql.psi.MQL4Elements;
 import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
@@ -34,7 +35,8 @@ import java.util.Set;
  *
  * <p>A member is checked only when the receiver's class and every class it derives from are
  * declared in the project or its headers: a base class from a missing header or a template could
- * supply any member. Skipped as for calls (see {@link UndeclaredNames}), and also {@code #property}
+ * supply any member. A built-in structure's members ({@code MqlDateTime dt; dt.hours}) are checked
+ * against {@link StructCatalog}. Skipped as for calls (see {@link UndeclaredNames}), and also {@code #property}
  * lines, {@code #include} paths and {@code #ifdef} names.</p>
  */
 public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
@@ -64,18 +66,28 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
             return false;
         }
         String name = identifier.getText();
-        if (UndeclaredNames.isBuiltin(name)) {
+        if (UndeclaredNames.isBuiltin(name) || UndeclaredNames.onResourceLine(identifier)) {
             return false;
         }
         PsiElement psi = identifier.getPsi();
-        return MqlResolveUtil.resolve(psi, name).isEmpty() && !MqlVisibleNames.isDeclared(name, psi.getContainingFile());
+        PsiFile file = psi.getContainingFile();
+        return MqlResolveUtil.resolve(psi, name).isEmpty() && !MqlVisibleNames.isDeclared(name, file)
+                && !UndeclaredNames.isDeclaredOutsidePsi(name, file) && !UndeclaredNames.isInheritedBuiltinMember(name, psi);
     }
 
     private static boolean isMissingMember(@NotNull ASTNode member) {
         PsiElement dot = PsiTreeUtil.prevVisibleLeaf(member.getPsi());
         PsiElement qualifier = dot == null ? null : PsiTreeUtil.prevVisibleLeaf(dot);
-        MQL4ClassElement receiver = qualifier == null ? null : MqlTypeResolver.resolveQualifierClass(qualifier);
-        if (receiver == null || !hierarchyKnown(receiver, new HashSet<>())) {
+        if (qualifier == null) {
+            return false;
+        }
+        MQL4ClassElement receiver = MqlTypeResolver.resolveQualifierClass(qualifier);
+        if (receiver == null) {
+            // a built-in structure (MqlDateTime dt; dt.hours) is checked against its known members
+            StructCatalog.Members builtin = StructCatalog.of(MqlTypeResolver.resolveQualifierTypeName(qualifier));
+            return builtin != null && !builtin.has(member.getText());
+        }
+        if (!hierarchyKnown(receiver, new HashSet<>())) {
             return false;
         }
         return MqlResolveUtil.resolveMemberInClassHierarchy(receiver, member.getText()).isEmpty();

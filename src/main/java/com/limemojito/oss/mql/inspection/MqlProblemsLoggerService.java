@@ -260,7 +260,7 @@ public final class MqlProblemsLoggerService implements Disposable {
                 // them explicitly or headers would silently drop out of the scan/report.
                 files.addAll(FileTypeIndex.getFiles(MqlHeaderFileType.INSTANCE, GlobalSearchScope.projectScope(project)));
                 return files;
-            }).expireWhen(project::isDisposed).executeSynchronously();
+            }).inSmartMode(project).expireWhen(project::isDisposed).executeSynchronously();
 
             // Atomically snapshot the dirty set and reset it, then scan over the snapshot
             Set<String> dirty;
@@ -277,7 +277,7 @@ public final class MqlProblemsLoggerService implements Disposable {
             allFiles.removeIf(vf -> REPORT_EXCLUDED_PATHS.contains(getRelativePath(basePath, vf)));
 
             List<LocalInspectionTool> tools = ReadAction.nonBlocking(this::discoverInspections)
-                    .expireWhen(project::isDisposed).executeSynchronously();
+                    .inSmartMode(project).expireWhen(project::isDisposed).executeSynchronously();
 
             // Prune cache entries for deleted/renamed files so the report stays current
             Set<String> currentUrls = new LinkedHashSet<>();
@@ -358,7 +358,7 @@ public final class MqlProblemsLoggerService implements Disposable {
                 }
             }
             return null;
-        }).expireWhen(project::isDisposed).executeSynchronously();
+        }).inSmartMode(project).expireWhen(project::isDisposed).executeSynchronously(); // indexing can start after doScan checked
     }
 
     @Nullable

@@ -21,25 +21,41 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import com.limemojito.oss.mql.MqlBuiltinTypes;
 import com.limemojito.oss.mql.MqlDialect;
+import com.limemojito.oss.mql.doc.StructCatalog;
 import com.limemojito.oss.mql.doc.VectorMatrixCatalog;
 import com.limemojito.oss.mql.psi.MQL4Elements;
+import com.limemojito.oss.mql.reference.MqlTypeResolver;
 
 /**
  * Members of MQL5's {@code vector}/{@code matrix}/{@code complex} types (T-5): instance methods and
  * fields after {@code v.}, static constructors after {@code vector::}. The receiver's type comes
  * from the nearest preceding {@code Type name} text, like {@link MQL4StdLibMemberCompletionProvider},
- * which also covers the constructor form {@code matrix m(2,2);}.
+ * which also covers the constructor form {@code matrix m(2,2);}. Also the fields and methods of
+ * the built-in structures ({@code dt.} on an {@code MqlDateTime}), from {@link StructCatalog}.
  */
 public class MQL4VectorMatrixCompletionProvider extends CompletionProvider<CompletionParameters> {
 
     @Override
     protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
         PsiFile file = parameters.getOriginalFile();
+        PsiElement separator = PsiTreeUtil.prevVisibleLeaf(parameters.getPosition());
+        PsiElement qualifier = separator == null ? null : PsiTreeUtil.prevVisibleLeaf(separator);
+        if (separator != null && separator.getNode().getElementType() == MQL4Elements.DOT && qualifier != null) {
+            StructCatalog.Members struct = StructCatalog.of(MqlTypeResolver.resolveQualifierTypeName(qualifier));
+            if (struct != null) {
+                String type = MqlTypeResolver.resolveQualifierTypeName(qualifier);
+                for (String name : struct.fields()) {
+                    result.addElement(LookupElementBuilder.create(name).withIcon(AllIcons.Nodes.Field).withTypeText(type));
+                }
+                for (String name : struct.methods()) {
+                    result.addElement(method(name));
+                }
+                return;
+            }
+        }
         if (!MqlDialect.isMql5(file)) {
             return;
         }
-        PsiElement separator = PsiTreeUtil.prevVisibleLeaf(parameters.getPosition());
-        PsiElement qualifier = separator == null ? null : PsiTreeUtil.prevVisibleLeaf(separator);
         if (qualifier == null || qualifier.getNode().getElementType() != MQL4Elements.IDENTIFIER) {
             return;
         }

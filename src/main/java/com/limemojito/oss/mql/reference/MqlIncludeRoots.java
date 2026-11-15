@@ -5,6 +5,7 @@
 
 package com.limemojito.oss.mql.reference;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.ProjectJdkTable;
 import com.intellij.openapi.projectRoots.Sdk;
@@ -16,6 +17,8 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
 import com.limemojito.oss.mql.sdk.MQL4SdkType;
 
 import java.io.File;
@@ -52,9 +55,25 @@ public final class MqlIncludeRoots {
                         ProjectRootModificationTracker.getInstance(project)));
     }
 
+    /** Include roots set by tests, replacing discovery; {@code null} means discover. */
+    private static volatile List<VirtualFile> testRoots;
+
+    /**
+     * Replaces discovery with {@code roots} ({@code null} restores it). Tests must then fire a roots
+     * change so the cached roots and the Include library are rebuilt.
+     */
+    @TestOnly
+    public static void setTestRoots(@Nullable List<VirtualFile> roots) {
+        testRoots = roots == null ? null : List.copyOf(roots);
+    }
+
     /** Uncached; {@link MqlIncludeLibraryProvider} calls it while the project roots are being built. */
     @NotNull
     static List<VirtualFile> computeCandidateIncludeRoots(@NotNull Project project) {
+        List<VirtualFile> override = testRoots;
+        if (override != null) {
+            return override;
+        }
         List<VirtualFile> roots = new ArrayList<>();
         LocalFileSystem lfs = LocalFileSystem.getInstance();
 
@@ -63,6 +82,11 @@ public final class MqlIncludeRoots {
             addIfDirectory(roots, lfs, home + "/MQL4/Include");
         }
 
+        // Tests never see this machine's MetaTrader install: its Include folder would make results
+        // depend on what happens to be installed.
+        if (ApplicationManager.getApplication().isUnitTestMode()) {
+            return roots;
+        }
         String userHome = System.getProperty("user.home");
         if (userHome != null) {
             // This Mac's Wine bridge layout (~/.claude/skills/mt5-wine-bridge/SKILL.md).

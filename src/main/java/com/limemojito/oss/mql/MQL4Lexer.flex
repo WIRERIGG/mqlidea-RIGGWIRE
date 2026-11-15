@@ -27,7 +27,9 @@ block_comment = "/*" {block_comment_content} "*/"
 block_comment_content = ([^*] | "*"+ [^/])*
 line_comment = "/""/"[^\r\n]* {line_terminator}?
 
-double_quoted_string = \" ( [^\\\"] |{escape_sequence})* \" {string_postfix}?
+// any other backslash pair too: an #include path "DX\DXHandle.mqh" is a path, and MetaEditor
+// only warns about an unknown escape in a string
+double_quoted_string = \" ( [^\\\"] |{escape_sequence} | "\\" [^\r\n] )* \" {string_postfix}?
 string_postfix = [cwd]
 
 escape_sequence = {escape_sequence_spec_char} | {escape_sequence_hex} | {escape_sequence_decimal}
@@ -44,11 +46,12 @@ char_escape_code = "\\" [xX] [0-9a-fA-F]+ | "\\" [0-9]+
 char_literal = \' ( [^\r\n\t\f\\] | {escape_sequence_spec_char} | {char_escape_code} ) \'
 integer_literal = ({decimal_integer} | {hexadecimal_integer}) {integer_suffix}?
 
-integer_suffix =  L | u | U | Lu | LU | uL | UL
+// u/U and l/L/ll/LL in either order: 5u, 7L, 2ull, 9LLU
+integer_suffix = [uU] ([lL] | ll | LL)? | ([lL] | ll | LL) [uU]?
 decimal_integer = [0-9]+
 hexadecimal_integer = 0[xX] [0-9a-fA-F] [0-9a-fA-F]*
 
-float_literal = {decimal_float}
+float_literal = {decimal_float} [fF]?   // 0.5f: a float constant
 decimal_float = ( {decimal_float_simple} | {decimal_float_exponent} | {decimal_float_no_dot_exponent} | {decimal_float_trailing_dot} )
 decimal_float_simple = [0-9]* \. ([0-9]+)
 decimal_float_exponent = [0-9]* \. [0-9_]+ {decimal_exponent}

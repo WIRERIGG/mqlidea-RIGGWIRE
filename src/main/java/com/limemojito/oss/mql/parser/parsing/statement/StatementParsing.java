@@ -68,7 +68,8 @@ public class StatementParsing implements MQL4Elements {
                 || parseLoopLikeStatement(b, l, WHILE_KEYWORD, WHILE_STATEMENT)
                 || parseDoStatement(b, l)
                 || parseSwitchStatement(b, l)
-                || parseLocalVarDeclaration(b, l)
+                || parseTypedef(b, l)
+                || parseVarDeclaration(b, l, true) // a code block: CFoo f(1); declares f
                 || parseBlockStatement(b, l)
                 || parseExpressionStatement(b, l);
     }
@@ -200,7 +201,7 @@ public class StatementParsing implements MQL4Elements {
      * bodies (fields). The shape is decided by {@link VarDeclarationStatement#declarationNameIndex}:
      * {@code [modifier]* type [*|&] name} followed by {@code ;}, {@code =}, {@code ,} or {@code [},
      * where the type is a built-in keyword or a user, qualified or template type. Anything else
-     * (calls, constructor-argument declarations {@code CFoo f(1);}, expressions) falls through
+     * (calls, expressions; constructor-argument declarations {@code CFoo f(1);} only in code blocks) falls through
      * untouched to the caller's fallback.
      */
     public static boolean parseLocalVarDeclaration(PsiBuilder b, int l) {

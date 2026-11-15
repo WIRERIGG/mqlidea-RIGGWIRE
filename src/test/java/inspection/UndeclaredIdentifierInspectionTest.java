@@ -93,4 +93,22 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
         assertEquals(List.of(), myFixture.doHighlighting(HighlightSeverity.ERROR).stream()
                 .map(HighlightInfo::getDescription).filter(d -> d != null && d.contains("undeclared")).toList());
     }
+
+    public void testBuiltinStructMembersAreCheckedByName() {
+        String code = """
+                MqlTick g_last;
+                void OnStart()
+                  {
+                   MqlDateTime dt;
+                   TimeToStruct(TimeCurrent(), dt);
+                   MqlRates rates[];
+                   CopyRates(_Symbol, PERIOD_M5, 0, 2, rates);
+                   MqlCalendarValue v;
+                   Print(dt.hour, dt.day_of_week, rates[0].close, g_last.time_msc, v.HasActualValue());
+                   Print(dt.hours, rates[1].closee, g_last.spread);
+                  }
+                """;
+        assertEquals(List.of("'hours' - undeclared identifier", "'closee' - undeclared identifier",
+                "'spread' - undeclared identifier"), undeclared("test.mq5", code));
+    }
 }

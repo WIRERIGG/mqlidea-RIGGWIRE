@@ -104,7 +104,14 @@ public final class MqlTypeResolver {
         if (type == MQL4Elements.R_SQUARE_BRACKET) {
             // arr[i].m: an array's declared type is its element type
             PsiElement array = prevMeaningfulLeaf(matchingOpen(qualifier, MQL4Elements.L_SQUARE_BRACKET, MQL4Elements.R_SQUARE_BRACKET));
-            return array == null ? null : resolveQualifierClass(array, chainDepth - 1);
+            MQL4ClassElement element = array == null ? null : resolveQualifierClass(array, chainDepth - 1);
+            // row[i] on an object with operator[] (CRowComplex row) is a call, not an element access
+            if (element != null && isIndexOperatorCall(array, element)) {
+                // matrix[i].Set(...) on CMatrixInt: operator[] returns the row class
+                String rowType = notPrimitive(indexOperatorReturnType(element, new java.util.HashSet<>()));
+                return rowType == null ? null : MqlResolveUtil.findClassByName(rowType, qualifier.getProject(), qualifier);
+            }
+            return element;
         }
         if (type == MQL4Elements.R_ROUND_BRACKET) {
             // Get().m and obj.Get().m: the called function's return type
@@ -154,6 +161,109 @@ public final class MqlTypeResolver {
             return null;
         }
         return MqlResolveUtil.findClassByName(typeName, qualifier.getProject(), qualifier);
+    }
+
+    private static final java.util.regex.Pattern INDEX_OPERATOR = java.util.regex.Pattern.compile("\\boperator\\s*\\[\\s*\\]");
+
+    /** {@code CRowInt *operator[](const int i)}: group 1 is the return type's name. */
+    private static final java.util.regex.Pattern INDEX_OPERATOR_DECLARATION =
+            java.util.regex.Pattern.compile("(\\w+)\\s*[*&]?\\s*\\boperator\\s*\\[\\s*\\]");
+
+    /** The return type name of the {@code operator[]} {@code cls} declares or inherits, or null. */
+    @Nullable
+    private static String indexOperatorReturnType(@NotNull MQL4ClassElement cls, @NotNull java.util.Set<MQL4ClassElement> seen) {
+        if (!seen.add(cls) || seen.size() > 16) {
+            return null;
+        }
+        java.util.regex.Matcher m = INDEX_OPERATOR_DECLARATION.matcher(cls.getText());
+        if (m.find()) {
+            return m.group(1);
+        }
+        for (String base : MqlResolveUtil.baseClassNames(cls)) {
+            MQL4ClassElement baseClass = MqlResolveUtil.findClassByName(base, cls.getProject(), cls);
+            String type = baseClass == null ? null : indexOperatorReturnType(baseClass, seen);
+            if (type != null) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * True when {@code array[i]} calls {@code operator[]} of {@code type} rather than indexing an
+     * array: the type has one and {@code array} isn't declared with {@code []}.
+     */
+    private static boolean isIndexOperatorCall(@NotNull PsiElement array, @NotNull MQL4ClassElement type) {
+        if (!hasIndexOperator(type, new java.util.HashSet<>())) {
+            return false;
+        }
+        if (array.getNode() == null || array.getNode().getElementType() != MQL4Elements.IDENTIFIER) {
+            return true;
+        }
+        for (PsiElement declaration : MqlResolveUtil.resolve(array, array.getText())) {
+            PsiElement owner = declaration instanceof MQL4FunctionArgElement || declaration instanceof MQL4VarDefinitionElement
+                    ? declaration : declaration.getParent();
+            if (owner != null && owner.getText().indexOf('[') >= 0) { // the definition, not its initializer
+                return false; // CRow rows[]: rows[i] is an element
+            }
+        }
+        return true;
+    }
+
+    /** True when {@code cls} or a class it derives from declares {@code operator[]}. */
+    private static boolean hasIndexOperator(@NotNull MQL4ClassElement cls, @NotNull java.util.Set<MQL4ClassElement> seen) {
+        if (!seen.add(cls) || seen.size() > 16) {
+            return false;
+        }
+        if (INDEX_OPERATOR.matcher(cls.getText()).find()) {
+            return true;
+        }
+        for (String base : MqlResolveUtil.baseClassNames(cls)) {
+            MQL4ClassElement baseClass = MqlResolveUtil.findClassByName(base, cls.getProject(), cls);
+            if (baseClass != null && hasIndexOperator(baseClass, seen)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The declared type name of a member access's receiver, whether or not it is a project class:
+     * a local, parameter or global ({@code dt} in {@code dt.hour}), an array element
+     * ({@code rates[i].close}) or a field of a project class ({@code snap.when.hour}). Built-in
+     * structures ({@code MqlDateTime}) have no PSI, so their members are checked by name.
+     */
+    @Nullable
+    public static String resolveQualifierTypeName(@NotNull PsiElement qualifier) {
+        IElementType type = qualifier.getNode() == null ? null : qualifier.getNode().getElementType();
+        if (type == MQL4Elements.R_SQUARE_BRACKET) {
+            PsiElement array = prevMeaningfulLeaf(matchingOpen(qualifier, MQL4Elements.L_SQUARE_BRACKET, MQL4Elements.R_SQUARE_BRACKET));
+            if (array == null) {
+                return null;
+            }
+            MQL4ClassElement element = resolveQualifierClass(array, MAX_CHAIN_DEPTH - 1);
+            return element != null && isIndexOperatorCall(array, element)
+                    ? indexOperatorReturnType(element, new java.util.HashSet<>()) : resolveQualifierTypeName(array);
+        }
+        if (type != MQL4Elements.IDENTIFIER) {
+            return null;
+        }
+        PsiElement beforeQ = prevMeaningfulLeaf(qualifier);
+        if (isType(beforeQ, MQL4Elements.DOT)) {
+            PsiElement innerQualifier = prevMeaningfulLeaf(beforeQ);
+            MQL4ClassElement innerClass = innerQualifier == null ? null : resolveQualifierClass(innerQualifier, MAX_CHAIN_DEPTH - 1);
+            if (innerClass == null) {
+                return null;
+            }
+            for (PsiElement member : MqlResolveUtil.resolveMemberInClassHierarchy(innerClass, qualifier.getText())) {
+                String memberType = declaredTypeNameOf(member);
+                if (memberType != null) {
+                    return memberType;
+                }
+            }
+            return null;
+        }
+        return declaredTypeNameOfQualifier(qualifier);
     }
 
     /**

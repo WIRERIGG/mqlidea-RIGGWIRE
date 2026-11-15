@@ -110,4 +110,16 @@ public class MQL4CompletionTest extends BasePlatformTestCase {
         assertTrue("expected inherited `baseField` after d., got: " + strings, strings.contains("baseField"));
         assertTrue("expected own `derivedField` after d., got: " + strings, strings.contains("derivedField"));
     }
+
+    public void testBuiltinStructFieldsCompleteAfterDot() {
+        myFixture.configureByText("test.mq5", "void f() { MqlDateTime dt; dt.day_<caret> }");
+        LookupElement[] items = myFixture.completeBasic();
+        assertTrue("expected day_of_week", completesTo(items, "day_of_week"));
+        assertTrue("expected day_of_year", completesTo(items, "day_of_year"));
+    }
+
+    public void testBuiltinStructFieldsCompleteOnArrayElement() {
+        myFixture.configureByText("test.mq5", "void f() { MqlRates r[]; r[0].tick_<caret> }");
+        assertTrue("expected tick_volume", completesTo(myFixture.completeBasic(), "tick_volume"));
+    }
 }

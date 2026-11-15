@@ -23,6 +23,15 @@ import com.limemojito.oss.mql.psi.impl.MQL4PreprocessorIncludeBlock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.intellij.psi.util.CachedValueProvider;
+import com.intellij.psi.util.CachedValuesManager;
+import com.intellij.psi.util.PsiModificationTracker;
+import com.limemojito.oss.mql.doc.StructCatalog;
+import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
+import com.limemojito.oss.mql.reference.MqlResolveUtil;
+
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /** What the "undeclared identifier" inspections share: which identifiers they look at, and built-ins. */
@@ -44,10 +53,16 @@ final class UndeclaredNames {
     private UndeclaredNames() {
     }
 
-    /** A missing header could declare any name, so a file with one isn't checked at all. */
+    /**
+     * A missing header could declare any name, so a file with one isn't checked at all. So could a
+     * header too large for the IDE to parse (over {@code idea.max.intellisense.filesize}, 2.5 MB by
+     * default): its declarations are never indexed.
+     */
     static boolean hasUnresolvedInclude(@NotNull PsiFile file) {
         for (MQL4PreprocessorIncludeBlock include : PsiTreeUtil.findChildrenOfType(file, MQL4PreprocessorIncludeBlock.class)) {
-            if (include.resolveIncludedFile() == null) {
+            PsiFile target = include.resolveIncludedFile();
+            if (target == null || (target.getVirtualFile() != null
+                    && com.intellij.psi.SingleRootFileViewProvider.isTooLargeForIntelligence(target.getVirtualFile()))) {
                 return true;
             }
         }
@@ -75,6 +90,148 @@ final class UndeclaredNames {
                 visit(child, action);
             }
         }
+    }
+
+    /**
+     * Names a file declares outside the PSI the resolver sees: template parameters
+     * ({@code template<typename T>}, visible to the template they head) and {@code #resource}
+     * variables ({@code #resource "k.cl" as string src}). Template parameters are matched by name
+     * across the file, which can only hide a real error named like one.
+     */
+    static boolean isDeclaredOutsidePsi(@NotNull String name, @NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(
+                collectOutsidePsi(file), PsiModificationTracker.MODIFICATION_COUNT)).contains(name);
+    }
+
+    private static Set<String> collectOutsidePsi(@NotNull PsiFile file) {
+        Set<String> names = new HashSet<>();
+        for (ASTNode leaf = firstLeaf(file.getNode()); leaf != null; leaf = nextLeaf(leaf)) {
+            IElementType t = leaf.getElementType();
+            if ((t == MQL4Elements.TYPENAME_KEYWORD || t == MQL4Elements.CLASS_KEYWORD) && inTemplateHeader(leaf)) {
+                ASTNode next = nextMeaningful(leaf);
+                if (next != null && next.getElementType() == MQL4Elements.IDENTIFIER) {
+                    names.add(next.getText());
+                }
+            } else if (t == MQL4Elements.RESOURCE_PP_KEYWORD) {
+                String last = null;
+                boolean as = false;
+                for (ASTNode n = nextLeaf(leaf); n != null && !(isLineBreak(n)); n = nextLeaf(n)) {
+                    if (n.getElementType() == MQL4Elements.IDENTIFIER) {
+                        as |= "as".equals(n.getText());
+                        last = n.getText();
+                    }
+                }
+                if (as && last != null) {
+                    names.add(last);
+                }
+            }
+        }
+        return names;
+    }
+
+    /** True for an identifier on a {@code #resource} line: its {@code as} and the names after it. */
+    static boolean onResourceLine(@NotNull ASTNode identifier) {
+        for (ASTNode n = prevLeaf(identifier); n != null; n = prevLeaf(n)) {
+            if (isLineBreak(n)) {
+                return false;
+            }
+            if (n.getElementType() == MQL4Elements.RESOURCE_PP_KEYWORD) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * True when {@code name} is a member a class at {@code at} inherits from a built-in structure
+     * ({@code struct CStamp : public MqlDateTime { int H() { return hour; } }}).
+     */
+    static boolean isInheritedBuiltinMember(@NotNull String name, @NotNull PsiElement at) {
+        MQL4ClassElement cls = PsiTreeUtil.getParentOfType(at, MQL4ClassElement.class);
+        if (cls == null) {
+            cls = MqlResolveUtil.enclosingClass(at);
+        }
+        return cls != null && inheritsBuiltinMember(cls, name, new HashSet<>());
+    }
+
+    private static boolean inheritsBuiltinMember(@NotNull MQL4ClassElement cls, @NotNull String name, @NotNull Set<MQL4ClassElement> seen) {
+        if (!seen.add(cls) || seen.size() > 16) {
+            return false;
+        }
+        for (String base : MqlResolveUtil.baseClassNames(cls)) {
+            StructCatalog.Members builtin = StructCatalog.of(base);
+            if (builtin != null) {
+                if (builtin.has(name)) {
+                    return true;
+                }
+                continue;
+            }
+            MQL4ClassElement baseClass = MqlResolveUtil.findClassByName(base, cls.getProject(), cls);
+            if (baseClass != null && inheritsBuiltinMember(baseClass, name, seen)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isLineBreak(@NotNull ASTNode n) {
+        return com.limemojito.oss.mql.parser.MQL4ParserDefinition.WHITE_SPACES.contains(n.getElementType()) && n.textContains('\n');
+    }
+
+    private static boolean inTemplateHeader(@NotNull ASTNode leaf) {
+        for (ASTNode p = leaf.getTreeParent(); p != null; p = p.getTreeParent()) {
+            if (p.getElementType() == MQL4Elements.TYPE_TEMPLATE_BLOCK) {
+                return true;
+            }
+        }
+        ASTNode prev = leaf;
+        for (int i = 0; i < 64 && (prev = prevMeaningfulLeaf(prev)) != null; i++) {
+            IElementType t = prev.getElementType();
+            if (t == MQL4Elements.TEMPLATE_KEYWORD) {
+                return true;
+            }
+            if (t == MQL4Elements.SEMICOLON || t == MQL4Elements.L_CURLY_BRACKET || t == MQL4Elements.R_CURLY_BRACKET || t == MQL4Elements.GT) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    @Nullable
+    private static ASTNode firstLeaf(@NotNull ASTNode node) {
+        ASTNode n = node;
+        while (n.getFirstChildNode() != null) {
+            n = n.getFirstChildNode();
+        }
+        return n == node ? null : n;
+    }
+
+    @Nullable
+    private static ASTNode nextLeaf(@NotNull ASTNode node) {
+        return com.intellij.psi.impl.source.tree.TreeUtil.nextLeaf(node);
+    }
+
+    @Nullable
+    private static ASTNode prevLeaf(@NotNull ASTNode node) {
+        return com.intellij.psi.impl.source.tree.TreeUtil.prevLeaf(node);
+    }
+
+    @Nullable
+    private static ASTNode nextMeaningful(@NotNull ASTNode node) {
+        ASTNode n = nextLeaf(node);
+        while (n != null && (com.limemojito.oss.mql.parser.MQL4ParserDefinition.WHITE_SPACES.contains(n.getElementType()) || MQL4TokenSets.COMMENTS.contains(n.getElementType()))) {
+            n = nextLeaf(n);
+        }
+        return n;
+    }
+
+    @Nullable
+    private static ASTNode prevMeaningfulLeaf(@NotNull ASTNode node) {
+        ASTNode n = prevLeaf(node);
+        while (n != null && (com.limemojito.oss.mql.parser.MQL4ParserDefinition.WHITE_SPACES.contains(n.getElementType()) || MQL4TokenSets.COMMENTS.contains(n.getElementType()))) {
+            n = prevLeaf(n);
+        }
+        return n;
     }
 
     static boolean isBuiltin(@NotNull String name) {

@@ -769,17 +769,29 @@ public final class MqlResolveUtil {
      */
     @NotNull
     private static ClassLookup lookupClassInScope(@NotNull String name, @NotNull Project project, @NotNull GlobalSearchScope scope) {
+        // A forward declaration (class CFoo;) names the class but has no members: the definition
+        // wins, and only a lone forward declaration is returned as itself.
         MQL4ClassElement found = null;
+        MQL4ClassElement forward = null;
+        boolean forwardAmbiguous = false;
         for (MQL4ClassElement c : MQL4ClassNameIndex.getInstance().getElements(name, project, scope)) {
             com.intellij.openapi.progress.ProgressManager.checkCanceled();
             if (name.equals(c.getTypeName())) {
+                if (c.getInnerBlockNode() == null) {
+                    forwardAmbiguous |= forward != null;
+                    forward = c;
+                    continue;
+                }
                 if (found != null) {
                     return ClassLookup.AMBIGUOUS;
                 }
                 found = c;
             }
         }
-        return found == null ? ClassLookup.NONE : ClassLookup.unique(found);
+        if (found != null) {
+            return ClassLookup.unique(found);
+        }
+        return forward == null ? ClassLookup.NONE : forwardAmbiguous ? ClassLookup.AMBIGUOUS : ClassLookup.unique(forward);
     }
 
     /**

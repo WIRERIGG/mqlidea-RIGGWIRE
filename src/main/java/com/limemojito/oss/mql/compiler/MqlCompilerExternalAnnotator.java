@@ -48,8 +48,8 @@ public class MqlCompilerExternalAnnotator
             return null; // parser already flags these; don't compile un-parseable code
         }
         VirtualFile vFile = file.getVirtualFile();
-        if (vFile == null || !isCompilableProgram(vFile.getName())) {
-            return null;
+        if (vFile == null || !vFile.isInLocalFileSystem() || !isCompilableProgram(vFile.getName())) {
+            return null; // MetaEditor compiles files on disk only (not light-test or remote files)
         }
         if (FileDocumentManager.getInstance().isFileModified(vFile)) {
             return null; // compile only what's on disk; re-runs after save

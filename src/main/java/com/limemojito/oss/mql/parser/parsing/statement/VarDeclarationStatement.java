@@ -54,11 +54,23 @@ public class VarDeclarationStatement implements MQL4Elements {
      * but that statement has no effect and MetaEditor warns about it.
      */
     public static int declarationNameIndex(@NotNull PsiBuilder b) {
+        return declarationNameIndex(b, false);
+    }
+
+    /**
+     * As {@link #declarationNameIndex(PsiBuilder)}; with {@code constructorArgs} (code blocks only)
+     * a user type's name may also take constructor arguments, {@code CFoo f(1, 2);} or
+     * {@code CArrayList<int> list(n);}. At the top level and in class bodies that shape is a
+     * function prototype, so it isn't accepted there. A built-in type never takes them:
+     * {@code int f(int);} in a body is a prototype.
+     */
+    public static int declarationNameIndex(@NotNull PsiBuilder b, boolean constructorArgs) {
         int n = 0;
         while (PRE_TYPES.contains(b.lookAhead(n))) {
             n++;
         }
         IElementType type = b.lookAhead(n);
+        boolean userType = type == IDENTIFIER;
         if (MQL4TokenSets.DATA_TYPES.contains(type)) {
             n++;
         } else if (type == IDENTIFIER) {
@@ -75,6 +87,9 @@ public class VarDeclarationStatement implements MQL4Elements {
         } else {
             return -1;
         }
+        while (b.lookAhead(n) == STATIC_KEYWORD || b.lookAhead(n) == CONST_KEYWORD) {
+            n++; // a modifier after the type: datetime static last = 0;
+        }
         if (DECLARATOR_PREFIX.contains(b.lookAhead(n))) {
             n++;
         }
@@ -82,10 +97,57 @@ public class VarDeclarationStatement implements MQL4Elements {
             return -1;
         }
         int after = skipArraySizes(b, n + 1);
+        if (after >= 0 && constructorArgs && userType && b.lookAhead(after) == L_ROUND_BRACKET
+                && sameLine(b, 0, n)) { // MACRO_WITHOUT_SEMICOLON <newline> Call(x); is not a declaration
+            after = skipConstructorArgs(b, after);
+        }
         if (after < 0 || !AFTER_NAME.contains(b.lookAhead(after))) {
             return -1;
         }
         return n;
+    }
+
+    /** True when no line break separates lookahead tokens {@code from} and {@code to}. */
+    private static boolean sameLine(@NotNull PsiBuilder b, int from, int to) {
+        int fromOffset = -1;
+        int seen = 0;
+        for (int raw = 0; raw < 4 * MAX_TEMPLATE_ARG_TOKENS; raw++) {
+            IElementType t = b.rawLookup(raw);
+            if (t == null) {
+                return false;
+            }
+            if (com.limemojito.oss.mql.parser.MQL4ParserDefinition.WHITE_SPACES.contains(t) || MQL4TokenSets.COMMENTS.contains(t)) {
+                continue;
+            }
+            if (seen == from) {
+                fromOffset = b.rawTokenTypeStart(raw);
+            }
+            if (seen == to) {
+                int toOffset = b.rawTokenTypeStart(raw);
+                return fromOffset >= 0 && b.getOriginalText().subSequence(fromOffset, toOffset).chars().noneMatch(c -> c == '\n');
+            }
+            seen++;
+        }
+        return false;
+    }
+
+    private static final int MAX_CONSTRUCTOR_ARG_TOKENS = 256;
+
+    /** Index just past the {@code (...)} starting at {@code lp}, or -1 if it doesn't close within the statement. */
+    private static int skipConstructorArgs(@NotNull PsiBuilder b, int lp) {
+        int depth = 0;
+        for (int n = lp; n < lp + MAX_CONSTRUCTOR_ARG_TOKENS; n++) {
+            IElementType t = b.lookAhead(n);
+            if (t == null || t == SEMICOLON || t == L_CURLY_BRACKET || t == R_CURLY_BRACKET) {
+                return -1;
+            }
+            if (t == L_ROUND_BRACKET) {
+                depth++;
+            } else if (t == R_ROUND_BRACKET && --depth == 0) {
+                return n + 1;
+            }
+        }
+        return -1;
     }
 
     /** Index just past any {@code [...]} groups starting at {@code n}, or -1 if one doesn't close in reach. */
@@ -132,10 +194,15 @@ public class VarDeclarationStatement implements MQL4Elements {
     }
 
     public static boolean parseVarDeclaration(PsiBuilder b, int l) {
+        return parseVarDeclaration(b, l, false);
+    }
+
+    /** {@code constructorArgs}: in a code block, where {@code CFoo f(1);} declares {@code f}. */
+    public static boolean parseVarDeclaration(PsiBuilder b, int l, boolean constructorArgs) {
         if (!recursion_guard_(b, l, "parseVarDeclaration")) {
             return false;
         }
-        int nameAt = declarationNameIndex(b);
+        int nameAt = declarationNameIndex(b, constructorArgs);
         if (nameAt < 0) {
             return false;
         }
@@ -182,6 +249,9 @@ public class VarDeclarationStatement implements MQL4Elements {
         try {
             while (true) {
                 PsiBuilder.Marker m1 = b.mark();
+                if (b.getTokenType() == CONST_KEYWORD) {
+                    b.advanceLexer(); // a later name's own const: for(int i = 0, const end = n; ...)
+                }
                 if (DECLARATOR_PREFIX.contains(b.getTokenType())) {
                     b.advanceLexer(); // '*' | '&' of a later name: int *a, *b;
                 }
@@ -209,9 +279,12 @@ public class VarDeclarationStatement implements MQL4Elements {
                     skipComments(b);
                     continue;
                 }
-                if (t == EQ) {
-                    b.advanceLexer();
+                if (t == EQ || t == L_ROUND_BRACKET) {
+                    if (t == EQ) {
+                        b.advanceLexer();
+                    }
                     m1.done(VAR_DEFINITION);
+                    // constructor arguments, CFoo f(1, 2), are consumed like an initializer
                     // One pass over the initializer: when it ends at ',' another name follows and it
                     // stays inside the list; otherwise the list ends before it (doneBefore), giving
                     // the same tree as stopping first and consuming it afterwards.

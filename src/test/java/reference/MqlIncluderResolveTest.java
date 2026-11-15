@@ -80,4 +80,16 @@ public class MqlIncluderResolveTest extends BasePlatformTestCase {
         myFixture.addFileToProject("Orphan.mqh", "void Use() { int v = g_notDeclaredAnywhere; }\n");
         assertNull(resolveIn("Orphan.mqh", "g_notDeclaredAnywhere", 1));
     }
+
+    public void testForwardDeclarationNeverHidesTheDefinition() {
+        myFixture.addFileToProject("Part.mqh", "class CScene;\nclass CPart { CScene *m_scene; };\n");
+        myFixture.addFileToProject("Scene.mqh", """
+                #include "Part.mqh"
+                class CScene { public: int m_width; void Resize(int w); };
+                void CScene::Resize(int w) { m_width = w; }
+                """);
+        PsiElement field = resolveIn("Scene.mqh", "m_width = w", 1);
+        assertNotNull("a field of the defined class resolves despite the forward declaration", field);
+        assertEquals("Scene.mqh", field.getContainingFile().getName());
+    }
 }
