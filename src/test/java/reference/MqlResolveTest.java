@@ -528,4 +528,29 @@ public class MqlResolveTest extends BasePlatformTestCase {
         assertTrue("ambiguous duplicate class must not resolve to an arbitrary pick",
                 ref == null || ref.resolve() == null);
     }
+
+    private static final String SHAPES = """
+            class CShape { public: double m_area; virtual double Area() { return m_area; } };
+            class CCircle : public CShape { public: double m_radius; };
+            """;
+
+    public void testMemberThroughACStyleCastResolves() {
+        PsiReference ref = referenceAt(SHAPES + "void F(CShape *s) { double r = ((CCircle*)s).m_radius + 0; }", "m_radius + 0");
+        PsiElement target = ref.resolve();
+        assertNotNull("((CCircle*)s).m_radius", target);
+        assertTrue(target.getText(), target.getText().contains("m_radius"));
+    }
+
+    public void testMemberThroughDynamicCastResolvesIncludingInherited() {
+        PsiReference ref = referenceAt(SHAPES + "void F(CShape *s) { double a = dynamic_cast<CCircle*>(s).Area(); }", "Area(); }");
+        PsiElement target = ref.resolve();
+        assertNotNull("dynamic_cast<CCircle*>(s).Area()", target);
+        assertTrue(target.getText(), target.getText().contains("Area"));
+    }
+
+    public void testParenthesizedVariableIsNotACast() {
+        PsiReference ref = referenceAt(SHAPES + "void F(CCircle *c) { double r = ((c)).m_radius + 0; }", "m_radius + 0");
+        assertNotNull("a reference exists at the member", ref);
+        assertNull("((c)) is not a cast: the paren receiver stays unresolved", ref.resolve());
+    }
 }

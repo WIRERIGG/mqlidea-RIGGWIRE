@@ -39,6 +39,7 @@ public class UncheckedOrderSendInspection extends MQL5SafetyInspectionBase {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
+        boolean mql4 = isMql4Source(file); // MQL4 OrderSend returns a ticket (-1 on failure), MQL5 a bool
         for (PsiElement child : childrenAndClassMethods(file)) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
@@ -48,7 +49,7 @@ public class UncheckedOrderSendInspection extends MQL5SafetyInspectionBase {
                     if (!ORDER_SEND.equals(ReturnValueIgnoredInspection.bareCallName(stmt))) return;
                     PsiElement psi = stmt.getPsi();
                     if (psi != null && psi.isValid()) {
-                        problems.add(createProblem(manager, psi, MESSAGE));
+                        problems.add(createProblem(manager, psi, MESSAGE, new WrapCallInFailureCheckFix(ORDER_SEND, !mql4)));
                     }
                 });
             }

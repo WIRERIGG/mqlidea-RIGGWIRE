@@ -115,9 +115,14 @@ public final class MqlTypeResolver {
         }
         if (type == MQL4Elements.R_ROUND_BRACKET) {
             // Get().m and obj.Get().m: the called function's return type
-            PsiElement callee = prevMeaningfulLeaf(matchingOpen(qualifier, MQL4Elements.L_ROUND_BRACKET, MQL4Elements.R_ROUND_BRACKET));
+            PsiElement open = matchingOpen(qualifier, MQL4Elements.L_ROUND_BRACKET, MQL4Elements.R_ROUND_BRACKET);
+            PsiElement callee = prevMeaningfulLeaf(open);
+            String castType = castTypeName(open, callee);
+            if (castType != null) {
+                return MqlResolveUtil.findClassByName(castType, qualifier.getProject(), qualifier);
+            }
             if (!isType(callee, MQL4Elements.IDENTIFIER)) {
-                return null; // a cast or a parenthesized expression
+                return null; // a parenthesized expression
             }
             for (com.intellij.psi.ResolveResult result : new MqlReference(callee).multiResolve(false)) {
                 if (result.getElement() instanceof MQL4FunctionElement function) {
@@ -382,6 +387,50 @@ public final class MqlTypeResolver {
 
     /** Bounds the backward scan for a matching bracket. */
     private static final int MAX_BRACKET_SCAN = 256;
+
+    /**
+     * The class a cast names, for {@code ((CFoo*)p).m} ({@code open} is the outer {@code (}) and
+     * {@code dynamic_cast<CFoo*>(p).m} ({@code callee} is the {@code >}); null for anything else.
+     */
+    @Nullable
+    private static String castTypeName(@Nullable PsiElement open, @Nullable PsiElement callee) {
+        if (isType(callee, MQL4Elements.GT)) {
+            PsiElement e = prevMeaningfulLeaf(callee);
+            if (isType(e, MQL4Elements.MUL)) {
+                e = prevMeaningfulLeaf(e);
+            }
+            PsiElement lt = isType(e, MQL4Elements.IDENTIFIER) ? prevMeaningfulLeaf(e) : null;
+            return isType(lt, MQL4Elements.LT) && isType(prevMeaningfulLeaf(lt), MQL4Elements.DYNAMIC_CAST_KEYWORD)
+                    ? e.getText() : null;
+        }
+        if (open == null) {
+            return null;
+        }
+        PsiElement inner = nextMeaningfulLeaf(open);
+        if (!isType(inner, MQL4Elements.L_ROUND_BRACKET)) {
+            return null;
+        }
+        PsiElement name = nextMeaningfulLeaf(inner);
+        PsiElement after = nextMeaningfulLeaf(name);
+        if (isType(after, MQL4Elements.MUL)) {
+            after = nextMeaningfulLeaf(after);
+        }
+        if (!isType(name, MQL4Elements.IDENTIFIER) || !isType(after, MQL4Elements.R_ROUND_BRACKET)) {
+            return null;
+        }
+        // (CFoo*)p: something must follow the cast inside the outer parens, or it's just ((x)).
+        PsiElement operand = nextMeaningfulLeaf(after);
+        return operand == null || isType(operand, MQL4Elements.R_ROUND_BRACKET) ? null : name.getText();
+    }
+
+    @Nullable
+    private static PsiElement nextMeaningfulLeaf(@Nullable PsiElement element) {
+        PsiElement e = element == null ? null : PsiTreeUtil.nextLeaf(element);
+        while (e instanceof PsiWhiteSpace) {
+            e = PsiTreeUtil.nextLeaf(e);
+        }
+        return e;
+    }
 
     /** The bracket that opens {@code close}, scanning leaves backwards, or null. */
     @Nullable
