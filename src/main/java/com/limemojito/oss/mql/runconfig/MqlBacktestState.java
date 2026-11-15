@@ -61,7 +61,11 @@ final class MqlBacktestState extends CommandLineState {
             throw new ExecutionException("The mt5 bridge isn't installed at ~/.local/bin/mt5");
         }
         StrategyTester.refreshNow();
-        if (StrategyTester.isTerminalRunning() || StrategyTester.isRunning()) {
+        if (!StrategyTester.isKnown()) {
+            throw new ExecutionException("Couldn't read the process table to check whether MetaTrader 5 is running, "
+                    + "so the backtest wasn't started.");
+        }
+        if (StrategyTester.isTerminalBusy()) {
             throw new ExecutionException("MetaTrader 5 is running. A backtest needs the terminal to itself; close MetaTrader "
                     + "(or wait for the running test to finish) and run again. The plugin never stops it for you.");
         }
