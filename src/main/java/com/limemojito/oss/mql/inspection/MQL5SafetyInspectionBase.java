@@ -61,8 +61,9 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
     );
 
     /**
-     * Comment-based suppression. Adds "Suppress for function/file" quick-fixes and recognises
-     * {@code //noinspection <InspectionId>} comments. Uses the modern {@link SuppressQuickFix}
+     * Comment-based suppression. Adds "Suppress for statement/function/file" quick-fixes and
+     * recognises {@code //noinspection <InspectionId>} comments: above a statement or at the end of
+     * the problem's line, above a function, or among a file's leading comments. Uses the modern {@link SuppressQuickFix}
      * API (returned from {@link #getBatchSuppressActions}) rather than the deprecated
      * {@code CustomSuppressableInspectionTool}/{@code SuppressIntentionAction} pair — a
      * {@code SuppressIntentionAction} only ever ran from the editor's intention popup, so batch
@@ -76,7 +77,128 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
         return new SuppressQuickFix[]{
                 new MqlSuppressFix(id, false),
                 new MqlSuppressFix(id, true),
+                new MqlStatementSuppressFix(id),
         };
+    }
+
+    /**
+     * The statement {@code element} belongs to: the child of the innermost {@code { }} code block
+     * that contains it, or null outside function bodies.
+     */
+    @Nullable
+    static PsiElement enclosingStatement(@NotNull PsiElement element) {
+        for (PsiElement e = element; e != null && !(e instanceof PsiFile); e = e.getParent()) {
+            PsiElement parent = e.getParent();
+            if (parent != null && com.limemojito.oss.mql.reference.MqlPsiUtil.isCodeBlock(parent)) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    /** Text of the line holding {@code offset}, without its line break. */
+    @NotNull
+    private static String lineAt(@NotNull CharSequence text, int offset) {
+        int start = offset;
+        while (start > 0 && text.charAt(start - 1) != '\n') {
+            start--;
+        }
+        int end = offset;
+        while (end < text.length() && text.charAt(end) != '\n') {
+            end++;
+        }
+        return text.subSequence(start, end).toString();
+    }
+
+    /** Offset of the line before the one holding {@code offset}, or -1 on the first line. */
+    private static int previousLineOffset(@NotNull CharSequence text, int offset) {
+        int start = offset;
+        while (start > 0 && text.charAt(start - 1) != '\n') {
+            start--;
+        }
+        return start == 0 ? -1 : start - 1;
+    }
+
+    /**
+     * Statement-level suppression: {@code //noinspection <id>} alone on the line above the
+     * statement, or a trailing {@code // noinspection <id>} on the line the problem is on.
+     */
+    private static boolean isSuppressedAtStatement(@NotNull PsiElement element, @NotNull String id) {
+        PsiFile file = element.getContainingFile();
+        if (file == null) {
+            return false;
+        }
+        CharSequence text = file.getViewProvider().getContents();
+        java.util.regex.Pattern marker = suppressPattern(id);
+        int at = element.getTextRange().getStartOffset();
+        String line = lineAt(text, at);
+        int comment = line.indexOf("//");
+        if (comment >= 0 && marker.matcher(line.substring(comment)).find()) {
+            return true;
+        }
+        PsiElement statement = enclosingStatement(element);
+        int statementStart = statement == null ? at : statement.getTextRange().getStartOffset();
+        int previous = previousLineOffset(text, statementStart);
+        if (previous < 0) {
+            return false;
+        }
+        String above = lineAt(text, previous).trim();
+        return above.startsWith("//") && marker.matcher(above).find();
+    }
+
+    /** Inserts {@code //noinspection <id>} on its own line above the statement, at its indentation. */
+    private static final class MqlStatementSuppressFix implements SuppressQuickFix {
+        private final String id;
+
+        MqlStatementSuppressFix(@NotNull String id) {
+            this.id = id;
+        }
+
+        @NotNull
+        @Override
+        public String getName() {
+            return "Suppress '" + id + "' for statement";
+        }
+
+        @NotNull
+        @Override
+        public String getFamilyName() {
+            return "Suppress MQL inspection";
+        }
+
+        @Override
+        public boolean isAvailable(@NotNull Project project, @NotNull PsiElement context) {
+            return enclosingStatement(context) != null;
+        }
+
+        @Override
+        public boolean isSuppressAll() {
+            return "ALL".equals(id);
+        }
+
+        @Override
+        public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
+            PsiElement element = descriptor.getPsiElement();
+            PsiElement statement = element == null ? null : enclosingStatement(element);
+            if (statement == null) {
+                return;
+            }
+            PsiFile file = statement.getContainingFile();
+            com.intellij.psi.PsiDocumentManager documents = com.intellij.psi.PsiDocumentManager.getInstance(project);
+            com.intellij.openapi.editor.Document document = documents.getDocument(file);
+            if (document == null) {
+                return;
+            }
+            documents.doPostponedOperationsAndUnblockDocument(document);
+            int start = statement.getTextRange().getStartOffset();
+            int lineStart = document.getLineStartOffset(document.getLineNumber(start));
+            String indent = document.getText(new com.intellij.openapi.util.TextRange(lineStart, start));
+            if (!indent.isBlank()) {
+                indent = ""; // the statement doesn't start its line: put the comment at column 0
+            }
+            document.insertString(lineStart, indent + "//noinspection " + id + "\n");
+            documents.commitDocument(document);
+        }
     }
 
     /**
@@ -152,6 +274,9 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
     @Override
     public boolean isSuppressedFor(@NotNull PsiElement element) {
         String id = getID();
+        if (isSuppressedAtStatement(element, id)) {
+            return true;
+        }
         // Function-scoped: //noinspection <id> on the line above the enclosing function.
         MQL4FunctionElement function = PsiTreeUtil.getParentOfType(element, MQL4FunctionElement.class, false);
         if (function != null && SuppressionUtil.isSuppressedInStatement(element, id, MQL4FunctionElement.class)) {
@@ -163,13 +288,18 @@ public abstract class MQL5SafetyInspectionBase extends LocalInspectionTool {
 
     private static final java.util.Map<String, java.util.regex.Pattern> SUPPRESS_PATTERNS = new java.util.concurrent.ConcurrentHashMap<>();
 
+    @NotNull
+    private static java.util.regex.Pattern suppressPattern(@NotNull String id) {
+        return SUPPRESS_PATTERNS.computeIfAbsent(id, k ->
+                java.util.regex.Pattern.compile("\\bnoinspection\\b.*(\\b" + java.util.regex.Pattern.quote(k) + "\\b|\\bALL\\b)"));
+    }
+
     private static boolean isSuppressedAtFileLevel(@Nullable PsiFile file, @NotNull String id) {
         if (file == null) {
             return false;
         }
         // Cache the compiled marker per inspection id — this runs per reported problem per inspection.
-        java.util.regex.Pattern marker = SUPPRESS_PATTERNS.computeIfAbsent(id, k ->
-                java.util.regex.Pattern.compile("\\bnoinspection\\b.*(\\b" + java.util.regex.Pattern.quote(k) + "\\b|\\bALL\\b)"));
+        java.util.regex.Pattern marker = suppressPattern(id);
         for (PsiElement child : file.getChildren()) {
             if (child instanceof com.intellij.psi.PsiComment comment) {
                 if (marker.matcher(comment.getText()).find()) {

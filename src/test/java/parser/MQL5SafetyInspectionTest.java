@@ -1706,7 +1706,7 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 inspection.isSuppressedFor(problems[0].getPsiElement()));
 
         com.intellij.codeInspection.SuppressQuickFix[] fixes = inspection.getBatchSuppressActions(problems[0].getPsiElement());
-        assertEquals(2, fixes.length);
+        assertEquals(3, fixes.length);
         com.intellij.codeInspection.SuppressQuickFix functionScopedFix = fixes[0];
         assertTrue(functionScopedFix.getName().contains("function"));
         ProblemDescriptor problemToFix = problems[0];
@@ -1731,7 +1731,7 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertTrue("Expected the unsuppressed snippet to be flagged", problems.length > 0);
 
         com.intellij.codeInspection.SuppressQuickFix[] fixes = inspection.getBatchSuppressActions(problems[0].getPsiElement());
-        assertEquals(2, fixes.length);
+        assertEquals(3, fixes.length);
         com.intellij.codeInspection.SuppressQuickFix fileScopedFix = fixes[1];
         assertTrue(fileScopedFix.getName().contains("file"));
         ProblemDescriptor problemToFix = problems[0];
@@ -1747,6 +1747,38 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 afterFix.length > 0);
         assertTrue("Expected the re-checked element to now be suppressed at file level",
                 inspection.isSuppressedFor(afterFix[0].getPsiElement()));
+    }
+
+    /** "Suppress for statement" silences that one call and leaves the next one in the function flagged. */
+    public void testSuppressForStatementSuppressesOnlyThatStatement() {
+        UncheckedOrderSendInspection inspection = new UncheckedOrderSendInspection();
+        String code = "void OnTick()\n  {\n   OrderSend(request, result);\n   OrderSend(request, result);\n  }\n";
+        ProblemDescriptor[] problems = runInspection(inspection, code);
+        assertEquals(2, problems.length);
+        com.intellij.codeInspection.SuppressQuickFix statementFix = inspection.getBatchSuppressActions(problems[0].getPsiElement())[2];
+        assertTrue(statementFix.getName().contains("statement"));
+        assertTrue(statementFix.isAvailable(getProject(), problems[0].getPsiElement()));
+        ProblemDescriptor problemToFix = problems[0];
+        WriteCommandAction.runWriteCommandAction(getProject(), () -> statementFix.applyFix(getProject(), problemToFix));
+        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+
+        String text = myFixture.getFile().getText();
+        assertTrue(text, text.contains("  {\n   //noinspection " + inspection.getID() + "\n   OrderSend"));
+        ProblemDescriptor[] afterFix = runInspection(inspection, text);
+        assertEquals(2, afterFix.length);
+        assertTrue(inspection.isSuppressedFor(afterFix[0].getPsiElement()));
+        assertFalse("the second call is not suppressed", inspection.isSuppressedFor(afterFix[1].getPsiElement()));
+    }
+
+    /** A trailing comment on the problem's own line suppresses it; one naming another inspection doesn't. */
+    public void testTrailingNoinspectionCommentSuppressesThatLine() {
+        UncheckedOrderSendInspection inspection = new UncheckedOrderSendInspection();
+        String id = inspection.getID();
+        ProblemDescriptor[] problems = runInspection(inspection,
+                "void OnTick()\n  {\n   OrderSend(request, result); // noinspection " + id + "\n   OrderSend(request, result); // noinspection OtherCheck\n  }\n");
+        assertEquals(2, problems.length);
+        assertTrue(inspection.isSuppressedFor(problems[0].getPsiElement()));
+        assertFalse(inspection.isSuppressedFor(problems[1].getPsiElement()));
     }
 
     /** PreprocessorPropertyInspection no longer implements the deprecated CustomSuppressableInspectionTool. */
