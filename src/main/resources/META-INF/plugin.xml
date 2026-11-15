@@ -720,12 +720,16 @@
         <readWriteAccessDetector implementation="com.limemojito.oss.mql.editor.MqlReadWriteAccessDetector"/>
         <lang.namesValidator language="MQL4" implementationClass="com.limemojito.oss.mql.refactoring.MqlNamesValidator"/>
 
+        <!-- Read-only: warns when MetaTrader's copy of an EA source has drifted from the repository. -->
+        <editorNotificationProvider implementation="com.limemojito.oss.mql.deploy.Mt5DriftNotificationProvider"/>
     </extensions>
 
     <!-- Phase 0 (REVAMP_PLAN.md): replaces the deprecated StartupActivity-based wiring that used
          to manually connect MqlProblemsLoggerFileListener to the project message bus. -->
     <projectListeners>
         <listener class="com.limemojito.oss.mql.inspection.MqlProblemsLoggerFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener class="com.limemojito.oss.mql.deploy.Mt5DriftRefresher"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
 </idea-plugin>
