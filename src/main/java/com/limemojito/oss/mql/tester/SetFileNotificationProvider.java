@@ -7,7 +7,7 @@
 package com.limemojito.oss.mql.tester;
 
 import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
@@ -44,7 +44,7 @@ public class SetFileNotificationProvider implements EditorNotificationProvider {
             EditorNotificationPanel panel = new EditorNotificationPanel(editor, EditorNotificationPanel.Status.Warning);
             panel.setText(finding.text());
             panel.createActionLabel("Open " + finding.ea().getName(),
-                    () -> FileEditorManager.getInstance(project).openFile(finding.ea(), true));
+                    () -> new OpenFileDescriptor(project, finding.ea()).navigate(true));
             return panel;
         };
     }

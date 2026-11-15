@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.5</version>
+    <version>2026.1.6</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,17 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.6</b> &ndash; EA development beyond the editor.
+               New <i>Indicator buffer contract</i> check: an <code>INDICATOR_DATA</code> buffer past the ones the plots
+               use (another program's <code>CopyBuffer</code> gets -1, error 4806), a <code>SetIndexBuffer</code> index past
+               <code>indicator_buffers</code>, and an EA's <code>CopyBuffer</code>/<code>iCustom</code> calls that don't match
+               the indicator in the project. Compile errors now show in <code>.mqh</code> headers (compiled through the
+               program including them; saving a header recompiles its programs). An <i>MQL5 Backtest</i> run
+               configuration drives <code>mt5 backtest</code> and never stops a running MetaTrader. A banner warns when
+               MetaTrader's copy of an EA source has drifted from the repository, and another when a <code>.set</code> file
+               names inputs its EA doesn't declare. Also: <code>//noinspection</code> for one statement or line,
+               members through casts, and quick-fixes for unchecked <code>OrderSend</code> and missing
+               <code>IndicatorRelease</code>. Background compiles pause while a backtest runs.</p>
             <p><b>2026.1.5</b> &ndash; no false "undeclared" errors left on MetaQuotes' Standard Library and
                examples: operators with a template return type (<code>vector&lt;double&gt; operator+(...)</code>) parse
                as functions, structs and unions defined inside a function are understood, and parameters a

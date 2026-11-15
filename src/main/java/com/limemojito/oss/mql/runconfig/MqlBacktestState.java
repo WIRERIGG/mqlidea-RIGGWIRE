@@ -128,7 +128,7 @@ final class MqlBacktestState extends CommandLineState {
                 .createNotification("Backtest '" + name + "' " + exitMeaning(exitCode),
                         report == null ? "" : report, ok ? NotificationType.INFORMATION : NotificationType.WARNING);
         if (report != null && new File(report).isFile()) {
-            notification.addAction(NotificationAction.createSimpleExpiring("Open report", () -> BrowserUtil.browse(new File(report))));
+            notification.addAction(NotificationAction.createSimpleExpiring("Open report", () -> BrowserUtil.browse(new File(report).toURI())));
         }
         notification.notify(project);
     }

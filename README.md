@@ -6,7 +6,7 @@
 
 **MQL4/MQL5 language support for IntelliJ IDEA & CLion — with inline MetaEditor compiler diagnostics.**
 
-![Version](https://img.shields.io/badge/version-2026.1.5-2381C4?style=flat-square)
+![Version](https://img.shields.io/badge/version-2026.1.6-2381C4?style=flat-square)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
 ![Inspections](https://img.shields.io/badge/inspections-80-3ddc84?style=flat-square)
