@@ -131,7 +131,7 @@ public class Mt5DriftNotificationProvider implements EditorNotificationProvider 
 
     /** The MQL5 folder holding the Include folder the plugin indexes, or null. */
     @Nullable
-    static Path mql5Folder(@NotNull Project project) {
+    public static Path mql5Folder(@NotNull Project project) {
         for (VirtualFile root : MqlIncludeRoots.candidateIncludeRoots(project)) {
             VirtualFile parent = root.getParent();
             if (parent != null && "Include".equals(root.getName()) && "MQL5".equals(parent.getName())) {

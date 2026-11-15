@@ -229,6 +229,8 @@
         <runConfigurationProducer
                 implementation="com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfigurationProducer"/>
         <configurationType implementation="com.limemojito.oss.mql.runconfig.MQL4RunCompilerConfigurationType"/>
+        <configurationType implementation="com.limemojito.oss.mql.runconfig.MqlBacktestConfigurationType"/>
+        <runConfigurationProducer implementation="com.limemojito.oss.mql.runconfig.MqlBacktestConfigurationProducer"/>
 
         <!--
         https://confluence.jetbrains.com/display/IDEADEV/Customizing+the+IDEA+Settings+Dialog
@@ -661,6 +663,7 @@
         <externalAnnotator language="MQL4"
                            implementationClass="com.limemojito.oss.mql.compiler.MqlCompilerExternalAnnotator"/>
         <notificationGroup id="MQL Compiler" displayType="BALLOON"/>
+        <notificationGroup id="MQL Backtest" displayType="BALLOON"/>
         <statusBarWidgetFactory id="com.limemojito.oss.mql.compiler.status"
                                 implementation="com.limemojito.oss.mql.compiler.MqlCompileStatusBarWidgetFactory"/>
 
@@ -722,6 +725,8 @@
 
         <!-- Read-only: warns when MetaTrader's copy of an EA source has drifted from the repository. -->
         <editorNotificationProvider implementation="com.limemojito.oss.mql.deploy.Mt5DriftNotificationProvider"/>
+        <!-- .set files: inputs the EA doesn't declare (MetaTrader silently tests the default instead). -->
+        <editorNotificationProvider implementation="com.limemojito.oss.mql.tester.SetFileNotificationProvider"/>
     </extensions>
 
     <!-- Phase 0 (REVAMP_PLAN.md): replaces the deprecated StartupActivity-based wiring that used

@@ -220,48 +220,9 @@ final class IndicatorContract {
         return m.find() && !m.group(1).contains("datetime");
     }
 
-    /**
-     * {@code text} with comments and string/char literal contents blanked to spaces, so patterns
-     * never match inside them and every offset still points at the same source position.
-     */
+    /** {@code text} with comments and string contents blanked, offsets kept ({@link SourceText#code}). */
     @NotNull
     static String code(@NotNull CharSequence text) {
-        StringBuilder out = new StringBuilder(text);
-        int i = 0;
-        int n = text.length();
-        while (i < n) {
-            char c = text.charAt(i);
-            if (c == '/' && i + 1 < n && text.charAt(i + 1) == '/') {
-                while (i < n && text.charAt(i) != '\n') {
-                    out.setCharAt(i++, ' ');
-                }
-            } else if (c == '/' && i + 1 < n && text.charAt(i + 1) == '*') {
-                while (i < n && !(text.charAt(i) == '*' && i + 1 < n && text.charAt(i + 1) == '/')) {
-                    blank(out, i++);
-                }
-                if (i < n) {
-                    out.setCharAt(i++, ' ');
-                    out.setCharAt(i++, ' ');
-                }
-            } else if (c == '"' || c == '\'') {
-                i++;
-                while (i < n && text.charAt(i) != c && text.charAt(i) != '\n') {
-                    if (text.charAt(i) == '\\' && i + 1 < n) {
-                        out.setCharAt(i++, ' ');
-                    }
-                    out.setCharAt(i++, ' ');
-                }
-                i++;
-            } else {
-                i++;
-            }
-        }
-        return out.toString();
-    }
-
-    private static void blank(@NotNull StringBuilder out, int i) {
-        if (out.charAt(i) != '\n') {
-            out.setCharAt(i, ' ');
-        }
+        return com.limemojito.oss.mql.tester.SourceText.code(text);
     }
 }

@@ -34,6 +34,9 @@ public class MQL4CompilerRunner extends AsyncProgramRunner<RunnerSettings> {
 
     @Override
     public boolean canRun(@NotNull String executorId, @NotNull RunProfile profile) {
+        if (profile instanceof MqlBacktestConfiguration) {
+            return DefaultRunExecutor.EXECUTOR_ID.equals(executorId);
+        }
         return profile instanceof MQL4RunCompilerConfiguration
                 && (DefaultRunExecutor.EXECUTOR_ID.equals(executorId) || DefaultDebugExecutor.EXECUTOR_ID.equals(executorId));
     }

@@ -37,6 +37,12 @@ public final class StrategyTester {
         return terminalRunning;
     }
 
+    /** Reads the process table now, ignoring the cache: for decisions like starting a backtest. */
+    public static void refreshNow() {
+        checkedAt = 0;
+        refresh();
+    }
+
     private static void refresh() {
         long now = System.nanoTime();
         if (checkedAt != 0 && now - checkedAt < TTL_NANOS) {

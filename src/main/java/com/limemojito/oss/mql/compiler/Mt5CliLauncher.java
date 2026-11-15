@@ -39,7 +39,7 @@ public final class Mt5CliLauncher implements MqlCompilerLauncher {
 
     /** Locates the {@code mt5} wrapper at {@code ~/.local/bin/mt5}, or null if it isn't installed there. */
     @Nullable
-    private static String findMt5() {
+    public static String findMt5() {
         File local = new File(System.getProperty("user.home", ""), ".local/bin/mt5");
         if (local.isFile() && local.canExecute()) {
             return local.getAbsolutePath();
