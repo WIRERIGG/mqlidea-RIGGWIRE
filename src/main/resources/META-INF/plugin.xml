@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.8</version>
+    <version>2026.1.9</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,11 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.9</b> &ndash; compile errors are matched to files by the full path MetaEditor prints, so
+               two headers with the same name in different folders (worktree copies) never trade errors. A program
+               whose included headers fail to compile says which ones. The status bar and Compile Check Now work
+               from an open <code>.mqh</code> ("MQL: 1 error, 0 warnings (via X.mq5)"). Needs the <code>mt5</code>
+               bridge that compiles a repository file through Wine's <code>Z:</code> drive.</p>
             <p><b>2026.1.8</b> &ndash; the backtest guard now actually sees MetaTrader under Wine (on macOS the
                process list showed only <code>wine64</code>), also waits while an <code>mt5 backtest</code> is starting, and
                refuses to start when it can't read the process list.</p>
