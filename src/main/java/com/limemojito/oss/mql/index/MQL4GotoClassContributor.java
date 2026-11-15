@@ -36,7 +36,8 @@ public class MQL4GotoClassContributor implements ChooseByNameContributor {
             return NavigationItem.EMPTY_NAVIGATION_ITEM_ARRAY;
         }
         MQL4ClassNameIndex index = MQL4ClassNameIndex.getInstance();
-        Collection<MQL4ClassElement> classes = index.getElements(name, project, GlobalSearchScope.allScope(project));
+        Collection<MQL4ClassElement> classes = index.getElements(name, project,
+                includeNonProjectItems ? GlobalSearchScope.allScope(project) : GlobalSearchScope.projectScope(project));
         return classes.toArray(new NavigationItem[0]);
     }
 }

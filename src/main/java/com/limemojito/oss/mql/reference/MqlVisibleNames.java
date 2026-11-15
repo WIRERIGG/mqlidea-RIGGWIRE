@@ -52,7 +52,7 @@ import java.util.Set;
  *     <li>for a header, the closure of each project {@code .mq5}/{@code .mq4} that includes it:
  *     MetaEditor compiles a header inside its includer, so it sees what the includer included
  *     before it.</li>
- *     <li>any project file, through the stub indexes.</li>
+ *     <li>any project file, through the stub indexes (not the indexed MetaTrader Include folders).</li>
  * </ol>
  */
 public final class MqlVisibleNames {
@@ -85,7 +85,9 @@ public final class MqlVisibleNames {
             }
         }
         Project project = file.getProject();
-        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+        // Project files only: a header in the indexed MetaTrader Include folders counts only once
+        // something includes it, and the closures above already cover that.
+        GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
         for (Index<?> index : INDEXES) {
             if (index.has(name, project, scope)) {
                 return true;
@@ -138,7 +140,7 @@ public final class MqlVisibleNames {
 
     /** The project's {@code .mq5}/{@code .mq4} files whose {@code #include} closure reaches {@code header}. */
     @NotNull
-    private static List<PsiFile> includers(@NotNull PsiFile header) {
+    static List<PsiFile> includers(@NotNull PsiFile header) {
         VirtualFile vf = header.getVirtualFile();
         if (vf == null || !"mqh".equalsIgnoreCase(vf.getExtension())) {
             return List.of();

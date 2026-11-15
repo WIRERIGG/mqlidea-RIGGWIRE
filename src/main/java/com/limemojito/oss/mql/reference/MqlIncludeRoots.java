@@ -52,8 +52,9 @@ public final class MqlIncludeRoots {
                         ProjectRootModificationTracker.getInstance(project)));
     }
 
+    /** Uncached; {@link MqlIncludeLibraryProvider} calls it while the project roots are being built. */
     @NotNull
-    private static List<VirtualFile> computeCandidateIncludeRoots(@NotNull Project project) {
+    static List<VirtualFile> computeCandidateIncludeRoots(@NotNull Project project) {
         List<VirtualFile> roots = new ArrayList<>();
         LocalFileSystem lfs = LocalFileSystem.getInstance();
 

@@ -51,7 +51,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Resolution order per REVAMP_PLAN.md #3b:
  * <ol>
  *     <li>lexical scope walk (locals + parameters, up through enclosing {} blocks/function)</li>
- *     <li>same file + #include closure (functions, classes, enums, global/field variables)</li>
+ *     <li>same file + #include closure (functions, classes, enums, global/field variables); for a
+ *     header, then the closures of the files that include it</li>
  *     <li>project-wide stub indexes (functions, classes) -- dialect filtering left as TODO</li>
  * </ol>
  * Built-ins are deliberately NOT resolved to PSI here (that needs the synthetic-PSI std-lib
@@ -315,27 +316,13 @@ public final class MqlResolveUtil {
         // short-circuit below so a project symbol shadowing a built-in name still wins.
         GlobalSearchScope closureScope = closureScopeFor(file);
         if (closureScope != null) {
-            collectIndexed(name, project, closureScope, hits);
-            for (MQL4EnumElement e : MQL4EnumNameIndex.getInstance().getElements(name, project, closureScope)) {
-                com.intellij.openapi.progress.ProgressManager.checkCanceled();
-                if (name.equals(e.getName())) {
-                    hits.add(e);
-                }
-            }
+            collectInClosureScope(name, project, closureScope, hits);
+            // A header is compiled inside each .mq5/.mq4 that includes it, so it also sees what
+            // that includer declared or included before it (sibling headers, the EA's globals).
             if (hits.isEmpty()) {
-                collectClosureGlobals(name, project, closureScope, hits);
-            }
-            if (hits.isEmpty()) {
-                collectFirstPerFile(MQL4DefineNameIndex.getInstance().getElements(name, project, closureScope), name, hits);
-            }
-            // Enum-constant tier (LAST closure tier): a bare use of a constant (`RED`, or `Color::RED`
-            // whose member leaf is still `RED`) binds to its enum-field declaration. Gated on an empty
-            // result so it never overrides a function/class/enum-type/global/local that already claimed
-            // the name; poly-resolves if two enums in the closure both declare it (safe, never a pick).
-            if (hits.isEmpty()) {
-                for (MQL4EnumElement e : MQL4EnumFieldNameIndex.getInstance().getElements(name, project, closureScope)) {
-                    com.intellij.openapi.progress.ProgressManager.checkCanceled();
-                    collectEnumFieldsNamed(e, name, hits);
+                GlobalSearchScope includerScope = includerScopeFor(file);
+                if (includerScope != null) {
+                    collectInClosureScope(name, project, includerScope, hits);
                 }
             }
         } else {
@@ -391,11 +378,43 @@ public final class MqlResolveUtil {
 
         // Tier 3: project-wide stub indexes (functions/classes only survive as stubs today; a
         // project-wide global-variable index, sketched in REVAMP_PLAN.md #3b, is a TODO).
-        collectIndexed(name, project, GlobalSearchScope.allScope(project), hits);
+        // The project first: the indexed MetaTrader Include folders can hold stale copies of its headers.
+        collectIndexed(name, project, GlobalSearchScope.projectScope(project), hits);
         if (hits.isEmpty()) {
-            collectFirstPerFile(MQL4DefineNameIndex.getInstance().getElements(name, project, GlobalSearchScope.allScope(project)), name, hits);
+            collectIndexed(name, project, GlobalSearchScope.allScope(project), hits);
+        }
+        if (hits.isEmpty()) {
+            collectFirstPerFile(MqlScopes.projectFirst(MQL4DefineNameIndex.getInstance().getKey(), name, project, MQL4DefineElement.class), name, hits);
         }
         return hits;
+    }
+
+    /** The closure tiers of {@link #resolveNonLocal}, in order, over one closure scope. */
+    private static void collectInClosureScope(@NotNull String name, @NotNull Project project,
+                                              @NotNull GlobalSearchScope scope, @NotNull List<PsiElement> hits) {
+        collectIndexed(name, project, scope, hits);
+        for (MQL4EnumElement e : MQL4EnumNameIndex.getInstance().getElements(name, project, scope)) {
+            com.intellij.openapi.progress.ProgressManager.checkCanceled();
+            if (name.equals(e.getName())) {
+                hits.add(e);
+            }
+        }
+        if (hits.isEmpty()) {
+            collectClosureGlobals(name, project, scope, hits);
+        }
+        if (hits.isEmpty()) {
+            collectFirstPerFile(MQL4DefineNameIndex.getInstance().getElements(name, project, scope), name, hits);
+        }
+        // Enum-constant tier (LAST closure tier): a bare use of a constant (`RED`, or `Color::RED`
+        // whose member leaf is still `RED`) binds to its enum-field declaration. Gated on an empty
+        // result so it never overrides a function/class/enum-type/global/local that already claimed
+        // the name; poly-resolves if two enums in the closure both declare it (safe, never a pick).
+        if (hits.isEmpty()) {
+            for (MQL4EnumElement e : MQL4EnumFieldNameIndex.getInstance().getElements(name, project, scope)) {
+                com.intellij.openapi.progress.ProgressManager.checkCanceled();
+                collectEnumFieldsNamed(e, name, hits);
+            }
+        }
     }
 
     /**
@@ -676,7 +695,7 @@ public final class MqlResolveUtil {
             }
         }
         // No context / not in the closure: accept only an unambiguous project-wide match.
-        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
+        return lookupClassProjectFirst(name, project);
     }
 
     /**
@@ -698,7 +717,14 @@ public final class MqlResolveUtil {
                 return null;
             }
         }
-        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
+        GlobalSearchScope includerScope = includerScopeFor(file);
+        if (includerScope != null) {
+            ClassLookup inIncluders = lookupClassInScope(name, project, includerScope);
+            if (inIncluders.match != null || inIncluders.ambiguous) {
+                return inIncluders.match;
+            }
+        }
+        return lookupClassProjectFirst(name, project);
     }
 
     /** Backward-compatible context-less lookup — unambiguous project-wide match only. */
@@ -723,6 +749,16 @@ public final class MqlResolveUtil {
         static ClassLookup unique(@NotNull MQL4ClassElement match) {
             return new ClassLookup(match, false);
         }
+    }
+
+    /** The unambiguous class in the project, or else in the indexed MetaTrader Include folders. */
+    @org.jetbrains.annotations.Nullable
+    private static MQL4ClassElement lookupClassProjectFirst(@NotNull String name, @NotNull Project project) {
+        ClassLookup own = lookupClassInScope(name, project, GlobalSearchScope.projectScope(project));
+        if (own.match != null || own.ambiguous) {
+            return own.match;
+        }
+        return lookupClassInScope(name, project, GlobalSearchScope.allScope(project)).match;
     }
 
     /**
@@ -789,6 +825,23 @@ public final class MqlResolveUtil {
         return CachedValuesManager.getCachedValue(file, () ->
                 CachedValueProvider.Result.create(closureScope(file.getProject(), includeClosure(file)),
                         PsiModificationTracker.MODIFICATION_COUNT));
+    }
+
+    /**
+     * For a header, the union of the {@code #include} closures of the project {@code .mq5}/{@code .mq4}
+     * files that include it, cached like {@link #closureScopeFor}; {@code null} for anything else.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static GlobalSearchScope includerScopeFor(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> {
+            Set<PsiFile> union = new LinkedHashSet<>();
+            for (PsiFile includer : MqlVisibleNames.includers(file)) {
+                union.addAll(includeClosure(includer));
+            }
+            union.remove(file);
+            return CachedValueProvider.Result.create(union.isEmpty() ? null : closureScope(file.getProject(), union),
+                    PsiModificationTracker.MODIFICATION_COUNT, VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS);
+        });
     }
 
     @org.jetbrains.annotations.Nullable

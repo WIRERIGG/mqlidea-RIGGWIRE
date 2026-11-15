@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootModificationTracker;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.psi.util.PsiModificationTracker;
@@ -89,6 +90,7 @@ public final class MqlDialect {
     }
 
     private static boolean hasExt(@NotNull Project project, @NotNull String ext) {
-        return !FilenameIndex.getAllFilesByExt(project, ext).isEmpty();
+        // Project scope: the indexed MetaTrader Include folders hold .mq5 files of their own.
+        return !FilenameIndex.getAllFilesByExt(project, ext, GlobalSearchScope.projectScope(project)).isEmpty();
     }
 }

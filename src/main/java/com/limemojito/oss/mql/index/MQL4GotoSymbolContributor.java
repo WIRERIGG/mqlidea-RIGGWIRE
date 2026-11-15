@@ -52,7 +52,7 @@ public class MQL4GotoSymbolContributor implements ChooseByNameContributor {
         if (DumbService.isDumb(project)) {
             return NavigationItem.EMPTY_NAVIGATION_ITEM_ARRAY;
         }
-        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+        GlobalSearchScope scope = includeNonProjectItems ? GlobalSearchScope.allScope(project) : GlobalSearchScope.projectScope(project);
 
         Collection<MQL4ClassElement> classes = MQL4ClassNameIndex.getInstance().getElements(name, project, scope);
         List<NavigationItem> result = new ArrayList<>(classes);
