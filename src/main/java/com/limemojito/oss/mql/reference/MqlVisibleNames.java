@@ -117,6 +117,18 @@ public final class MqlVisibleNames {
         });
     }
 
+    /** {@code file} and every file its {@code #include}s reach, {@code file} first. */
+    @NotNull
+    public static Set<PsiFile> includeClosure(@NotNull PsiFile file) {
+        return closureFiles(file);
+    }
+
+    /** The project's {@code .mq5}/{@code .mq4} programs whose {@code #include} closure reaches {@code header}. */
+    @NotNull
+    public static List<PsiFile> programsIncluding(@NotNull PsiFile header) {
+        return includers(header);
+    }
+
     /** {@code file} and every file its {@code #include}s reach. */
     @NotNull
     private static Set<PsiFile> closureFiles(@NotNull PsiFile file) {

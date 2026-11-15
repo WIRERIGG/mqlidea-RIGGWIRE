@@ -18,8 +18,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.WindowManager;
 import com.intellij.psi.PsiFile;
+import com.limemojito.oss.mql.reference.MqlVisibleNames;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Surfaces the real MetaEditor compiler's errors and warnings as inline editor annotations. This is the
@@ -32,13 +36,20 @@ import org.jetbrains.annotations.Nullable;
  *   <li>Only compile saved files — the compiler reads disk, so unsaved edits would produce stale
  *       diagnostics; the annotator re-runs after save (and {@link MqlCompilerService} memoises by stamp,
  *       so unchanged content never re-compiles).</li>
- *   <li>Only compile a program ({@code .mq4}/{@code .mq5}); a bare {@code .mqh} header can't compile alone.</li>
+ *   <li>A {@code .mqh} header can't compile alone: compile the program that includes it (the one
+ *       nearest it by folder, then by path) and keep the diagnostics MetaEditor attributes to the
+ *       header. A header no program includes isn't compiled.</li>
+ *   <li>Results are memoised by a stamp over the whole include closure, so saving a header
+ *       recompiles the programs that include it.</li>
+ *   <li>Skip while MetaTrader's Strategy Tester runs: a compile beside a running backtest competes
+ *       for the same terminal folder. The next pass after it finishes compiles.</li>
  * </ul>
  */
 public class MqlCompilerExternalAnnotator
         extends ExternalAnnotator<MqlCompilerExternalAnnotator.Request, MqlCompilerService.CompileResult> {
 
-    public record Request(@NotNull Project project, @NotNull VirtualFile file) {
+    /** {@code program} is what gets compiled: the file itself, or for a header the program including it. */
+    public record Request(@NotNull Project project, @NotNull VirtualFile program, long stamp) {
     }
 
     @Override
@@ -48,22 +59,70 @@ public class MqlCompilerExternalAnnotator
             return null; // parser already flags these; don't compile un-parseable code
         }
         VirtualFile vFile = file.getVirtualFile();
-        if (vFile == null || !vFile.isInLocalFileSystem() || !isCompilableProgram(vFile.getName())) {
+        if (vFile == null || !vFile.isInLocalFileSystem()) {
             return null; // MetaEditor compiles files on disk only (not light-test or remote files)
         }
-        if (FileDocumentManager.getInstance().isFileModified(vFile)) {
-            return null; // compile only what's on disk; re-runs after save
+        PsiFile program = isCompilableProgram(vFile.getName()) ? file
+                : isHeader(vFile.getName()) ? programFor(file) : null;
+        if (program == null || program.getVirtualFile() == null || !program.getVirtualFile().isInLocalFileSystem()) {
+            return null;
         }
-        return new Request(file.getProject(), vFile);
+        List<VirtualFile> closure = new ArrayList<>();
+        FileDocumentManager documents = FileDocumentManager.getInstance();
+        for (PsiFile f : MqlVisibleNames.includeClosure(program)) {
+            VirtualFile vf = f.getVirtualFile();
+            if (vf == null) {
+                continue;
+            }
+            if (documents.isFileModified(vf)) {
+                return null; // compile only what's on disk; re-runs after save
+            }
+            closure.add(vf);
+        }
+        return new Request(file.getProject(), program.getVirtualFile(), MqlCompilerService.closureStamp(closure));
+    }
+
+    static boolean isHeader(@NotNull String name) {
+        return name.toLowerCase().endsWith(".mqh");
+    }
+
+    /** The program to compile for {@code header}: the includer sharing the longest folder path, ties broken by path. */
+    @Nullable
+    public static PsiFile programFor(@NotNull PsiFile header) {
+        VirtualFile vf = header.getVirtualFile();
+        if (vf == null) {
+            return null;
+        }
+        String[] headerPath = vf.getPath().split("/");
+        PsiFile best = null;
+        int bestShared = -1;
+        String bestPath = null;
+        for (PsiFile program : MqlVisibleNames.programsIncluding(header)) {
+            VirtualFile p = program.getVirtualFile();
+            if (p == null) {
+                continue;
+            }
+            String[] path = p.getPath().split("/");
+            int shared = 0;
+            while (shared < headerPath.length - 1 && shared < path.length - 1 && headerPath[shared].equals(path[shared])) {
+                shared++;
+            }
+            if (shared > bestShared || shared == bestShared && p.getPath().compareTo(bestPath) < 0) {
+                best = program;
+                bestShared = shared;
+                bestPath = p.getPath();
+            }
+        }
+        return best;
     }
 
     @Override
     @Nullable
     public MqlCompilerService.CompileResult doAnnotate(@Nullable Request request) {
-        if (request == null) {
+        if (request == null || StrategyTester.isRunning()) {
             return null;
         }
-        return request.project().getService(MqlCompilerService.class).compile(request.file());
+        return request.project().getService(MqlCompilerService.class).compile(request.program(), request.stamp());
     }
 
     @Override
