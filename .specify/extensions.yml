@@ -1,0 +1,18 @@
+# Thinking passes layered onto the Spec Kit cycle (hand-registered; no extension package).
+# The id "riggwire-thinking" is unique so `specify extension add/remove` never rewrites these.
+# What each pass must produce: CLAUDE.md "Spec Kit" and constitution "Thinking passes".
+hooks:
+  after_specify:
+    - extension: riggwire-thinking
+      command: invert
+      enabled: true
+      optional: false
+      description: "Pre-mortem on the spec: kill, shrink or reroute the feature before any planning"
+      prompt: "Invert the spec just written; save the result to specs/<feature>/premortem.md"
+  after_plan:
+    - extension: riggwire-thinking
+      command: latticework
+      enabled: true
+      optional: false
+      description: "Stress the plan (first principles, bottleneck, margin of safety) before tasks exist"
+      prompt: "Run the latticework on plan.md; save the result to specs/<feature>/lattice.md"
