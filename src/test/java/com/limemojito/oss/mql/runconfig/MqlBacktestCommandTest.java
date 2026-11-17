@@ -53,6 +53,8 @@ class MqlBacktestCommandTest {
         assertThat(m.group(1)).isEqualTo("/Users/x/MetaTrader 5/ex_pbr_2023H1.htm");
         assertThat(MqlBacktestState.exitMeaning(1)).contains("without a report");
         assertThat(MqlBacktestState.exitMeaning(3)).isEqualTo("timed out");
-        assertThat(List.of(0, 1, 3, 4).stream().map(MqlBacktestState::exitMeaning)).doesNotHaveDuplicates();
+        assertThat(MqlBacktestState.exitMeaning(5)).contains("already running");
+        assertThat(MqlBacktestState.exitMeaning(6)).contains("another backtest");
+        assertThat(List.of(0, 1, 2, 3, 4, 5, 6).stream().map(MqlBacktestState::exitMeaning)).doesNotHaveDuplicates();
     }
 }

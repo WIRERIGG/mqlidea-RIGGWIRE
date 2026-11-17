@@ -120,8 +120,11 @@ final class MqlBacktestState extends CommandLineState {
         return switch (code) {
             case 0 -> "finished";
             case 1 -> "finished without a report (no trades, or no tester data for the symbol and dates)";
+            case 2 -> "wasn't set up (the bridge's configuration or arguments were rejected)";
             case 3 -> "timed out";
             case 4 -> "rejected its arguments";
+            case 5 -> "didn't start: MetaTrader 5 was already running";
+            case 6 -> "gave up waiting for another backtest to finish";
             default -> "failed (exit " + code + ")";
         };
     }

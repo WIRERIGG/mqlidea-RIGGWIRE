@@ -3,7 +3,8 @@ gen
 idea-flex.skeleton
 .intellijPlatform
 /*.jar
-docs/
+docs/*
+!docs/MQL5_SYNTAX_GAPS.md
 local
 build
 .gradle
