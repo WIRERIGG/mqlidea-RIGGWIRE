@@ -1,6 +1,8 @@
 <!--
 Sync Impact Report
-- Version change: template -> 1.0.0 (first ratification)
+- Version change: 1.0.0 -> 1.1.0 (owner's instruction: layer /invert and /latticework onto the cycle)
+  - Added: Development Workflow 3 "Thinking passes" and 4 "Time limits"; hooks in .specify/extensions.yml
+- Earlier: template -> 1.0.0 (first ratification)
 - Principles added: I Honest, early diagnostics; II Sturdy platform API; III No MetaQuotes text or code;
   IV Read-only toward MetaTrader; V Every gate stays green
 - Sections added: Repository Constraints, Development Workflow, Governance
@@ -71,7 +73,22 @@ Tests are hermetic: they never depend on this machine's MetaTrader install.
    `/speckit-tasks`, `/speckit-analyze` (optional), `/speckit-implement`, and `/speckit-converge`.
    Fixes and small changes keep the direct path: edit, `./gradlew build`, commit.
 2. A plan names the platform APIs it will use and confirms each against Principle II before any code.
-3. **Commits and merges:**
+3. **Thinking passes** (hooks in `.specify/extensions.yml`; they exist to stop wasted work early):
+   - **After `/speckit-specify`: `/invert`** on the spec, saved to `specs/<feature>/premortem.md`.
+     Win and ruin line, the top failures with a guardrail or tripwire each, and the inverted
+     assumption. Its verdict is one of: **go**, **shrink** (cut scope, then re-specify), **direct path**
+     (fits in one commit: leave Spec Kit and just fix it), or **drop** (wrong goal, or a platform limit
+     such as internal API makes it impossible under Principle II).
+   - **After `/speckit-plan`: `/latticework`** on the plan, saved to `specs/<feature>/lattice.md`.
+     Default models: first principles (what the platform and MetaEditor actually do), bottleneck (the
+     one unknown that could sink it, proven first by a spike), margin of safety (still correct on
+     2025.3.2 and on a project 10× larger). The plan is corrected before `/speckit-tasks`.
+   - Every tripwire becomes a check in `tasks.md`; the riskiest unknown is the first task.
+   - Depth follows the invert skill's own scale: quick or standard by default, full only for a release
+     or install, or when the owner types `/invert`.
+4. **Time limits:** `/speckit-clarify` asks 5 questions at most; `/speckit-implement` +
+   `/speckit-converge` run 3 rounds at most, then stop and report what is left instead of looping.
+5. **Commits and merges:**
    - commits stage paths explicitly and end with the attribution trailer;
    - no push, no PR and no merge to `master` without the owner's go;
    - branches are made by hand (Spec Kit's git extension is not installed).
@@ -86,4 +103,4 @@ Tests are hermetic: they never depend on this machine's MetaTrader install.
 - **Compliance:** `/speckit-plan`'s Constitution Check and `/speckit-analyze` check every plan against
   Principles I–V.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-17
+**Version**: 1.1.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-17

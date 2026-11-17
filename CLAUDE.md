@@ -8,6 +8,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.9) providing MQL4/MQL5 l
 
 ## Spec Kit (spec-driven development)
 - **New features start with `/speckit-specify`,** then `/speckit-clarify` (optional), `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze` (optional), `/speckit-implement` and `/speckit-converge`. Specs go in `specs/<NNN-feature>/`. Fixes keep the direct path.
+- **Thinking passes run automatically** (hooks in `.specify/extensions.yml`): `/invert` after `/speckit-specify` → `specs/<feature>/premortem.md` with a verdict (go / shrink / direct path / drop), and `/latticework` after `/speckit-plan` → `specs/<feature>/lattice.md` (first principles, bottleneck, margin of safety); the plan is fixed before `/speckit-tasks`. Tripwires become checks in `tasks.md`, riskiest unknown first. Limits: clarify ≤5 questions, implement+converge ≤3 rounds, then stop and report.
 - **The rules:** `.specify/memory/constitution.md`. The `/speckit-*` skills are user-invocable only (`--no-model-invocation`), so they run only when typed.
 - **Pinned to Spec Kit v1.4.1,** the same CLI RIGGWIRE-QUANT uses (one install per machine). Upgrade only as one step for every repo: `uv tool install --force specify-cli --from git+https://github.com/github/spec-kit.git@vX.Y.Z`, then `specify integration upgrade claude --integration-options="--no-model-invocation"` in each repo, reviewing the diff on a branch.
 - The git extension is not installed: branches are made by hand. Spec Kit plans the work; the gates below still decide when it's done.
