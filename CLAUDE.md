@@ -6,6 +6,12 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.9) providing MQL4/MQL5 l
 
 > The former **AI Code Healing** subsystem (Grok analysis + Claude diff apply, SQLite DB, healing tool window, gutter markers, pre-commit prompts) was **removed in the 2026.1.0 revamp**. Only the AI-free "Generate MQL Inspection Catalog" action (`catalog/`) survives. Do not re-add healing.
 
+## Spec Kit (spec-driven development)
+- **New features start with `/speckit-specify`,** then `/speckit-clarify` (optional), `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze` (optional), `/speckit-implement` and `/speckit-converge`. Specs go in `specs/<NNN-feature>/`. Fixes keep the direct path.
+- **The rules:** `.specify/memory/constitution.md`. The `/speckit-*` skills are user-invocable only (`--no-model-invocation`), so they run only when typed.
+- **Pinned to Spec Kit v1.4.1,** the same CLI RIGGWIRE-QUANT uses (one install per machine). Upgrade only as one step for every repo: `uv tool install --force specify-cli --from git+https://github.com/github/spec-kit.git@vX.Y.Z`, then `specify integration upgrade claude --integration-options="--no-model-invocation"` in each repo, reviewing the diff on a branch.
+- The git extension is not installed: branches are made by hand. Spec Kit plans the work; the gates below still decide when it's done.
+
 ## Build
 
 ```bash
