@@ -9,21 +9,21 @@
 ![Version](https://img.shields.io/badge/version-2026.1.9-2381C4?style=flat-square)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
-![Inspections](https://img.shields.io/badge/inspections-80-3ddc84?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-421%20passing-3ddc84?style=flat-square)
+![Inspections](https://img.shields.io/badge/inspections-84-3ddc84?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-643%20passing-3ddc84?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--3.0-777777?style=flat-square)
 
 </div>
 
-> Focused on one thing: **catching MQL mistakes early** — from the lexer, from static inspections, and from the real MetaEditor compiler — directly in the editor.
+> Focused on one thing: **catching MQL mistakes early** — from the lexer, from static inspections, and from the real MetaEditor compiler — directly in the editor. A check that can't be sure stays quiet rather than guessing.
 
 Plugin id: `io.riggwire.mql`
 
 |  |  |
 | :-- | :-- |
-| 🛡️ **80 inspections** across 13 categories — safety checks on by default, with quick-fixes | ✍️ **Member-aware rename** & Find Usages across the `#include` closure |
-| 🔎 **Real resolution** — go-to, members, base classes, 4 stub indexes | ⚙️ **MetaEditor compile** inline — macOS · Windows · Linux |
-| 💡 **Completion + parameter hints** + EN/RU quick docs | 🎨 **Formatter · folding · templates · structure view** |
+| 🛡️ **84 inspections** (83 per-file + 1 cross-file) — 57 on by default, 4 quick-fixes | ✍️ **Member-aware rename** & Find Usages across the `#include` closure |
+| 🔎 **Real resolution** — members, base classes, namespaces, macros, typedefs, 7 stub indexes | ⚙️ **MetaEditor compile** inline, headers included — macOS · Windows · Linux |
+| 📈 **MetaTrader workflow** — backtest run configs, `.set` checks, drift warnings | 🎨 **Completion · formatter · folding · templates · structure view** |
 
 ---
 
@@ -31,59 +31,71 @@ Plugin id: `io.riggwire.mql`
 
 ### 🧩 Language support
 
-- **Three file types** — `MQL4 File` (`.mq4`, `.mql4`), `MQL5 File` (`.mq5`, `.mql5`), and `MQL Header` (`.mqh`) — each with its own icon, resolved from the view provider so the icon never flickers before settling
+- **Three file types** — `MQL4 File` (`.mq4`, `.mql4`), `MQL5 File` (`.mq5`, `.mql5`), and `MQL Header` (`.mqh`) — each with its own icon
 - JFlex lexer and hand-written parser with error recovery — a syntax error does not break highlighting or navigation for the rest of the file
-- Dialect awareness (`MqlDialect`): files are classified as MQL4 or MQL5 (a `.mqh` header inherits its project's dialect), and dialect-specific features — completion, inspections — only apply where they belong
-- Syntax highlighting with a configurable **Color Settings** page, plus a semantic annotator that recognizes event handlers (`OnInit`, `OnTick`, …) and `input` parameters
-- Read-vs-write identifier highlighting (`ReadWriteAccessDetector`) and a bundled MQL/MetaTrader spellchecking dictionary
-- Structure view and breadcrumbs (`CClass ▸ Method`) for classes, functions, and enums
-- `#region`/`#endregion` and consecutive-`#include` folding; native TODO recognition (`IndexPatternBuilder`)
-- Gutter icons marking MT5 entry points (`OnInit`/`OnTick`/…) and a ▶ run marker (one-click compile)
+- The MQL5 language as MetaEditor accepts it: classes, structs and **unions**, `pack(n)`, interfaces, operator methods, **namespaces**, `typedef` function pointers, templates, `input group`, `export`, `#`/`##` in macros, `D'…'` datetime and `C'…'` color literals, `\x` escapes, and the `vector`/`matrix`/`complex` types
+- Dialect awareness (`MqlDialect`): files are classified as MQL4 or MQL5 (a `.mqh` header inherits its project's dialect), and dialect-specific completion and inspections only apply where they belong
+- Syntax highlighting with a configurable **Color Settings** page, plus a semantic annotator for event handlers (`OnInit`, `OnTick`, …), `input` parameters and MetaEditor's own literal errors (out-of-range character codes, MQL5 `extern` initializers)
+- Read-vs-write identifier highlighting and a bundled MQL/MetaTrader spellchecking dictionary
+- Structure view and breadcrumbs for classes, functions, enums, namespaces and input groups
+- `#region`/`#endregion` and consecutive-`#include` folding; native TODO recognition
+- Gutter icons marking MT5 entry points and a ▶ run marker (one-click compile)
 - **New → MQL5 Expert Advisor / Indicator / Script** and **MQL4 Expert** from templates pre-filled with `#property` blocks and event-handler skeletons
 
 ### 🛡️ Error detection
 
-- **80 local inspections** across 13 categories — Trading Safety, Advanced Patterns, Performance, Memory & Allocation, Function Signature, Control Flow, Class Structure, Security & Data, Code Complexity, Trading-Specific, Naming & Style, Type Safety, and Preprocessor
-- The **Trading Safety** group (13 checks) covers unchecked `OrderSend()` results, unchecked / double-released indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, unchecked `CopyRates`/`CopyBuffer`, `delete` without a null guard, and more
+- **83 local inspections** in 13 groups — Trading Safety (14), Advanced Patterns, Performance, Control Flow, Memory & Allocation, Function Signature, Class Structure, Security & Data, Code Complexity, Trading-Specific, Naming & Style, Type Safety, and Preprocessor
+- **Trading Safety** covers unchecked `OrderSend()` results, unchecked or double-released indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, unchecked `CopyRates`/`CopyBuffer`, `delete` without a null guard, and more
+- **Indicator buffer contract**: `SetIndexBuffer`, `CopyBuffer` and `iCustom` buffer indexes checked against the indicator's declared buffers and plots (literal values)
+- **Call to an undefined function**: MetaEditor's "undeclared identifier" (error 256), reported as you type; skipped for any file whose `#include` doesn't resolve, so it never guesses
 - A cross-file **global inspection**: unused global function across the entire `#include` closure
-- Dialect-filtered: MQL5-only checks (indicator handles, `OnCalculate()`) stay off `.mq4` files and vice versa
-- Safety-focused checks are enabled by default; style, naming, and complexity checks are opt-in (`enabledByDefault="false"`)
-- **Trading Safety quick-fixes**: wrap an unchecked `CopyRates`/`CopyBuffer`/`ArrayResize` in a `< 0` failure check, add an `INVALID_HANDLE` guard after handle creation, and nullify a pointer after `delete` — all pure document-text rewrites that always emit compilable code
-- Suppression that works both in the editor and in batch **Inspect Code** — modern `SuppressQuickFix` API adds *Suppress for function* / *Suppress for file* (`//noinspection <id>` comment markers), plus Alt-Enter previews so you see the exact edit before applying it
-- A background problems logger (`MqlProblemsLoggerService`) that writes a structured Markdown/log report of the current, *profile-enabled* findings for the open project, refreshed on file events
-- **Tools → Generate MQL Inspection Catalog** — an AI-free triage document (`docs/MQL_INSPECTION_CATALOG.md`) enumerating every inspection
+- Safety checks are on by default (57); style, naming and complexity checks are opt-in (26)
+- **Quick-fixes** that always emit compilable code: wrap an unchecked `CopyRates`/`CopyBuffer`/`ArrayResize`/`OrderSend` in a failure check, add an `INVALID_HANDLE` guard after handle creation, release global indicator handles in `OnDeinit`, and nullify a pointer after `delete`
+- **Suppression** in the editor and in batch **Inspect Code**: *Suppress for function* / *Suppress for file*, and per statement with `//noinspection <id>` on the line above or at the end of the line
+- A background problems logger that writes a Markdown report of the current, profile-enabled findings for the open project (`mql-tasks.md`)
+- **Tools → Generate MQL Inspection Catalog** — a triage document enumerating every inspection
 
 ### 🔎 Navigation and refactoring
 
-- Real reference resolution: go-to-declaration (Ctrl-click) and Find Usages for functions, classes/structs, enums, enum constants, parameters, and variables — local, global, and member (`obj.field` / `obj.Method()`, including through base classes) — across files reached via `#include`
-- Rename refactoring (Shift-F6, in-place) for the same symbol kinds, updating call sites project-wide **including member accesses**
-- **Go to Super**, **Go to Type Declaration**, **Extract Variable**, and **Safe Delete** (blocked when the symbol is still used, via the member-aware usage search)
-- `#include "X.mqh"` and `#include <Trade/Trade.mqh>` are navigable links; the include closure is computed with cycle protection and cached per file so it isn't rebuilt on every keystroke
-- **Four stub indexes** — classes, functions, enum types, and top-level global variables — powering Go to Class, Go to Symbol, and fast cross-file resolution without re-parsing every included file
+- Go to declaration and Find Usages for functions, classes/structs/unions, enums and their constants, parameters, variables, `#define` macros and typedefs — across files reached via `#include`
+- Member access is typed: `obj.field`, `obj.Method()`, base classes, `this`, chains, array elements (`rates[i].close`), call results (`Get().m`), casts (`((CFoo*)p).m`, `dynamic_cast`), and `operator[]`
+- Scoped names: `::global`, `Class::member`, `Namespace::name`, and out-of-line `CFoo::Method` bodies that see the class's members
+- Names resolve the way MetaEditor compiles: a file's own `#include` closure, then (for a header) the closures of the programs that include it. MetaTrader's `MQL5/Include` folder is indexed as a library, and your project's copy of a header always wins over a stale one there
+- **Rename** (Shift-F6, in-place) updates call sites project-wide, including member accesses; **Go to Super**, **Go to Type Declaration**, **Extract Variable**, and **Safe Delete**
+- `#include "X.mqh"` and `#include <Trade/Trade.mqh>` are navigable links
+- **Seven stub indexes** — classes, functions, enums, enum constants, globals, typedefs and macros — for Go to Class, Go to Symbol and fast cross-file resolution
 
 ### ✍️ Editing and formatting
 
-- Code completion: tiered, dialect-filtered, with insert handlers for parentheses and arguments — including members of project-defined classes after `.`
-- Parameter info (Ctrl-P) with real signatures for built-in and project functions, and inline **parameter-name hints** on positional calls (`OrderSend(sym, /*cmd:*/ OP_BUY, /*volume:*/ 0.1, …)`)
+- Completion: dialect-filtered, with insert handlers for parentheses and arguments; members of your classes after `.`, `vector`/`matrix` methods, built-in structure fields (`MqlDateTime dt; dt.hour`), macros and typedefs
+- Parameter info (Ctrl-P) with real signatures and inline **parameter-name hints** on positional calls
 - Quick documentation (hover / Ctrl-Q) in English and Russian, including your own doc comments
-- Code formatter with a configurable, MetaEditor-compatible default style (**Settings → Code Style → MQL4**)
-- Brace matching, quote handling, code folding, and line/block commenting
-- 9 live templates for common trading patterns (`oninit`, `ontick`, `ondeinit`, `ordersend`, `input`, `indicator`, `fileop`, `class`, `pool`)
+- Code formatter with a MetaEditor-compatible default style (**Settings → Code Style → MQL4**)
+- Brace matching, quote handling, folding, and line/block commenting
+- 9 live templates (`oninit`, `ontick`, `ondeinit`, `ordersend`, `input`, `indicator`, `fileop`, `class`, `pool`)
 
 ### ⚙️ Compiler integration
 
-- An **ExternalAnnotator** runs the real MetaEditor compiler and shows genuine compile errors and warnings as inline editor squiggles
-- **Cross-platform launcher strategy** (`MqlCompilerService` tries each in order and uses the first available):
-  - **macOS** — the `mt5` CLI wrapper driving MetaEditor through MetaTrader 5's bundled Wine
-  - **Windows** — native `metaeditor64.exe` (falling back to `metaeditor.exe`), no Wine, located via a registered MQL SDK
-  - **Linux / other** — an explicit Wine binary + MetaEditor exe (`MQL_WINE_PATH` / `mql.wine.path`)
-- A **Compile Check Now** action (Tools menu and editor popup) forces a fresh compile on demand
-- A status-bar widget shows the current compile state of the open file
-- Results are memoized by document modification stamp, so unchanged files are not recompiled; the stale log from a previous compile is cleared before each run so a no-op compile can never report a stale result
-- Compile logs are decoded as UTF-16 (little-endian, BOM-aware) exactly as MetaEditor emits them
-- An **MQL SDK type** (Project Structure → SDKs) points the Windows/Linux launchers at your MetaEditor install
-- A **run configuration** and **program runner** for invoking the MQL compiler as a build step, with clickable `file(line,col)` hyperlinks in the run console
-- When no compiler is available, the plugin degrades honestly: the widget reports "compiler N/A" rather than pretending the file is clean
+- The real MetaEditor compiler runs in the background and its errors and warnings appear as inline squiggles
+- **Headers too**: a `.mqh` is checked by compiling the nearest program that includes it. Its errors land on the header; the program gets a file-level warning naming any included file that fails; the status bar reads `MQL: N errors, M warnings (via X.mq5)`
+- Each diagnostic goes to the file at the exact path MetaEditor printed, so same-named headers in another checkout or worktree never swap errors
+- Results are cached by a stamp over the whole `#include` closure: editing any included file triggers a fresh compile, nothing else does
+- **Compile Check Now** (Tools menu and editor popup) forces a compile, from a program or a header
+- Background compiles pause while a Strategy Tester run is in progress
+- **Cross-platform launchers** (`MqlCompilerService` uses the first available):
+  - **macOS** — the `mt5` command at `~/.local/bin/mt5`, driving MetaEditor through MetaTrader 5's bundled Wine
+  - **Windows** — native `metaeditor64.exe` (falling back to `metaeditor.exe`) from a registered MQL SDK
+  - **Linux** — an explicit Wine binary + MetaEditor exe (`MQL_WINE_PATH` / `mql.wine.path`)
+- A compile run configuration with clickable `file(line,col)` links in the console
+- When no compiler is available the status bar says "compiler N/A" rather than showing a false clean state
+
+### 📈 MetaTrader workflow
+
+None of these ever stop MetaTrader or write into its folders.
+
+- **Backtest run configuration** (Run → Edit Configurations → MQL Backtest): Expert, symbol, period, dates, tick model, deposit and an optional `.set` file, run through `mt5 backtest --no-kill`. It refuses to start while MetaTrader, a tester agent or another backtest is running, or when it can't tell; when it finishes, the notification offers to open the report
+- **`.set` file check**: a `.set` file that names inputs the Expert doesn't declare gets an editor banner listing them; with several copies of the EA, the one matching MetaTrader's deployed tree is used
+- **Drift warning**: when MetaTrader's deployed copy of an open source file differs from the repository's, a banner says so (paths mapped from `.claude/mt5-bridge.json`, the same mapping `mt5 sync` uses)
 
 ---
 
@@ -92,11 +104,12 @@ Plugin id: `io.riggwire.mql`
 | | Requirement |
 | :-- | :-- |
 | **IDE** | IntelliJ IDEA or CLion 2025.3.2+ (build 253.30387+) |
-| **Java** | 21 (JetBrains Runtime) — for running the IDE; the build auto-detects a JDK (see below) |
-| **Compile checking** | MetaEditor, reached per-platform: macOS via the `mt5` wrapper + Wine · Windows via native `metaeditor64.exe` (registered MQL SDK) · Linux via an explicit Wine binary + exe |
+| **Java** | 21 (JetBrains Runtime) — for running the IDE; the build auto-detects a JDK |
+| **Compile checking** | MetaEditor — macOS via the `mt5` command + Wine · Windows via `metaeditor64.exe` (registered MQL SDK) · Linux via Wine |
+| **Backtests, drift and `.set` checks** | The `mt5` command (macOS) |
 | **File types** | `.mq4` `.mql4` `.mq5` `.mql5` `.mqh` |
 
-Everything except compile checking works with no external tools installed. **Compile checking is supported on macOS, Windows, and Linux.** Windows and Linux support is inherited from the upstream plugin (which shipped native `metaeditor64.exe` / Wine compilation via the Run configuration) and extended here — refactored into the launcher strategy, wired into the inline annotator, and fixed for MQL5 (`.mq5`) sources.
+Everything in the editor works with no external tools installed; only compile checking and the MetaTrader workflow need them.
 
 ---
 
@@ -112,39 +125,49 @@ Everything except compile checking works with no external tools installed. **Com
 ### Building from source
 
 ```bash
+./gradlew build                  # compile (deprecations are errors) + all 643 tests
 ./gradlew buildPlugin            # produces build/distributions/*.zip
-./gradlew test                   # run the test suite (421 tests)
+./gradlew verifyPlugin           # Plugin Verifier against 2025.3.2 and CLion 2026.3
 ./gradlew runIde                 # launch a sandbox IDE with the plugin installed
 ```
 
-The build daemon's JDK is chosen by auto-detection via `gradle/gradle-daemon-jvm.properties` (no hardcoded absolute path), so `gradlew`/`gradlew.bat` work on macOS, Windows, and Linux as long as a JDK of that major version is installed and discoverable (a CLion/IDEA bundled JBR or any Temurin/JDK counts). If detection misses your JDK, set `JAVA_HOME` or add `org.gradle.java.home=<path>` to your user-level `~/.gradle/gradle.properties`. Compilation targets Java 21 bytecode via `javac --release 21`.
-
-Gradle 9 wrapper included; built with the IntelliJ Platform Gradle Plugin 2.11.0 against `intellijIdea("2025.3.2")`.
+The Gradle daemon's JDK is auto-detected (`gradle/gradle-daemon-jvm.properties`); a CLion/IDEA bundled JBR or any JDK 21 works. If detection misses yours, set `JAVA_HOME` or `org.gradle.java.home` in `~/.gradle/gradle.properties`. Gradle 9 wrapper included; built with the IntelliJ Platform Gradle Plugin 2.11.0 against `intellijIdea("2025.3.2")`.
 
 ### Enabling compile checking
 
-- **macOS** — install the `mt5` bridge (a CLI wrapper that drives MetaEditor through Wine) and make sure `mt5` is on your `PATH`. The plugin shells out to it automatically; no further configuration is needed.
-- **Windows** — register an **MQL SDK** (Project Structure → SDKs → **+** → *MQL4 SDK*) pointing at the folder that contains `metaeditor64.exe`. The plugin discovers the exe from any configured MQL SDK.
-- **Linux** — register the MQL SDK as above and make a Wine binary discoverable (`MQL_WINE_PATH`, `mql.wine.path`, or a standard install location).
+- **macOS** — the plugin runs `~/.local/bin/mt5` (it does not search `PATH`). `mt5` is a separate command-line bridge to MetaTrader 5's bundled Wine and is **not distributed with this plugin**. The plugin needs:
+  - `mt5 compile <file>`: compiles a file anywhere on disk (a path outside the MetaTrader folder must reach MetaEditor as a `Z:\…` path, or MetaEditor silently compiles nothing); MetaEditor's log next to the source carries the diagnostics
+  - `mt5 backtest …` (backtest run configuration only): runs the Strategy Tester and prints `Report: <path>`; exit codes 0 finished · 1 no report · 2 setup error · 3 timeout · 4 bad arguments · 5 MetaTrader already open · 6 gave up waiting for another backtest
+- **Windows** — register an **MQL SDK** (Project Structure → SDKs → **+** → *MQL4 SDK*) pointing at the folder that contains `metaeditor64.exe`
+- **Linux** — register the MQL SDK as above and make a Wine binary discoverable (`MQL_WINE_PATH`, `mql.wine.path`, or a standard install location)
 
-Without any of these, all editor features still work — only inline compiler diagnostics are unavailable.
+Without any of these, every editor feature still works; only inline compiler diagnostics are unavailable.
+
+---
+
+## ✅ How quality is held
+
+- **Corpus gate**: over MetaQuotes' Standard Library and examples (read from your local MetaTrader install, never copied into this repo), the plugin must report **0 parse errors and 0 false "undeclared" errors**, and no inspection's count may grow without a deliberate, committed baseline change
+- **Plugin Verifier**: compatible with IntelliJ IDEA 2025.3.2 and CLion 2026.3, using no internal or experimental platform API
+- **Hermetic tests**: the 643 unit tests never depend on the machine's MetaTrader install
+- **MetaEditor is the referee**: language support and built-in name lists are checked by compiling probes in the real MetaEditor; no mql5.com documentation text is bundled
 
 ---
 
 ## 🔧 How the compiler integration works
 
-When you stop typing (or trigger **Compile Check Now**), the ExternalAnnotator hands the current file to `MqlCompilerService`, which asks each launcher — `Mt5CliLauncher` (macOS/Wine), `MetaEditorLauncher` (native Windows), then `WineLauncher` (Linux) — for a command and uses the first that reports itself available. MetaEditor writes a `<basename>.log` next to the source; the service deletes any prior log before launching (so a no-op compile can't feed back a stale result), reads the fresh one as BOM-aware UTF-16, and parses each `file(line,col) : error|warning code : message` line into a line-accurate diagnostic rendered as a standard editor annotation. Results are cached per document modification stamp, so the compiler only runs when the file has actually changed. If no launcher succeeds, the status-bar widget reports "compiler N/A" instead of showing a false green state.
+When you stop typing (or run **Compile Check Now**), the annotator picks the file to compile: the file itself for a program, or the nearest including program for a header. `MqlCompilerService` asks each launcher — `Mt5CliLauncher` (macOS), `MetaEditorLauncher` (Windows), then `WineLauncher` (Linux) — for a command and uses the first available. MetaEditor writes a `<basename>.log` next to the source; the service deletes any old log first (so a compile that did nothing can't report a stale result), reads the new one as BOM-aware UTF-16, and parses each `file(line,col) : error|warning code : message` line. Each diagnostic is placed on the file at the path MetaEditor printed. Results are cached by a stamp over the whole include closure. If no launcher works, the status bar shows "compiler N/A".
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Known limitations
 
-Known limitations, tracked as upcoming work:
-
-- **Inline (ExternalAnnotator) compile diagnostics on Windows/Linux are freshly extended and not yet field-validated** — Windows/Linux compilation via the **Run configuration** is inherited from upstream (native `metaeditor64.exe` / Wine) and now also corrected for MQL5 (`.mq5`) sources; wiring those same launchers into the *inline* annotator is the new part, and macOS (`mt5`/Wine) remains the path exercised day-to-day, so a Windows/Linux inline smoke test is pending. Debugging is unsupported everywhere (no public MetaTrader debug protocol).
-- **Header (`.mqh`) compile errors are not yet surfaced** — the compiler integration currently reports diagnostics for the compiled `.mq4`/`.mq5` file only
-- **Trading Safety quick-fixes cover a subset** — more mechanical remediations planned for the flagship group
-- **Member-access resolution is declared-type + bounded inheritance/chain**, not full expression type inference — function-return types, casts, templates and array-element types are out of scope, so member navigation/rename on those forms is not yet resolved
+- **Inline compile checking on Windows and Linux is untested on real machines.** The launchers are wired in, but macOS is the only platform exercised day to day. Debugging is unsupported everywhere (MetaTrader has no public debug protocol).
+- **Templates**: template parameter names are known, but members of an instantiated template type (`CStack<double> s; s.Push(…)`) don't resolve.
+- **Built-in structure fields** (`dt.hour`) complete and are checked by name, but have no declaration to navigate to.
+- **Quick documentation in MQL5 files** shows nothing for language keywords and preprocessor directives: the bundled language reference is the MQL4 one, and showing nothing beats showing MQL4 behaviour. Function and constant docs work in both dialects.
+- **CLion's MCP `search_symbol`** never finds MQL symbols: CLion sends it to its C++ engine, and the only hook is internal API this plugin won't use. Goto Symbol in the IDE works.
+- **Quick-fixes** cover the four Trading Safety remediations above; more are planned.
 
 > **Note** — earlier versions shipped an experimental AI "code healing" pipeline. It was removed in the 2026.1.0 revamp and is not part of this plugin. The AI-free **Generate MQL Inspection Catalog** action is its only surviving artifact.
 
@@ -156,29 +179,31 @@ Known limitations, tracked as upcoming work:
 src/main/java/com/limemojito/oss/mql/
 ├── action/           New-file actions (Expert / Indicator / Script)
 ├── parser/           Lexer (JFlex) + parser with error recovery
-├── psi/              PSI elements + stubs (indexes for classes, functions, enums, globals)
+├── psi/              PSI elements + stubs (7 indexes)
 ├── editor/           Highlighting, completion, parameter info, formatter, folding, templates
-├── inspection/       80 local inspections + 1 global inspection + problems logger
-├── compiler/         ExternalAnnotator, MetaEditor/mt5/Wine launchers, status-bar widget
-├── reference/        Reference resolution + member/type resolution + #include navigation
+├── inspection/       83 local inspections + 1 global inspection + quick-fixes + problems logger
+├── compiler/         Annotator, MetaEditor/mt5/Wine launchers, status bar, Strategy Tester detection
+├── reference/        Reference resolution, member/type resolution, #include navigation
 ├── findusages/       Find Usages provider
-├── refactoring/      Rename, Extract Variable, Safe Delete (refactoring support)
-├── index/            Goto Class / Goto Symbol contributors + stub index keys
+├── refactoring/      Rename, Extract Variable, Safe Delete
+├── index/            Goto Class / Goto Symbol contributors
 ├── structure/        Structure view, breadcrumbs, Go to Super
-├── runconfig/        Run configuration + compiler runner
+├── runconfig/        Compile and backtest run configurations
+├── tester/           .set file reading and input checks
+├── deploy/           MetaTrader drift detection (read-only)
 ├── sdk/              MQL SDK type (locates metaeditor64.exe)
 ├── settings/         Plugin settings + configurable panel
 ├── doc/              Quick documentation (EN + RU)
-└── catalog/          AI-free inspection catalog generator
+└── catalog/          Inspection catalog generator
 
 src/main/resources/
 ├── META-INF/plugin.xml          All extension registrations
 ├── inspectionDescriptions/      HTML descriptions per inspection
 ├── liveTemplates/               9 MQL live templates
-└── mql/doc/                     Bundled MQL documentation + JSON catalogs
+└── mql/                         Bundled MQL documentation + JSON catalogs (API names only)
 ```
 
-~261 Java source files; the test suite (**421 tests**) covers the parser, resolution (incl. member access), inspections, refactoring, editor extensions, compiler-output parsing, and log decoding.
+~300 Java source files; the **643 tests** cover the parser, resolution, inspections, quick-fixes, refactoring, editor extensions, compiler-output parsing, the MetaTrader workflow and log decoding.
 
 ---
 
@@ -188,4 +213,4 @@ GPL-3.0 — see [LICENSE.txt](LICENSE.txt).
 
 **RIGGWIRE MQL** is maintained by [RIGGWIRE Trading Systems](https://github.com/WIRERIGG). It is a fork of the [Lime MQL Editing](https://github.com/LimeMojito/mqlidea) plugin by [Lime Mojito Pty Ltd](https://limemojito.com/), itself forked from the [InvestFlow MQL Idea](https://github.com/investflow/mqlidea) plugin. All original copyright notices are retained per GPL-3.0; the original authors do not endorse this fork.
 
-**Found a bug or have a feature request?** [Open an issue](https://github.com/WIRERIGG/mqlidea/issues)
+**Found a bug or have a feature request?** [Open an issue](https://github.com/WIRERIGG/mqlidea-RIGGWIRE/issues)

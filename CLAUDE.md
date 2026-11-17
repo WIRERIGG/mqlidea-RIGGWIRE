@@ -14,7 +14,7 @@ export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
 ./gradlew test           # tests only (643 pass)
-./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip
+./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip (on a release, also update README's version, test count and feature list)
 tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 tools/corpus-gate.sh          # ratchet over real MQL corpora (needs a local MetaTrader install)
 tools/clion-mcp-check.py ~/CLionProjects/RIGGWIRE-EA-TC RIGGWIRE-EA-LIVE --expect N   # live check after an install
@@ -66,7 +66,7 @@ src/main/resources/
 ├── META-INF/plugin.xml                 # ALL extension points registered here
 ├── icons/ , inspectionDescriptions/ , liveTemplates/ , mql/ (doc HTML + JSON catalogs)
 
-src/test/                               # parser + inspection tests (219)
+src/test/                               # 643 tests: parser, resolve, inspections, compiler, MetaTrader workflow
 ```
 
 ## Rules
@@ -92,7 +92,7 @@ src/test/                               # parser + inspection tests (219)
 - Built-in structure members (`MqlDateTime dt; dt.hour`) complete and are checked by name (`StructCatalog`); they have no PSI, so they don't navigate.
 - MetaQuotes' Standard Library and examples have no false undeclared-name errors (corpus gate holds them at 0); parse errors there are 0 too.
 - Header (`.mqh`) compile errors come from compiling the includer nearest the header (`MqlCompilerExternalAnnotator.programFor`); compile results are memoised by a stamp over the whole include closure. Diagnostics go to a file by the full path MetaEditor printed (`DiagnosticFileMatcher`; only the compiled program may fall back to its bare name), so same-named headers in worktree copies never trade errors. A program whose included files fail gets a file-level warning naming them; the status bar and Compile Check Now work from a header. A repo file compiles under Wine only because `mt5 compile` passes it as `Z:\...` (fixed in the bridge 2026-11-15; before that MetaEditor silently did nothing for any path outside the MetaTrader folder). Background compiles skip while `metatester64` runs (`compiler/StrategyTester`). Under Wine, Java's `ProcessHandle` sees only `wine64` with no arguments, so StrategyTester reads `ps -axww -o command=` (native `ProcessHandle` on Windows only); an unreadable table counts as busy.
-- EA workflow (all read-only toward MetaTrader except the user-run backtest): `IndicatorBufferContractInspection` (literal values only; proven on the RIGGWIRE dce3 commit), `deploy/Mt5DriftNotificationProvider` (maps like `mt5 sync` via `.claude/mt5-bridge.json`), `runconfig/MqlBacktest*` (always `--no-kill`, refuses while `terminal64`/`metatester64` or an `mt5 backtest` driver run; it can't see a harness between two cells, and the bridge's `/tmp/mt5_backtest.ini` is shared), `tester/SetFileNotificationProvider` (unknown `.set` input names; picks the EA copy matching MetaTrader's deployed tree).
+- EA workflow (all read-only toward MetaTrader except the user-run backtest): `IndicatorBufferContractInspection` (literal values only; proven on the RIGGWIRE dce3 commit), `deploy/Mt5DriftNotificationProvider` (maps like `mt5 sync` via `.claude/mt5-bridge.json`), `runconfig/MqlBacktest*` (always `--no-kill`, refuses while `terminal64`/`metatester64` or an `mt5 backtest` driver run; it can't see a harness between two cells; the bridge itself queues backtests behind `/tmp/mt5_backtest.lock` and writes a per-run ini since 2026-11-15, exiting 5 when `--no-kill` finds MetaTrader open and 6 when the lock wait runs out, and `MqlBacktestState.exitMeaning` names both), `tester/SetFileNotificationProvider` (unknown `.set` input names; picks the EA copy matching MetaTrader's deployed tree).
 - Compile-checking runs on macOS (`mt5`/Wine), Windows (native `metaeditor64.exe` via a registered MQL SDK), and Linux (explicit Wine) through the `MqlCompilerService` launcher strategy; macOS is the actively-exercised path.
 - Plugin Verifier: Compatible on IU 2025.3.2 and CL 2026.3, with no experimental or internal API. One deprecated usage is unavoidable: `MQL4SdkType.suggestHomePath()`, which is still abstract on 2025.3. `suggestHomePaths(Project)` is overridden alongside it, so SDK suggestions keep working after the platform removes it. Drop the override once since-build passes 253.
 
