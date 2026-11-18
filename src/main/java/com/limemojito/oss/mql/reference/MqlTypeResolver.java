@@ -272,6 +272,40 @@ public final class MqlTypeResolver {
     }
 
     /**
+     * The built-in value type ({@code vector}, {@code matrixf}, ...) a plain-name receiver is
+     * declared with, or null. Proven only: the nearest lexical declaration must not name another
+     * type, and the name must resolve to a variable, field or parameter declared with that type.
+     * {@code vector<double>} reads as {@code vector}; indexed, called and cast receivers give null.
+     */
+    @Nullable
+    public static String resolveBuiltinValueTypeName(@NotNull PsiElement qualifier) {
+        if (qualifier.getNode() == null || qualifier.getNode().getElementType() != MQL4Elements.IDENTIFIER) {
+            return null;
+        }
+        PsiElement before = prevMeaningfulLeaf(qualifier);
+        if (isType(before, MQL4Elements.DOT) || isType(before, MQL4Elements.COLON_COLON)) {
+            return null;
+        }
+        String name = qualifier.getText();
+        String scanned = scanDeclaredTypeName(qualifier, name);
+        if (scanned != null && com.limemojito.oss.mql.doc.VectorMatrixCatalog.of(scanned).isEmpty()) {
+            return null;
+        }
+        List<PsiElement> targets = MqlResolveUtil.resolve(qualifier, name);
+        if (targets.size() != 1) {
+            return null;
+        }
+        PsiElement target = targets.get(0);
+        PsiElement declaredName = target instanceof com.intellij.psi.PsiNameIdentifierOwner owner ? owner.getNameIdentifier() : null;
+        if (declaredName == null || isType(PsiTreeUtil.nextVisibleLeaf(declaredName), MQL4Elements.L_SQUARE_BRACKET)) {
+            return null; // complex &x[]: x.Size() is the array's, not the element type's
+        }
+        String typeName = target instanceof MQL4FunctionArgElement arg ? arg.getDeclaredTypeName()
+                : target instanceof MQL4VarDefinitionElement var ? var.getDeclaredTypeName() : null;
+        return typeName != null && !com.limemojito.oss.mql.doc.VectorMatrixCatalog.of(typeName).isEmpty() ? typeName : null;
+    }
+
+    /**
      * Declared-type name of a plain qualifier identifier. The scoped lexical {@code Type name} scan
      * runs FIRST because it finds the NEAREST in-scope declaration — so a custom-typed local
      * ({@code CFoo v;}) correctly shadows an outer parameter of the same name ({@code void f(CBar &v)}).
