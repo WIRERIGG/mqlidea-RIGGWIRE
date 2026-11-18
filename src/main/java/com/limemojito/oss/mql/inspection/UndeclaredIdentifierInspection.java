@@ -67,6 +67,10 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
             return false;
         }
         String name = identifier.getText();
+        if (UndeclaredNames.nextType(identifier) == MQL4Elements.COLON_COLON
+                && MqlResolveUtil.importModulesVisibleFrom(identifier.getPsi().getContainingFile()).contains(name)) {
+            return false; // kernel32 in kernel32::GetLastError() after #import "kernel32.dll"
+        }
         if (UndeclaredNames.isBuiltin(name) || UndeclaredNames.onResourceLine(identifier)) {
             return false;
         }

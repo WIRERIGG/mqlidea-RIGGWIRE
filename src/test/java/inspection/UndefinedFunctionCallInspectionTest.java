@@ -71,6 +71,25 @@ public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
         assertEquals(List.of(), undefined("test.mq5", code));
     }
 
+    public void testDatabaseColumnReadersAndSocketsAreBuiltins() {
+        String code = """
+                void OnStart()
+                  {
+                   int db = DatabaseOpen("x.sqlite", DATABASE_OPEN_READONLY);
+                   int rq = DatabasePrepare(db, "SELECT 1");
+                   int i; long n; double d; uchar blob[];
+                   DatabaseColumnInteger(rq, 0, i);
+                   DatabaseColumnLong(rq, 0, n);
+                   DatabaseColumnDouble(rq, 0, d);
+                   DatabaseColumnBlob(rq, 0, blob);
+                   int s = SocketCreate();
+                   if(SocketConnect(s, "example.com", 443, 1000) && SocketTlsHandshake(s, "example.com"))
+                      SocketClose(s);
+                  }
+                """;
+        assertEquals(List.of(), undefined("test.mq5", code));
+    }
+
     public void testMql4OnlyFunctionsAreFlaggedInMql5Only() {
         String code = "void OnStart() { double l = OrderLots(); int h = TimeHour(TimeCurrent()); Print(l, h, AccountInfoDouble(ACCOUNT_BALANCE)); }\n";
         assertEquals(List.of("'OrderLots' - undeclared identifier (an MQL4 function, not in MQL5)",

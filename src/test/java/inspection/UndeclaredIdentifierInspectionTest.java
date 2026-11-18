@@ -126,6 +126,21 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
         assertEquals(List.of(), undeclared("test.mq4", code));
     }
 
+    public void testImportedModuleQualifiesItsFunctions() {
+        String code = """
+                #import "kernel32.dll"
+                uint GetLastError(void);
+                int  CloseHandle(long hObject);
+                #import
+                void OnStart()
+                  {
+                   uint err = kernel32::GetLastError();
+                   Print(err, user32::MessageBoxW(0, "a", "b", 0));
+                  }
+                """;
+        assertEquals(List.of("'user32' - undeclared identifier"), undeclared("test.mq5", code));
+    }
+
     public void testDeclaredNamesBuiltinsAndPreprocessorAreClean() {
         String code = """
                 #property copyright "x"

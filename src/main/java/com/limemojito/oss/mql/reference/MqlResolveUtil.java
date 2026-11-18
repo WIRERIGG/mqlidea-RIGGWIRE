@@ -203,11 +203,63 @@ public final class MqlResolveUtil {
         List<PsiElement> inNamespace = new ArrayList<>();
         for (PsiElement hit : resolveNonLocal(identifier, name)) {
             MQL4NamespaceElement ns = PsiTreeUtil.getParentOfType(hit, MQL4NamespaceElement.class);
-            if (ns != null && qualifier.getText().equals(ns.getName())) {
-                inNamespace.add(hit);
+            if (ns != null && qualifier.getText().equals(ns.getName())
+                    || qualifier.getText().equalsIgnoreCase(importModuleOf(hit))) {
+                inNamespace.add(hit); // Ns::Name, or kernel32::GetLastError after #import "kernel32.dll"
             }
         }
         return inNamespace.isEmpty() ? null : inNamespace;
+    }
+
+    /**
+     * The module name a declaration inside {@code #import "path\\kernel32.dll"} is called through
+     * ({@code kernel32::GetLastError()}): the file name without folder or extension; null outside an
+     * import. The parser leaves {@code #import} lines as tokens, so this looks back from the
+     * declaration's file-level element to the nearest {@code #import}: one with a path opens the
+     * block, a bare one closes it.
+     */
+    @org.jetbrains.annotations.Nullable
+    public static String importModuleOf(@NotNull PsiElement declaration) {
+        PsiElement top = declaration;
+        while (top.getParent() != null && !(top.getParent() instanceof PsiFile)) {
+            top = top.getParent();
+        }
+        for (PsiElement p = top.getPrevSibling(); p != null; p = p.getPrevSibling()) {
+            if (p.getNode().getElementType() == MQL4Elements.IMPORT_PP_KEYWORD) {
+                PsiElement path = PsiTreeUtil.nextVisibleLeaf(p);
+                return path != null && path.getNode().getElementType() == MQL4Elements.STRING_LITERAL
+                        && path.getTextOffset() < top.getTextOffset() ? moduleName(path.getText()) : null;
+            }
+        }
+        return null;
+    }
+
+    /** {@code "..\\Libraries\\Foo.ex5"} -> {@code Foo}. */
+    @NotNull
+    static String moduleName(@NotNull String literal) {
+        String s = literal.replace("\"", "");
+        s = s.substring(Math.max(s.lastIndexOf('\\'), s.lastIndexOf('/')) + 1);
+        int dot = s.lastIndexOf('.');
+        return dot > 0 ? s.substring(0, dot) : s;
+    }
+
+    /** Module names ({@code kernel32}) of every {@code #import} in {@code file}'s include closure. */
+    @NotNull
+    public static Set<String> importModulesVisibleFrom(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> {
+            Set<String> modules = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            for (PsiFile f : MqlVisibleNames.includeClosure(file)) {
+                for (PsiElement e = f.getFirstChild(); e != null; e = e.getNextSibling()) {
+                    if (e.getNode().getElementType() == MQL4Elements.IMPORT_PP_KEYWORD) {
+                        PsiElement path = PsiTreeUtil.nextVisibleLeaf(e);
+                        if (path != null && path.getNode().getElementType() == MQL4Elements.STRING_LITERAL) {
+                            modules.add(moduleName(path.getText()));
+                        }
+                    }
+                }
+            }
+            return CachedValueProvider.Result.create(modules, PsiModificationTracker.MODIFICATION_COUNT);
+        });
     }
 
     /** {@code m} in {@code offsetof(S, m)}: the member of struct {@code S}. */

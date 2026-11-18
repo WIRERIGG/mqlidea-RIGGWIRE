@@ -266,7 +266,7 @@ final class UndeclaredNames {
     }
 
     @Nullable
-    private static IElementType nextType(@NotNull ASTNode node) {
+    static IElementType nextType(@NotNull ASTNode node) {
         PsiElement next = PsiTreeUtil.nextVisibleLeaf(node.getPsi());
         while (next != null && MQL4TokenSets.COMMENTS_OR_WS.contains(next.getNode().getElementType())) {
             next = PsiTreeUtil.nextVisibleLeaf(next);
