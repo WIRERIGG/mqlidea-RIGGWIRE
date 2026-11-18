@@ -64,7 +64,7 @@
 
 ## Phase 7: Polish
 
-- [ ] T025 [P] CLAUDE.md: harness commands and what its numbers mean; README "How quality is held": add the false-error / missed-error score once the baseline exists
+- [ ] T025 [P] CLAUDE.md: harness commands and what its numbers mean; README "How quality is held": add the false-error / missed-error score once the baseline exists — **CLAUDE.md part done 2026-11-18** (commands and what the numbers mean); README waits for the first real baseline.
 - [ ] T026 Record the first report's top 5 disagreement kinds in the spec folder as `findings.md` (paths/lines/MetaEditor codes only, no corpus code): these become features 002+ (SC-006)
 - [ ] T027 `./gradlew build` green (643+ tests; HarnessTest is a no-op there)
 
