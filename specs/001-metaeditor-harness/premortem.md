@@ -42,3 +42,10 @@ New failures found and folded into the spec as FR-017..FR-020 and SC-007:
 - Concurrent MetaEditor runs (another session's `mt5 compile`, the plugin's background compile) can clash: own lock, no compile beside another MetaEditor (FR-019).
 - MetaEditor self-updates: never mix builds in a score (FR-020).
 - Process: building the referee could crowd out improving the plugin: MVP time-boxed to 2 sessions, feature 002 (template parameters) runs alongside.
+
+## Third pass (/latticework + /invert, 2026-11-17)
+
+- Incentives: the same agent writes plugin fixes and the scorer, so rules could drift toward better numbers: rules frozen, rule changes isolated with before/after numbers (FR-022, T019f).
+- Second-order: a mutation generator using the plugin's parser picks only sites the plugin understands: text/token-based generator; "caught" means an error on the mutated line ±1, warnings reported apart (FR-021).
+- Base rates: the 2-session time-box covers the core T001–T019 only.
+- Diminishing returns: this pass found smaller issues than the second; stop analysing, implement.

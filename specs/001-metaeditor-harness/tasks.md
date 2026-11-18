@@ -1,7 +1,7 @@
 # Tasks: MetaEditor Comparison Harness
 
 **Input**: spec.md, premortem.md, plan.md, lattice.md, research.md, data-model.md, contracts/
-**Rules**: harness MVP (T001–T019) time-boxed to 2 sessions, ⛔ over that → stop and report; feature 002 (template parameters) runs alongside it; riskiest unknown first; every premortem/lattice tripwire is a check below (marked ⛔); `/speckit-implement` + `/speckit-converge` stop after 3 rounds and report what is left.
+**Rules**: harness core (T001–T019 only; Phase 4b comes after) time-boxed to 2 sessions, ⛔ over that → stop and report; feature 002 (template parameters) runs alongside it; riskiest unknown first; every premortem/lattice tripwire is a check below (marked ⛔); `/speckit-implement` + `/speckit-converge` stop after 3 rounds and report what is left.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -44,10 +44,12 @@
 ## Phase 4b: Detection and coverage (from the second /invert)
 
 - [ ] T019a [US1] Header stubs (FR-018): for each header no program includes, generate `/tmp/.../Scripts/<repo>/stub_<n>.mq5` (`#include` the header, empty `OnStart`); judged like programs; never written to any repository
-- [ ] T019b [US1] Mutation set (FR-017): seeded generator writing mutants to `/tmp` only, 6 kinds (missing `;`, misspelt identifier, wrong argument count, type mismatch, unbalanced brace, undeclared member); keep a mutant only if MetaEditor rejects it; report catch rate per kind
+- [ ] T019b [US1] Mutation set (FR-017, FR-021): seeded, text/token-based generator (no plugin parser) writing mutants to `/tmp` only, 6 kinds (missing `;`, misspelt identifier, wrong argument count, type mismatch, unbalanced brace, undeclared member); keep a mutant only if MetaEditor rejects it; report catch rate per kind
 - [ ] T019c [US3] Lock and single MetaEditor (FR-019): harness lock file; skip and wait while another `metaeditor64.exe` runs; self-test with a stubbed process line
 - [ ] T019d [US1] One build per score (FR-020): report refuses to mix builds; build change → stale verdicts recompiled first
 - [ ] T019e ⛔ SC-007: at least 50 counted mutants per kind; otherwise widen the program sample
+
+- [ ] T019f ⛔ Rule-change discipline (FR-022): a check in HarnessTest that fails if data-model.md's rule block changed without the baseline being rewritten in the same commit
 
 ## Phase 5: User Story 4 - Fast reruns (P2)
 

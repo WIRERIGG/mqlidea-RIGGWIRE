@@ -124,6 +124,8 @@ The corpus is a fixed, documented list: MetaQuotes' Standard Library, examples a
 - **FR-018**: Every corpus header not included by any corpus program MUST be judged through a generated stub program (the header's include plus an empty entry point), created outside every repository and never committed.
 - **FR-019**: The harness MUST hold its own lock and MUST NOT compile while any other MetaEditor process is running.
 - **FR-020**: A report MUST NOT mix verdicts from different MetaEditor builds; after a build change, affected verdicts are recompiled before the next score.
+- **FR-021**: The mutation generator MUST choose mutation sites from the raw text and tokens alone, never from the plugin's parser or resolver, so the sample is not biased toward code the plugin already understands. A mutant is "caught" only when the plugin reports an error on the mutated line (±1); a warning there is reported separately as "caught as warning".
+- **FR-022**: The classification rules (line tolerance, exclusion reasons, which diagnostics count) are fixed in data-model.md. Changing them MUST be its own commit that shows the headline numbers before and after, and MUST NOT share a commit with a plugin change.
 
 ### Key Entities
 
