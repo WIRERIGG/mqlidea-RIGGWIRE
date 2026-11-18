@@ -74,8 +74,8 @@ public final class MqlResolveUtil {
     public static com.limemojito.oss.mql.psi.impl.MQL4TemplateParameterElement resolveTemplateParameter(
             @NotNull PsiElement identifier, @NotNull String name) {
         for (PsiElement e = identifier; e != null && !(e instanceof PsiFile); e = e.getParent()) {
-            PsiElement header = PsiTreeUtil.skipWhitespacesAndCommentsBackward(e);
-            if (header == null || header.getNode().getElementType() != MQL4Elements.TEMPLATE_HEADER) {
+            PsiElement header = templateHeaderBefore(e);
+            if (header == null) {
                 continue;
             }
             for (PsiElement child = header.getFirstChild(); child != null; child = child.getNextSibling()) {
@@ -83,6 +83,27 @@ public final class MqlResolveUtil {
                         && name.equals(parameter.getName())) {
                     return parameter;
                 }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The template header that heads the declaration {@code e} belongs to, looking back past what can
+     * sit between them: modifiers ({@code static}, {@code virtual}, {@code const}) and, when a body
+     * parsed apart from its signature, that signature. Stops at a {@code ;}, {@code }} or {@code :}
+     * that ends an earlier declaration or an access label.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static PsiElement templateHeaderBefore(@NotNull PsiElement e) {
+        PsiElement s = PsiTreeUtil.skipWhitespacesAndCommentsBackward(e);
+        for (int i = 0; s != null && i < 8; i++, s = PsiTreeUtil.skipWhitespacesAndCommentsBackward(s)) {
+            if (s.getNode().getElementType() == MQL4Elements.TEMPLATE_HEADER) {
+                return s;
+            }
+            String text = s.getText();
+            if (text.isEmpty() || text.endsWith(";") || text.endsWith("}") || text.endsWith(":")) {
+                return null;
             }
         }
         return null;

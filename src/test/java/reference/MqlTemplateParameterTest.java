@@ -82,6 +82,22 @@ public class MqlTemplateParameterTest extends BasePlatformTestCase {
         assertParameterAt(code, nth(code, "T x", 0), nth(code, "T>", 1));
     }
 
+    public void testModifiersBetweenHeaderAndFunction() {
+        String code = "class S\n  {\npublic:\n   template<typename D, typename V>\n   static void Extract(D &d) { V a = (V)NULL; }\n  };\n";
+        assertParameterAt(code, nth(code, "V a", 0), nth(code, "V>", 0));
+    }
+
+    public void testBodyThatParsedApartFromItsSignatureStillSeesTheHeader() {
+        String code = "class S\n  {\npublic:\n   template<typename V>\n   static void Extract(unsigned int f = 0) { V a = (V)NULL; }\n  };\n";
+        assertParameterAt(code, nth(code, "V a", 0), nth(code, "V>", 0));
+    }
+
+    public void testAnEarlierDeclarationEndsTheHeadersReach() {
+        String code = "class S\n  {\npublic:\n   template<typename V>\n   void Put(V v) { }\n   void Other() { V x; }\n  };\n";
+        PsiElement target = resolveAt(code, nth(code, "V x", 0));
+        assertFalse("leaked into the next member", target instanceof MQL4TemplateParameterElement);
+    }
+
     public void testParameterWinsOverAProjectClassOfTheSameName() {
         String code = "class T { };\ntemplate<typename T>\nT Id(T v) { return v; }\n";
         assertParameterAt(code, nth(code, "T v", 0), nth(code, "T>", 0));
