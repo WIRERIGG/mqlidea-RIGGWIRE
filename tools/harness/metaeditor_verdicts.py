@@ -383,6 +383,14 @@ def referee(sources, stage_only=False, table_reader=read_process_table, compile_
     before = snapshot(MQL5) if MQL5.exists() else {}
     compiled = reused = 0
     stopped = None
+    current = []
+
+    def finish():
+        diff = snapshot_diff(before, snapshot(MQL5) if MQL5.exists() else {})
+        if not stage_only:
+            write_current(current, build, stopped is None, diff)
+        return compiled, reused, stopped, diff
+
     if True:
         for source in sources:
             stage_mql5, mapping, programs, unsupported = stage_source(source)
@@ -393,11 +401,13 @@ def referee(sources, stage_only=False, table_reader=read_process_table, compile_
             headers = header_files(source)
             for rel in unsupported:
                 key = verdict_key(b"", headers, build, source["name"] + ":" + rel)
+                current.append({"source": source["name"], "program": rel, "key": key})
                 save_verdict({"key": key, "source": source["name"], "program": rel, "metaeditor_build": build,
                               "status": "excluded", "excluded_reason": "unsupported-path", "diagnostics": []})
             for staged in programs:
                 program_bytes = (stage_mql5 / staged).read_bytes()
                 key = verdict_key(program_bytes, headers, build, source["name"] + ":" + mapping[staged])
+                current.append({"source": source["name"], "program": mapping[staged], "key": key})
                 if load_verdict(key) is not None:
                     reused += 1
                     continue
@@ -405,11 +415,24 @@ def referee(sources, stage_only=False, table_reader=read_process_table, compile_
                 if reason:
                     stopped = reason
                     out(f"stopping before {mapping[staged]}: {reason}")
-                    return compiled, reused, stopped, snapshot_diff(before, snapshot(MQL5) if MQL5.exists() else {})
+                    current.pop()
+                    return finish()
                 log_bytes, why = compile_fn(stage_mql5, staged)
                 save_verdict(make_verdict(key, source, mapping[staged], build, log_bytes, why, mapping, stage_mql5))
                 compiled += 1
-    return compiled, reused, stopped, snapshot_diff(before, snapshot(MQL5) if MQL5.exists() else {})
+    return finish()
+
+
+def write_current(entries, build, complete, untouched_diff, store=None):
+    """The verdict index the plugin side reads (current.json beside the store): one key per program
+    for this run, the MetaEditor build, whether the run finished, and the untouched check."""
+    p = Path(store or STORE).parent / "current.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    data = {"metaeditor_build": build, "complete": complete, "metatrader_untouched": not untouched_diff,
+            "programs": sorted(entries, key=lambda e: (e["source"], e["program"]))}
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=1, sort_keys=True))
+    os.replace(tmp, p)
 
 
 # ---- self-test --------------------------------------------------------------------------------------
@@ -503,6 +526,8 @@ def self_test():
             c, r, why, _ = referee([src], table_reader=lambda: next(tables),
                                    compile_fn=lambda s, p: (calls.append(p), (b"\xff\xfeR\x00", None))[1], out=msgs.append)
             check("stops before the next compile", c == 1 and len(calls) == 1 and why is not None)
+            idx = json.loads((Path(td) / "current.json").read_text())
+            check("index marks a partial run", idx["complete"] is False and len(idx["programs"]) == 1)
             check("staged names have no spaces", all(" " not in p for p in calls))
             (repo / "Experts" / "My EA.mq5").write_text("x")
             (repo / "Spaced Dir").mkdir()

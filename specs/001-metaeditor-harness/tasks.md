@@ -31,12 +31,12 @@
 
 - [X] T011 [P] [US1] `src/test/java/gate/HarnessCompare.java`: pure classification per data-model.md (`agree-clean`, `agree-errors`, `disjoint-errors`, `false-error`, `missed-error`, `excluded`; ±1-line match; first error per file for kinds) and report text, fully sorted, no timestamps
 - [X] T012 [P] [US1] `src/test/java/gate/HarnessCompareTest.java`: every outcome incl. `disjoint-errors`, cascades don't change outcome, warnings never decide, report byte-identical across two calls
-- [ ] T013 [US1] `src/test/java/gate/HarnessTest.java`: no-op without `MQL_HARNESS`; per source, load files as project files, set `MqlIncludeRoots.setTestRoots` to the source's roots + the Standard Library, enable default-on ERROR inspections, `doHighlighting(HighlightSeverity.ERROR)` per judged file (research R5), compare against the store, write `build/harness-report.md`
-- [ ] T014 [US1] ⛔ Time check on the MVP: average highlight time × full corpus size; over 10 minutes → restrict to programs + headers MetaEditor named (lattice.md) before going on
-- [ ] T015 [US2] Report sections: headline, per source, ranked kinds with ≤5 `file:line` examples, MQL4 "no referee", MetaTrader-untouched result (data-model.md Report)
-- [ ] T016 [US1] Baseline ratchet: `src/test/resources/gate/harness-baseline.properties` (counts only); fail when `open.falseError` or `open.missedError` rises; `MQL_HARNESS_UPDATE=1` rewrites
-- [ ] T017 [US1] `tools/harness/harness.sh` (like `tools/corpus-gate.sh`: fresh test index before and after)
-- [ ] T018 [US1] ⛔ Determinism: run `harness.sh` twice; reports must be byte-identical (SC-003)
+- [X] T013 [US1] `src/test/java/gate/HarnessTest.java`: no-op without `MQL_HARNESS`; per source, load files as project files, set `MqlIncludeRoots.setTestRoots` to the source's roots + the Standard Library, enable default-on ERROR inspections, `doHighlighting(HighlightSeverity.ERROR)` per judged file (research R5), compare against the store, write `build/harness-report.md` — done; Standard Library loaded once (include/), user headers apart (include-user/, EA only); compiler annotator can't fire (light-test files are not on disk)
+- [X] T014 [US1] ⛔ Time check on the MVP: average highlight time × full corpus size; over 10 minutes → restrict to programs + headers MetaEditor named (lattice.md) before going on — dry run on placeholder verdicts: 58 programs in ~21 s (≈350 ms each), far under 10 minutes
+- [X] T015 [US2] Report sections: headline, per source, ranked kinds with ≤5 `file:line` examples, MQL4 "no referee", MetaTrader-untouched result (data-model.md Report) — headline, per source, ranked kinds with distinct examples, run section (build, complete, untouched, MQL4 no referee)
+- [X] T016 [US1] Baseline ratchet: `src/test/resources/gate/harness-baseline.properties` (counts only); fail when `open.falseError` or `open.missedError` rises; `MQL_HARNESS_UPDATE=1` rewrites — done; the first real run writes the baseline
+- [X] T017 [US1] `tools/harness/harness.sh` (like `tools/corpus-gate.sh`: fresh test index before and after) — done
+- [X] T018 [US1] ⛔ Determinism: run `harness.sh` twice; reports must be byte-identical (SC-003) — dry run: two runs byte-identical; recheck on real verdicts
 - [ ] T019 [US1] ⛔ Live cross-check (FR-015, research R7): on the EA and `geraked__metatrader5`, per-file error counts from the report equal `tools/clion-mcp-check.py` in CLion with the installed plugin; any mismatch → fix the harness setup, don't trust the score
 
 **Checkpoint**: MVP delivers a score and a ranked gap list for 3 sources + the EA (report-only).
@@ -71,3 +71,10 @@
 ## Dependencies
 
 T001 → T002 → everything. T003–T007 before T008. T008–T010 before T013. T011–T012 can start right after T002 (pure code). Phase 5 and 6 need the MVP checkpoint. T026 needs T024.
+
+## Found by the dry run (placeholder verdicts, before MetaEditor)
+
+Plugin errors on public code that look false by eye; MetaEditor's verdict will confirm:
+- `DatabaseColumnInteger(...)` (geraked EAUtils.mqh:1692, Cot.mqh, Storage.mqh: 17 programs): built-in Database column readers missing from the plugin's function catalog.
+- `kernel32::GetLastError()` after `#import "kernel32.dll"` (geraked Shell.mqh:53, WinINet.mqh:341): import-qualified calls don't resolve.
+- `_signaler.GetSymbol()` (sibvic AlertSignal.mqh:65) and `extern int` in an MQL5 indicator (geraked DarvasBoxes.mq5:37, annotator): need the verdict.

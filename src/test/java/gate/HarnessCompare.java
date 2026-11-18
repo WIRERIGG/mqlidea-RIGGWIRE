@@ -145,8 +145,9 @@ final class HarnessCompare {
                 .sorted(Comparator.<Map.Entry<String, List<Result>>>comparingInt(e -> -e.getValue().size()).thenComparing(Map.Entry::getKey))
                 .forEach(e -> {
                     out.append("- **").append(e.getKey()).append("**: ").append(e.getValue().size()).append(" programs\n");
-                    e.getValue().stream().limit(5).forEach(r -> exampleOf(r, e.getKey()).ifPresent(x ->
-                            out.append("  - ").append(r.source()).append('/').append(x.file()).append(':').append(x.line()).append('\n')));
+                    e.getValue().stream().map(r -> exampleOf(r, e.getKey()).map(x -> r.source() + "/" + x.file() + ":" + x.line()))
+                            .flatMap(Optional::stream).distinct().limit(5)
+                            .forEach(where -> out.append("  - ").append(where).append('\n'));
                 });
         out.append("\n## Excluded (all sources)\n\n");
         Map<String, Long> reasons = sorted.stream().filter(r -> r.outcome() == Outcome.EXCLUDED)
