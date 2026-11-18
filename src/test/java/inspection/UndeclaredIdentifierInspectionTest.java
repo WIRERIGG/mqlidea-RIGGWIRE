@@ -172,6 +172,21 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                 .map(PsiErrorElement::getErrorDescription).toList());
     }
 
+    public void testForInitWithConstructorArgumentsDeclaresTheVariable() {
+        String code = """
+                template<typename T> class Iter { public: Iter(int s) {} bool end() { return true; } void next() {} };
+                class CCursor { public: CCursor(int s) {} bool end() { return true; } void next() {} };
+                void F(int s)
+                  {
+                   for(Iter<int> it(s); !it.end(); it.next()) { }
+                   for(CCursor c(s); !c.end(); c.next()) { }
+                   for(int i = 0; i < s; i++) { }
+                   Print(nope);
+                  }
+                """;
+        assertEquals("the check still bites", List.of("'nope' - undeclared identifier"), undeclared("test.mq5", code));
+    }
+
     public void testImportedModuleQualifiesItsFunctions() {
         String code = """
                 #import "kernel32.dll"

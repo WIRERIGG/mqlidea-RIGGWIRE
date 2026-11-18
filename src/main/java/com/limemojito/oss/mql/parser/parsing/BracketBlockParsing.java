@@ -10,7 +10,7 @@ import com.intellij.lang.PsiBuilder;
 import com.intellij.psi.tree.IElementType;
 import java.util.Stack;
 import org.jetbrains.annotations.NotNull;
-import com.limemojito.oss.mql.parser.parsing.statement.StatementParsing;
+import com.limemojito.oss.mql.parser.parsing.statement.VarDeclarationStatement;
 import com.limemojito.oss.mql.parser.parsing.util.ParsingErrors;
 import com.limemojito.oss.mql.parser.parsing.util.ParsingScope;
 import com.limemojito.oss.mql.parser.parsing.util.ParsingUtils;
@@ -69,7 +69,8 @@ public class BracketBlockParsing implements MQL4Elements {
         }
         b.advanceLexer(); // left bracket
         if (forHeader) {
-            StatementParsing.parseLocalVarDeclaration(b, l + 1); // init clause, through its ';'
+            // init clause, through its ';'; a for-init is never a prototype, so CIter it(list) declares it
+            VarDeclarationStatement.parseVarDeclaration(b, l + 1, true);
         }
 
         boolean codeBlock = lBracket == L_CURLY_BRACKET;
