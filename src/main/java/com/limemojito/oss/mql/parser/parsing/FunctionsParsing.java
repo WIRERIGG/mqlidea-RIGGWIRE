@@ -353,6 +353,9 @@ public class FunctionsParsing implements MQL4Elements {
                         if (t2 == AND || t2 == MUL) {
                             t2 = ParsingUtils.advanceLexer(b); // '&' || '*'
                         }
+                        if (t2 == CONST_KEYWORD && b.lookAhead(1) == AND) {
+                            t2 = ParsingUtils.advanceLexer(b); // the pointer's own const: const T * const &list[]
+                        }
                         if (t2 == AND) {
                             t2 = ParsingUtils.advanceLexer(b); // the '&' of a pointer reference: CFoo *&p
                         }

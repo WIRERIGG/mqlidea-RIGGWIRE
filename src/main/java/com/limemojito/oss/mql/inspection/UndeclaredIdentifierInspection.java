@@ -81,11 +81,26 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
                 && !UndeclaredNames.isDeclaredOutsidePsi(name, file) && !UndeclaredNames.isInheritedBuiltinMember(name, psi);
     }
 
+    /** {@code items} in {@code items.Size()} where {@code items} is declared as an array ({@code CItem *items[];}). */
+    private static boolean isUnindexedArray(@NotNull PsiElement qualifier) {
+        if (qualifier.getNode().getElementType() != MQL4Elements.IDENTIFIER) {
+            return false;
+        }
+        for (PsiElement target : MqlResolveUtil.resolve(qualifier, qualifier.getText())) {
+            PsiElement name = target instanceof com.intellij.psi.PsiNameIdentifierOwner owner ? owner.getNameIdentifier() : null;
+            PsiElement next = name == null ? null : PsiTreeUtil.nextVisibleLeaf(name);
+            if (next != null && next.getNode().getElementType() == MQL4Elements.L_SQUARE_BRACKET) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isMissingMember(@NotNull ASTNode member) {
         PsiElement dot = PsiTreeUtil.prevVisibleLeaf(member.getPsi());
         PsiElement qualifier = dot == null ? null : PsiTreeUtil.prevVisibleLeaf(dot);
-        if (qualifier == null) {
-            return false;
+        if (qualifier == null || isUnindexedArray(qualifier)) {
+            return false; // items.Size(): the receiver is the array, not an element of its type
         }
         MQL4ClassElement receiver = MqlTypeResolver.resolveQualifierClass(qualifier);
         if (receiver == null) {

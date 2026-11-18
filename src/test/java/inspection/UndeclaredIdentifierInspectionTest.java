@@ -160,6 +160,7 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                 public:
                    class Item { public: int depth; };
                 private:
+                   static int  Count(const Item * const &list[]) { return ArraySize(list); }
                    static void Parse(const string &text, int &i, Outer::Item* item, Shapes::CBox &box)
                      {
                       i = StringLen(text) + item.depth + box.w;
@@ -185,6 +186,19 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                   }
                 """;
         assertEquals("the check still bites", List.of("'nope' - undeclared identifier"), undeclared("test.mq5", code));
+    }
+
+    public void testAMemberOfAnArrayIsNotCheckedAgainstTheElementClass() {
+        String code = """
+                class CItem { public: int depth; };
+                CItem *items[];
+                void OnStart()
+                  {
+                   Print(items.Size(), items[0].depth, items[0].nope);
+                  }
+                """;
+        assertEquals("only the indexed element's member is checked",
+                List.of("'nope' - undeclared identifier"), undeclared("test.mq5", code));
     }
 
     public void testImportedModuleQualifiesItsFunctions() {
