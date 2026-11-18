@@ -4,7 +4,8 @@
 
 - **Decision**: per repository, build `/tmp/mqlidea-harness/<repo>/MQL5/` with `Include/` holding symlinks to each Standard Library entry of MetaTrader's `MQL5/Include` plus the repository's own header folders, and the repository's programs copied under `MQL5/Experts/<repo>/`. Compile with `MetaEditor64.exe /compile:"Z:\tmp\...\X.mq5" /include:"Z:\tmp\mqlidea-harness\<repo>\MQL5" /log`.
 - **Evidence**: MetaEditor64.exe's own usage string reads `/compile:"path" [/include:"path"]` with `/include:"path" - path to MQL4\MQL5 folder` (read from the binary's UTF-16 strings, 2026-11-17). `mt5 compile` already proved `Z:\` paths reach MetaEditor under Wine (2026-11-15).
-- **Unknown (spike T001)**: whether Wine follows macOS symlinks inside the stand-in. **Fallback**: copy the Standard Library into the stand-in once (read from MetaTrader, written only under `/tmp`).
+- **Settled by T001 (2026-11-18, MetaEditor build 6230, MetaTrader idle)**: `/include:` takes effect (2MAAOS.mq5 read `EAUtils.mqh` and `errordescription.mqh` from the staged Include) and Wine follows the macOS symlinks (MACD Sample read `Include\Trade\Trade.mqh`, `Object.mqh`, `StdLibErr.mqh` through them). No copy needed. The `.log` lands beside the staged program; MetaTrader's MQL5 folder was identical before and after four compiles; only `logs/metaeditor.log` (outside MQL5) grew.
+- **Found by T001**: `#resource "\\Indicators\\X.ex5"` resolves from the MQL5 root, so a repo laid out like an MQL5 folder needs its `Experts/`, `Indicators/`, `Scripts/`, `Libraries/`, `Files/`, `Images/`, `Sounds/` (top level or under `MQL5/`) mirrored at the stage root too; without it 2MAAOS failed with errors 310/313 (a false "missed error" against the plugin). With the mirror it compiles clean.
 - **Rejected**: installing repo headers into MetaTrader's Include (Principle IV, ruin line).
 
 ## R2. Which header root each repository expects
@@ -19,8 +20,12 @@
 
 ## R4. Busy check
 
+- **Added 2026-11-18**: the referee re-checks after each compile too; a compile that overlapped the start of a backtest (whose driver may kill MetaEditor) is discarded, not stored as a crash.
+
+
 - **Decision** (revised by lattice.md): port the plugin's *background-compile* rule to Python: busy = a command line running `metatester64.exe` (path ends `\name.exe` or `/name.exe`), an `mt5 backtest` driver, or `terminal64.exe` started with `/config:` (a tester run); table from `ps -axww -o command=`; unreadable table = busy. Checked at start and before every compile.
-- **Open question (seen 2026-11-17, to settle in T001/T004)**: during a backtest, `ps` shows eight `metatester64.exe /run /address:0.0.0.0:200N` agents plus one `metatester64.exe /local ...` agent. If the `/run` agents stay up when no test runs, "any metatester64" would starve the referee too; the rule would then be `/local` agent, `mt5 backtest` driver, or `terminal64 /config:`. Observe `ps` after the backtests end before writing `is_busy()`.
+- **Seen in T001 (2026-11-18)**: with MetaTrader closed there are no `metatester64` processes at all (no Wine process either), so the conservative rule never starved the referee there. Whether an open terminal keeps `/run` agents up when no test runs is still unobserved; the rule stays conservative (any `metatester64` is busy) until it is.
+- **Open question (seen 2026-11-17)**: during a backtest, `ps` shows eight `metatester64.exe /run /address:0.0.0.0:200N` agents plus one `metatester64.exe /local ...` agent. If the `/run` agents stay up when no test runs, "any metatester64" would starve the referee too; the rule would then be `/local` agent, `mt5 backtest` driver, or `terminal64 /config:`. Observe `ps` after the backtests end before writing `is_busy()`.
 - **Why not "any terminal64"**: a plain terminal with charts open is not a backtest, compiles are safe beside it, and the owner's terminal is often open, so the stricter rule would starve the referee.
 
 - **Seen while building the referee (2026-11-17)**: every compile appends a summary line to `<MetaTrader>/logs/metaeditor.log` (the bridge relies on it), outside `MQL5/`. Unavoidable for any compile, `mt5 compile` included; the untouched check covers `MQL5/` as specified, and the report says so.
@@ -40,4 +45,4 @@
 
 ## R8. Throughput
 
-- **Estimate** (to be measured in T001): one Wine MetaEditor start per program, a few seconds each, so ~410 programs ≈ 30–60 minutes total, run in batches between backtests. Verdicts persist, so it is paid once per corpus or MetaEditor change.
+- **Measured in T001 (2026-11-18)**: 3.3 s (MACD Sample, ChartInChart), 4.9 s (2MAAOS), 10.1 s on the first, cold Wine start. All 16 sources: 587 programs and header stubs plus about 2,200 mutants, so roughly 3–4 hours of compiles in total, run in batches between backtests (the referee stops cleanly when one starts and reuses every verdict on the next run). Paid once per corpus or MetaEditor change.

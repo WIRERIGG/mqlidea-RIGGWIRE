@@ -10,8 +10,8 @@
 
 ## Phase 1: Spike (the riskiest unknown, blocks everything)
 
-- [ ] T001 ⛔ Spike, **only while no backtest runs** (tester-only busy rule, research R4): stage `geraked__metatrader5` into `/tmp/mqlidea-harness/geraked__metatrader5/MQL5/` (Include = symlinks to MetaTrader's Standard Library entries + the repo's headers; programs under `Experts/`), compile one program with `MetaEditor64.exe /compile:"Z:\tmp\...\X.mq5" /include:"Z:\tmp\mqlidea-harness\geraked__metatrader5\MQL5" /log` under MetaTrader's Wine, and record: did `/include:` take effect, did Wine follow the symlinks, seconds per compile, where the log was written, and a before/after listing of MetaTrader's MQL5 folder (must be identical). If symlinks fail, repeat with the Standard Library copied into the stand-in. Write findings into research.md R1/R8.
-- [ ] T002 ⛔ Check after T001: MetaTrader's MQL5 folder unchanged. If anything there changed, stop the feature and report.
+- [x] T001 ⛔ Spike, **only while no backtest runs** (tester-only busy rule, research R4): stage `geraked__metatrader5` into `/tmp/mqlidea-harness/geraked__metatrader5/MQL5/` (Include = symlinks to MetaTrader's Standard Library entries + the repo's headers; programs under `Experts/`), compile one program with `MetaEditor64.exe /compile:"Z:\tmp\...\X.mq5" /include:"Z:\tmp\mqlidea-harness\geraked__metatrader5\MQL5" /log` under MetaTrader's Wine, and record: did `/include:` take effect, did Wine follow the symlinks, seconds per compile, where the log was written, and a before/after listing of MetaTrader's MQL5 folder (must be identical). If symlinks fail, repeat with the Standard Library copied into the stand-in. Write findings into research.md R1/R8. — **Done 2026-11-18:** `/include:` works, Wine follows the symlinks, 3.3–10 s per compile, log beside the staged program; found and fixed the `#resource` root (MQL5-layout folders now mirrored at the stage root). Details in research.md R1/R4/R8.
+- [x] T002 ⛔ Check after T001: MetaTrader's MQL5 folder unchanged. If anything there changed, stop the feature and report. — **Done 2026-11-18:** MetaTrader's MQL5 folder identical before and after every T001 compile (snapshot diff empty); only `logs/metaeditor.log`, outside MQL5, grew.
 
 ## Phase 2: Foundational (blocks all stories)
 
@@ -54,7 +54,7 @@
 ## Phase 5: User Story 4 - Fast reruns (P2)
 
 - [ ] T020 [US4] Rerun with no corpus change: zero MetaEditor starts (count them) and identical report; edit one staged-program's source copy in a temp clone: exactly one recompile
-- [ ] T021 [US4] ⛔ Plugin-side full rescore under 10 minutes (SC-002)
+- [x] T021 [US4] ⛔ Plugin-side full rescore under 10 minutes (SC-002) — **Done 2026-11-18 (placeholder verdicts; MetaEditor's answers don't change plugin-side time):** all 16 sources, 587 programs and stubs plus 2,209 mutants, held-out included: 318 s for the whole harness.sh run, 152 s of it highlighting (259 ms per program).
 
 ## Phase 6: User Story 5 - The corpus covers the language (P2)
 

@@ -114,7 +114,8 @@ public class HarnessTest extends BasePlatformTestCase {
             roles.put(name, role);
             Path repo = Paths.get(source.get("path").getAsString().replaceFirst("^~", home.toString()));
             boolean allInclude = source.has("link_metatrader_include") && source.get("link_metatrader_include").getAsBoolean();
-            Loaded loaded = load(name, repo, strings(source.getAsJsonArray("include_roots")), allInclude);
+            String includeAs = source.has("include_as") ? source.get("include_as").getAsString() : "";
+            Loaded loaded = load(name, repo, strings(source.getAsJsonArray("include_roots")), allInclude, includeAs);
             Map<String, Set<Integer>> originalErrorLines = new TreeMap<>(); // program -> lines the plugin flags unmutated
             try {
                 for (Map.Entry<String, String> program : keys.get(name).entrySet()) {
@@ -165,10 +166,12 @@ public class HarnessTest extends BasePlatformTestCase {
         }
     }
 
-    private Loaded load(String name, Path repo, List<String> includeRoots, boolean allInclude) throws IOException {
+    /** {@code includeAs}: the folder the repo is meant to sit in under Include ({@code <MALE5/...>}), or "". */
+    private Loaded load(String name, Path repo, List<String> includeRoots, boolean allInclude, String includeAs) throws IOException {
         Map<String, VirtualFile> byRepoPath = new TreeMap<>();
         Map<VirtualFile, String> repoPathOf = new LinkedHashMap<>();
-        String base = "src/" + name.replace(' ', '_');
+        String mountRoot = "src/" + name.replace(' ', '_');
+        String base = includeAs.isEmpty() ? mountRoot : mountRoot + "/" + includeAs;
         for (Path p : mqlFiles(repo)) {
             String rel = repo.relativize(p).toString();
             VirtualFile vf = myFixture.addFileToProject(base + "/" + rel, read(p)).getVirtualFile();
@@ -182,7 +185,9 @@ public class HarnessTest extends BasePlatformTestCase {
             roots.add(user);
         }
         for (String r : includeRoots) {
-            VirtualFile dir = myFixture.getTempDirFixture().getFile(r.equals(".") ? base : base + "/" + r);
+            String dirPath = includeAs.isEmpty() ? (r.equals(".") ? base : base + "/" + r)
+                    : (r.equals(".") ? mountRoot : base + "/" + r); // a mounted repo's "." root is the folder above it
+            VirtualFile dir = myFixture.getTempDirFixture().getFile(dirPath);
             if (dir != null) {
                 roots.add(dir);
             }
@@ -191,7 +196,7 @@ public class HarnessTest extends BasePlatformTestCase {
         WriteAction.run(() -> ProjectRootManagerEx.getInstanceEx(getProject())
                 .makeRootsChange(EmptyRunnable.getInstance(), RootsChangeRescanningInfo.TOTAL_RESCAN));
         IndexingTestUtil.waitUntilIndexesAreReady(getProject());
-        return new Loaded(myFixture.getTempDirFixture().getFile(base), byRepoPath, repoPathOf);
+        return new Loaded(myFixture.getTempDirFixture().getFile(mountRoot), byRepoPath, repoPathOf);
     }
 
     private void unload(Loaded loaded) throws IOException {

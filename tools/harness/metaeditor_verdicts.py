@@ -42,6 +42,7 @@ MUTANTS_PER_KIND = int(os.environ.get("MQL_HARNESS_MUTANTS", "2"))  # per clean 
 MUTATION_SEED = os.environ.get("MQL_HARNESS_SEED", "20261117")
 
 # MetaQuotes' own Standard Library (same list as tools/corpus-gate.sh): the rest of Include is the user's.
+MQL5_FOLDERS = ["Experts", "Indicators", "Scripts", "Libraries", "Files", "Images", "Sounds"]
 STDLIB = ["Arrays", "Canvas", "ChartObjects", "Charts", "Controls", "Expert", "Files", "Generic", "Graphics",
           "Indicators", "Math", "OpenCL", "Strings", "Tools", "Trade", "WinAPI", "Object.mqh", "StdLibErr.mqh",
           "VirtualKeys.mqh", "MovingAverages.mqh"]
@@ -294,17 +295,32 @@ def stage_source(source, stage_root=None, mql5=None):
         if src.exists():
             (include / entry).symlink_to(src)
     mapping = {}
+    mount = Path(source.get("include_as", ""))  # "MALE5": the repo is meant to sit at Include/MALE5
     for root in source.get("include_roots", []):
         root_dir = repo / root
         for f in sorted(root_dir.rglob("*")):
-            if f.is_file():
-                rel = f.relative_to(root_dir)
+            if f.is_file() and ".git" not in f.relative_to(repo).parts:
+                rel = mount / f.relative_to(root_dir)
                 if rel.parts[0] in linked:
                     continue  # never shadow the Standard Library
                 dest = include / rel
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(f, dest)
                 mapping[str(dest.relative_to(stage_mql5))] = str(f.relative_to(repo))
+    # #resource "\\Indicators\\X.ex5" resolves from the MQL5 root: a repo laid out like an MQL5
+    # folder (at its top or under MQL5/) also gets those folders mirrored there, names space-free
+    for layout in (repo, repo / "MQL5"):
+        for folder in MQL5_FOLDERS:
+            top = layout / folder
+            if not top.is_dir():
+                continue
+            for f in sorted(top.rglob("*")):
+                rel = f.relative_to(repo)
+                if f.is_file() and ".git" not in rel.parts:
+                    dest = stage_mql5.joinpath(folder, *[d.replace(" ", "_") for d in f.relative_to(top).parts[:-1]], f.name)
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(f, dest)
+                    mapping.setdefault(str(dest.relative_to(stage_mql5)), str(rel))
     experts = stage_mql5 / "Experts" / source["name"].replace(" ", "_")
     programs, unsupported = [], []
     wanted = {p.resolve() for p in repo.glob(source.get("programs", "**/*.mq5"))}
@@ -466,6 +482,11 @@ def referee(sources, stage_only=False, table_reader=read_process_table, compile_
             out(f"stopping before {program}: {why_busy}")
             return None
         log_bytes, why = compile_fn(stage_mql5, staged)
+        why_busy = busy_reason(table_reader(), own_pids=(os.getpid(),))
+        if why_busy:  # a backtest started mid-compile and may have killed MetaEditor: don't keep it
+            stopped = why_busy
+            out(f"discarding {program}: MetaTrader got busy during the compile ({why_busy})")
+            return None
         verdict = make_verdict(key, source, program, build, log_bytes, why, mapping, stage_mql5)
         verdict.update(extra or {})
         save_verdict(verdict)
@@ -609,7 +630,7 @@ def self_test():
         (repo / "Experts").mkdir(parents=True)
         for n in ("A", "B"):
             (repo / "Experts" / f"{n}.mq5").write_text("void OnStart(){}\n")
-        tables = iter([[], [], tester])
+        tables = iter([[], [], [], tester])  # start, before A, after A, before B
         calls = []
         global STAGE_ROOT, STORE
         saved = (STAGE_ROOT, STORE)
@@ -623,6 +644,11 @@ def self_test():
             idx = json.loads((Path(td) / "current.json").read_text())
             check("index marks a partial run", idx["complete"] is False and len(idx["programs"]) == 1)
             check("staged names have no spaces", all(" " not in p for p in calls))
+            tables = iter([[], [], tester])  # start, before A, busy right after A's compile
+            calls.clear()
+            c2, _, why2, _ = referee([dict(src, name="demo two")], table_reader=lambda: next(tables),
+                                     compile_fn=lambda s, p: (calls.append(p), (b"\xff\xfeR\x00", None))[1], out=msgs.append)
+            check("a compile that overlapped a backtest is discarded", c2 == 0 and len(calls) == 1 and why2 is not None)
             (repo / "Experts" / "My EA.mq5").write_text("x")
             (repo / "Spaced Dir").mkdir()
             (repo / "Spaced Dir" / "C.mq5").write_text("x")
@@ -633,6 +659,8 @@ def self_test():
                   and mp["Experts/demo_repo/Experts/My_EA.mq5"] == "Experts/My EA.mq5")
             check("spaced folder staged space-free", "Experts/demo_repo/Spaced_Dir/C.mq5" in progs and unsup == [])
             check("header names keep their spaces", (st / "Include" / "My Utils.mqh").exists())
+            check("MQL5-layout folders mirrored at the stage root for #resource", (st / "Experts" / "My_EA.mq5").exists() is False
+                  and (st / "Experts" / "My EA.mq5").exists() and mp.get("Experts/My EA.mq5") == "Experts/My EA.mq5")
 
             # header stubs (FR-018): only headers no program reaches, filed under the header's path
             (repo / "Experts" / "A.mq5").write_text('#include "Used.mqh"\nvoid OnStart(){}\n')
