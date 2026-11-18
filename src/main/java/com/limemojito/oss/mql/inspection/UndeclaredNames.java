@@ -66,13 +66,19 @@ final class UndeclaredNames {
     }
 
     /**
-     * True when any file in {@code file}'s include closure has an {@code #include} the plugin can't
+     * True when any file in {@code file}'s include closure, or in the closure of a program that
+     * includes it, has an {@code #include} the plugin can't
      * see into: one that doesn't resolve, a file too large to parse, or a file that isn't MQL (a
      * {@code .h} header, which CLion gives to C++): its macros and declarations are invisible, so
      * checking names would guess.
      */
     private static boolean closureHasUnseenInclude(@NotNull PsiFile file) {
-        for (PsiFile f : com.limemojito.oss.mql.reference.MqlVisibleNames.includeClosure(file)) {
+        // a header also sees what its including programs included before it (Std.h, then MQL4.mqh)
+        Set<PsiFile> files = new java.util.LinkedHashSet<>(com.limemojito.oss.mql.reference.MqlVisibleNames.includeClosure(file));
+        for (PsiFile program : com.limemojito.oss.mql.reference.MqlVisibleNames.programsIncluding(file)) {
+            files.addAll(com.limemojito.oss.mql.reference.MqlVisibleNames.includeClosure(program));
+        }
+        for (PsiFile f : files) {
             for (MQL4PreprocessorIncludeBlock include : PsiTreeUtil.findChildrenOfType(f, MQL4PreprocessorIncludeBlock.class)) {
                 PsiFile target = include.resolveIncludedFile();
                 if (target == null || !(target instanceof com.limemojito.oss.mql.psi.MQL4File) || (target.getVirtualFile() != null

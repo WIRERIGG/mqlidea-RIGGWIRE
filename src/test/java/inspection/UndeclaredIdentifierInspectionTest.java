@@ -152,6 +152,26 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                 .map(PsiErrorElement::getErrorDescription).toList());
     }
 
+    public void testQualifiedParameterTypesParseAndKeepTheirParameters() {
+        String code = """
+                namespace Shapes { class CBox { public: int w; }; }
+                class Outer
+                  {
+                public:
+                   class Item { public: int depth; };
+                private:
+                   static void Parse(const string &text, int &i, Outer::Item* item, Shapes::CBox &box)
+                     {
+                      i = StringLen(text) + item.depth + box.w;
+                      Print(item.nope);
+                     }
+                  };
+                """;
+        assertEquals(List.of("'nope' - undeclared identifier"), undeclared("test.mqh", code));
+        assertEquals("no parse errors", List.of(), PsiTreeUtil.findChildrenOfType(myFixture.getFile(), PsiErrorElement.class).stream()
+                .map(PsiErrorElement::getErrorDescription).toList());
+    }
+
     public void testImportedModuleQualifiesItsFunctions() {
         String code = """
                 #import "kernel32.dll"

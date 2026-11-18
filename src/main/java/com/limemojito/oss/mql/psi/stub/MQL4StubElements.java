@@ -48,7 +48,8 @@ public interface MQL4StubElements {
     // v26: unions are CLASS stubs of kind Union; TYPEDEF and #define (PREPROCESSOR_DEFINE_BLOCK) stubs;
     // namespace bodies, operator methods and operator-like functions now produce FUNCTION/CLASS stubs.
     // v28: variables declared after a class/struct body (struct S {...} v;) parse as top-level
-    // VAR_DECLARATION_STATEMENTs, adding global-var stubs.
+    // VAR_DECLARATION_STATEMENTs, adding global-var stubs; qualified parameter and base types
+    // (Outer::Item *p) parse, so functions that failed there now produce their stubs.
     int STUB_SCHEMA_VERSION = 28;
 
     // The debug name goes through the constructor: getDebugName() is internal API and not for overriding.

@@ -104,7 +104,8 @@ public final class MqlVisibleNames {
             for (PsiFile current : closureFiles(file)) {
                 for (PsiElement declaration : PsiTreeUtil.findChildrenOfAnyType(current, MQL4FunctionElement.class,
                         MQL4ClassElement.class, MQL4VarDefinitionElement.class, MQL4DefineElement.class,
-                        MQL4TypedefElement.class, MQL4EnumElement.class, MQL4EnumFieldElement.class)) {
+                        MQL4TypedefElement.class, MQL4EnumElement.class, MQL4EnumFieldElement.class,
+                        com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement.class)) {
                     ProgressManager.checkCanceled();
                     String name = ((PsiNamedElement) declaration).getName();
                     if (name != null) {

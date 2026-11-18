@@ -16,6 +16,15 @@ import java.util.List;
 /** MetaEditor's error 256 for global calls: undefined names are flagged, every declared kind is not. */
 public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
 
+    private List<String> undefinedIn(String existingPath) {
+        myFixture.configureFromTempProjectFile(existingPath);
+        myFixture.enableInspections(new UndefinedFunctionCallInspection());
+        return myFixture.doHighlighting(HighlightSeverity.ERROR).stream()
+                .map(HighlightInfo::getDescription)
+                .filter(d -> d != null && d.contains("undeclared identifier"))
+                .toList();
+    }
+
     private List<String> undefined(String fileName, String code) {
         myFixture.configureByText(fileName, code);
         myFixture.enableInspections(new UndefinedFunctionCallInspection());
@@ -94,6 +103,10 @@ public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
         myFixture.addFileToProject("Std.h", "#define STRUCT_ENUM(S, E) S::E\n");
         myFixture.addFileToProject("Base.mqh", "#include \"Std.h\"\n");
         assertEquals(List.of(), undefined("test.mq5", "#include \"Base.mqh\"\nvoid OnStart() { Print(STRUCT_ENUM(A, B)); }\n"));
+        myFixture.addFileToProject("Body.mqh", "void Run() { Print(PTR_ATTRIB(1)); }\n");
+        myFixture.addFileToProject("Prog.mq5", "#include \"Std.h\"\n#include \"Body.mqh\"\n");
+        assertEquals("a header whose including program reads a non-MQL header", List.of(),
+                undefinedIn("Body.mqh"));
         assertEquals("the check still bites without such a header", List.of("'Missing' - undeclared identifier"),
                 undefined("plain.mq5", "void OnStart() { Missing(); }\n"));
     }
