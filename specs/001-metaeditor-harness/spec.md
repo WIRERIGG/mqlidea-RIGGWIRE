@@ -120,6 +120,10 @@ The corpus is a fixed, documented list: MetaQuotes' Standard Library, examples a
 - **FR-014**: The unit of judgement MUST be the MQL5 program (`.mq5`) together with the headers it includes; a header's diagnostics are judged through the programs that include it. MQL4 files (`.mq4`), which MetaTrader 5's MetaEditor cannot compile, MUST be reported as "no referee" with plugin-side counts only, and MUST NOT enter the headline score.
 - **FR-015**: The harness MUST cross-check its plugin-side setup against the real IDE: on the owner's EA and three corpus repositories, its error counts per file MUST equal those the installed plugin reports live in CLion; a mismatch marks the run untrustworthy.
 - **FR-016**: Three named corpus repositories MUST be held out: scored only on request (at release time) and reported separately, so the plugin can't be tuned to the open set.
+- **FR-017**: The harness MUST include a mutation set: for a fixed, seeded sample of corpus programs, copies (outside every repository) with one known error injected per kind (missing `;`, misspelt identifier, wrong argument count, type mismatch, unbalanced brace, undeclared member). A mutant counts only if MetaEditor rejects it; the report gives, per kind, the share of counted mutants the plugin flags. Released corpus code compiles cleanly, so without mutants "missed errors" cannot measure detection.
+- **FR-018**: Every corpus header not included by any corpus program MUST be judged through a generated stub program (the header's include plus an empty entry point), created outside every repository and never committed.
+- **FR-019**: The harness MUST hold its own lock and MUST NOT compile while any other MetaEditor process is running.
+- **FR-020**: A report MUST NOT mix verdicts from different MetaEditor builds; after a build change, affected verdicts are recompiled before the next score.
 
 ### Key Entities
 
@@ -139,6 +143,7 @@ The corpus is a fixed, documented list: MetaQuotes' Standard Library, examples a
 - **SC-004**: Zero files under MetaTrader's MQL5 folder are created, changed or deleted across every run, verified by the run itself.
 - **SC-005**: The harness never compiles while a backtest runs: a test that starts a fake tester process mid-run sees the harness stop before its next compile.
 - **SC-006**: The first report names the top 5 disagreement kinds with file counts, giving the next syntax or logic features a measured order.
+- **SC-007**: The first report gives a catch rate per mutation kind over at least 50 counted mutants per kind.
 
 ## Assumptions
 
@@ -149,3 +154,5 @@ The corpus is a fixed, documented list: MetaQuotes' Standard Library, examples a
 - Only errors decide the headline score; warnings and the plugin's opt-in style checks are out of scope for the score.
 - Logic checks beyond MetaEditor (the plugin's safety inspections) are not judged by this harness; MetaEditor accepting code sets the floor, not the ceiling.
 - Fixing any gap the harness finds is out of scope: each becomes its own feature.
+- The harness MVP (through the live cross-check) is time-boxed to two working sessions; feature 002 (template type parameters) proceeds alongside it under the existing corpus gate, so the plugin improves while the referee is built.
+- 5 of the 15 public repositories have no MQL5 programs (headers only), which is why FR-018 exists.

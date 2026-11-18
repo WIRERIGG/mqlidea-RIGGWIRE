@@ -33,3 +33,12 @@
 ## Next action
 
 Apply the four spec changes, then `/speckit-plan`, whose first task is the one-repo `/include:` spike (once no backtest is running).
+
+## Second pass (/invert on the spec, 2026-11-17)
+
+New failures found and folded into the spec as FR-017..FR-020 and SC-007:
+- Released corpus code compiles cleanly, so missed errors stay near 0 regardless of the plugin: detection needs a mutation set (FR-017).
+- 5 of 15 repositories have no MQL5 programs and sibvic has 5 programs for 278 headers: headers need stub programs (FR-018).
+- Concurrent MetaEditor runs (another session's `mt5 compile`, the plugin's background compile) can clash: own lock, no compile beside another MetaEditor (FR-019).
+- MetaEditor self-updates: never mix builds in a score (FR-020).
+- Process: building the referee could crowd out improving the plugin: MVP time-boxed to 2 sessions, feature 002 (template parameters) runs alongside.
