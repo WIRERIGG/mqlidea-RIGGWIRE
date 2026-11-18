@@ -14,7 +14,7 @@
 
 ## R3. Verdict key
 
-- **Decision**: sha256 over the program's bytes plus the sorted bytes of every file in its repository's header roots, plus the MetaEditor build number. Any header edit or MetaEditor update invalidates exactly the affected verdicts (US4).
+- **Decision**: sha256 over the source name and program path (quoted includes resolve beside the program), the program's bytes, plus the sorted bytes of every file in its repository's header roots, plus the MetaEditor build number. Any header edit or MetaEditor update invalidates exactly the affected verdicts (US4).
 - **Rejected**: program bytes only (a changed header would reuse a stale verdict).
 
 ## R4. Busy check
@@ -22,6 +22,8 @@
 - **Decision** (revised by lattice.md): port the plugin's *background-compile* rule to Python: busy = a command line running `metatester64.exe` (path ends `\name.exe` or `/name.exe`), an `mt5 backtest` driver, or `terminal64.exe` started with `/config:` (a tester run); table from `ps -axww -o command=`; unreadable table = busy. Checked at start and before every compile.
 - **Open question (seen 2026-11-17, to settle in T001/T004)**: during a backtest, `ps` shows eight `metatester64.exe /run /address:0.0.0.0:200N` agents plus one `metatester64.exe /local ...` agent. If the `/run` agents stay up when no test runs, "any metatester64" would starve the referee too; the rule would then be `/local` agent, `mt5 backtest` driver, or `terminal64 /config:`. Observe `ps` after the backtests end before writing `is_busy()`.
 - **Why not "any terminal64"**: a plain terminal with charts open is not a backtest, compiles are safe beside it, and the owner's terminal is often open, so the stricter rule would starve the referee.
+
+- **Seen while building the referee (2026-11-17)**: every compile appends a summary line to `<MetaTrader>/logs/metaeditor.log` (the bridge relies on it), outside `MQL5/`. Unavoidable for any compile, `mt5 compile` included; the untouched check covers `MQL5/` as specified, and the report says so.
 
 ## R5. Plugin-side verdict
 

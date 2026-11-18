@@ -9,7 +9,7 @@
     "program": {"type": "string"},
     "metaeditor_build": {"type": "integer"},
     "status": {"enum": ["ok", "excluded"]},
-    "excluded_reason": {"enum": ["missing-include", "no-log", "crash", "timeout"]},
+    "excluded_reason": {"enum": ["missing-include", "no-log", "crash", "timeout", "unsupported-path"]},
     "diagnostics": {
       "type": "array",
       "items": {

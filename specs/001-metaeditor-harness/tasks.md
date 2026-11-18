@@ -15,16 +15,16 @@
 
 ## Phase 2: Foundational (blocks all stories)
 
-- [ ] T003 Create `tools/harness/corpus.json` per contracts/manifest.schema.json with the MVP sources only: `geraked__metatrader5` (open), `sibvic__mq5-templates` (open), MetaQuotes Examples (open), the owner's EA (report); include_roots from each repo's `#include <...>` lines (research R2)
-- [ ] T004 [P] Busy check in `tools/harness/metaeditor_verdicts.py` (`is_busy()`, research R4) with a self-test against recorded `ps` lines: idle, plain terminal (not busy), tester agent, `terminal64 /config:` run, `mt5 backtest` driver, unreadable table (busy)
-- [ ] T005 [P] MetaTrader-untouched check in the same script: snapshot (relative path, size, mtime) of MetaTrader's MQL5 folder at start; compare at end; non-zero exit and a loud message on any difference
-- [ ] T006 [P] Log parser in the same script: UTF-16LE (BOM-aware) MetaEditor log → diagnostics per contracts/verdict.schema.json, staged paths mapped back to repo-relative paths; self-test on a recorded log from T001
-- [ ] T007 Verdict key and store (research R3): sha256 over program bytes + sorted header-root bytes + MetaEditor build; store at `~/.cache/mqlidea-harness/verdicts/<key>.json`
+- [X] T003 Create `tools/harness/corpus.json` per contracts/manifest.schema.json with the MVP sources only: `geraked__metatrader5` (open), `sibvic__mq5-templates` (open), MetaQuotes Examples (open), the owner's EA (report); include_roots from each repo's `#include <...>` lines (research R2) — done: geraked (38 programs), sibvic (5), MetaQuotes Examples (7, read in place), EA report (8, links MetaTrader's whole Include for its user headers)
+- [X] T004 [P] Busy check in `tools/harness/metaeditor_verdicts.py` (`is_busy()`, research R4) with a self-test against recorded `ps` lines: idle, plain terminal (not busy), tester agent, `terminal64 /config:` run, `mt5 backtest` driver, unreadable table (busy) — done; every tester agent counts until T001 settles the `/run`-agent question; a running MetaEditor counts too (FR-019)
+- [X] T005 [P] MetaTrader-untouched check in the same script: snapshot (relative path, size, mtime) of MetaTrader's MQL5 folder at start; compare at end; non-zero exit and a loud message on any difference — done
+- [X] T006 [P] Log parser in the same script: UTF-16LE (BOM-aware) MetaEditor log → diagnostics per contracts/verdict.schema.json, staged paths mapped back to repo-relative paths; self-test on a recorded log from T001 — done; self-test on a synthetic log in MetaEditor's format (UTF-16 BOM, absolute `Z:\` and `MQL5\`-relative paths, Standard Library labelled `<stdlib>/`); recheck on a real T001 log
+- [X] T007 Verdict key and store (research R3): sha256 over program bytes + sorted header-root bytes + MetaEditor build; store at `~/.cache/mqlidea-harness/verdicts/<key>.json` — done; key also covers the source and program path (quoted includes resolve beside the program; found when two identical programs shared a verdict); MetaEditor build read from the exe's version resource (6230 today)
 
 ## Phase 3: User Story 3 - Never disturb MetaTrader (P1)
 
-- [ ] T008 [US3] Referee loop in `metaeditor_verdicts.py`: for each program without a fresh verdict: `is_busy()` → stop cleanly (keep verdicts so far) if busy; stage; compile with timeout; parse; store; classify exclusions (`missing-include`, `no-log`, `crash`, `timeout`)
-- [ ] T009 [US3] ⛔ Test: start the referee with a fake `metatester64.exe` process line present (stub the table): it refuses and names it; inject the stub mid-run: it stops before the next compile
+- [X] T008 [US3] Referee loop in `metaeditor_verdicts.py`: for each program without a fresh verdict: `is_busy()` → stop cleanly (keep verdicts so far) if busy; stage; compile with timeout; parse; store; classify exclusions (`missing-include`, `no-log`, `crash`, `timeout`) — done; staging keeps header names, makes folders and program names space-free (Wine can't compile a spaced path), error 106 → missing-include
+- [X] T009 [US3] ⛔ Test: start the referee with a fake `metatester64.exe` process line present (stub the table): it refuses and names it; inject the stub mid-run: it stops before the next compile — done (self-test: refuses to start; stops before the next compile)
 - [ ] T010 [US3] Run the referee on the MVP sources (MetaTrader idle only). ⛔ Any source with >30% programs excluded: fix its include_roots before continuing
 
 ## Phase 4: User Story 1 + 2 - Score and ranked gap list (P1) 🎯 MVP
@@ -45,7 +45,7 @@
 
 - [ ] T019a [US1] Header stubs (FR-018): for each header no program includes, generate `/tmp/.../Scripts/<repo>/stub_<n>.mq5` (`#include` the header, empty `OnStart`); judged like programs; never written to any repository
 - [ ] T019b [US1] Mutation set (FR-017, FR-021): seeded, text/token-based generator (no plugin parser) writing mutants to `/tmp` only, 6 kinds (missing `;`, misspelt identifier, wrong argument count, type mismatch, unbalanced brace, undeclared member); keep a mutant only if MetaEditor rejects it; report catch rate per kind
-- [ ] T019c [US3] Lock and single MetaEditor (FR-019): harness lock file; skip and wait while another `metaeditor64.exe` runs; self-test with a stubbed process line
+- [X] T019c [US3] Lock and single MetaEditor (FR-019): harness lock file; skip and wait while another `metaeditor64.exe` runs; self-test with a stubbed process line — done: lock with owner PID, stale takeover, exit 6 when held; another MetaEditor is busy
 - [ ] T019d [US1] One build per score (FR-020): report refuses to mix builds; build change → stale verdicts recompiled first
 - [ ] T019e ⛔ SC-007: at least 50 counted mutants per kind; otherwise widen the program sample
 

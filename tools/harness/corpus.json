@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {"name": "geraked__metatrader5", "path": "~/mql-corpus/geraked__metatrader5", "commit": "d3eb29c", "licence": "MIT",
+     "role": "open", "include_roots": ["Include"], "programs": "**/*.mq5"},
+    {"name": "sibvic__mq5-templates", "path": "~/mql-corpus/sibvic__mq5-templates", "commit": "6de6720", "licence": "MIT",
+     "role": "open", "include_roots": ["snippets"], "programs": "**/*.mq5"},
+    {"name": "metaquotes-examples", "path": "~/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/Program Files/MetaTrader 5/MQL5/Experts/Examples",
+     "commit": "installed", "licence": "MetaQuotes (read in place, never copied into the repo)", "role": "open", "include_roots": [], "programs": "**/*.mq5"},
+    {"name": "riggwire-ea", "path": "~/CLionProjects/RIGGWIRE-EA-TC/RIGGWIRE-EA-LIVE", "commit": "working tree", "licence": "owner",
+     "role": "report", "include_roots": ["."], "programs": "*.mq5", "link_metatrader_include": true}
+  ]
+}

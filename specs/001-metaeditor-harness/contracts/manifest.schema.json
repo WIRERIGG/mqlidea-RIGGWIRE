@@ -16,7 +16,8 @@
           "licence": {"type": "string"},
           "role": {"enum": ["open", "heldout", "report"]},
           "include_roots": {"type": "array", "items": {"type": "string"}},
-          "programs": {"type": "string", "default": "**/*.mq5"}
+          "programs": {"type": "string", "default": "**/*.mq5"},
+          "link_metatrader_include": {"type": "boolean", "default": false, "description": "link every entry of MetaTrader's Include (user headers too), not only the Standard Library; for the owner's EA"}
         }
       }
     }
