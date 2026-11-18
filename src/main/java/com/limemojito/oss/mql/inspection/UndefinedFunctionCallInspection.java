@@ -52,7 +52,7 @@ public class UndefinedFunctionCallInspection extends MQL5SafetyInspectionBase {
             return null;
         }
         String name = identifier.getText();
-        boolean mql4Only = mql5 && MqlBuiltinFunctions.isMql4Only(name);
+        boolean mql4Only = mql5 && MqlBuiltinFunctions.isMql4Only(name) && !UndeclaredNames.inMql4OnlyBranch(identifier);
         if (!mql4Only && UndeclaredNames.isBuiltin(name)) {
             return null;
         }

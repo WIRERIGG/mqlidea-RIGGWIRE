@@ -127,6 +127,31 @@ public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
                 List.of("'setShowGrid' - undeclared identifier"), undefined("test.mq5", code));
     }
 
+    public void testMql4FunctionsInMql4OnlyBranchesAreClean() {
+        String code = """
+                void OnStart()
+                  {
+                #ifdef __MQL4__
+                   Print(AccountFreeMarginCheck(_Symbol, OP_BUY, 0.1));
+                #else
+                   Print(AccountFreeMarginCheck(_Symbol, 0, 0.1));
+                #endif
+                #ifndef __MQL5__
+                   Print(OrdersHistoryTotal());
+                #endif
+                #ifdef __MQL5__
+                   Print(1);
+                #else
+                   #ifdef SOME_FLAG
+                   Print(OrdersHistoryTotal());
+                   #endif
+                #endif
+                  }
+                """;
+        assertEquals("only the MQL5 branch's call is flagged",
+                List.of("'AccountFreeMarginCheck' - undeclared identifier (an MQL4 function, not in MQL5)"), undefined("test.mq5", code));
+    }
+
     public void testMql4OnlyFunctionsAreFlaggedInMql5Only() {
         String code = "void OnStart() { double l = OrderLots(); int h = TimeHour(TimeCurrent()); Print(l, h, AccountInfoDouble(ACCOUNT_BALANCE)); }\n";
         assertEquals(List.of("'OrderLots' - undeclared identifier (an MQL4 function, not in MQL5)",
