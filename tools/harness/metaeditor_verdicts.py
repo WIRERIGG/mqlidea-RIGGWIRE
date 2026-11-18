@@ -430,6 +430,22 @@ def compile_program(stage_mql5, staged_program, timeout=COMPILE_TIMEOUT):
     return log.read_bytes(), None
 
 
+MISSING_RESOURCE = re.compile(r"error 310: resource file '([^']+)' not found")
+
+
+def missing_resource_sources(stage_mql5, log_bytes):
+    """Staged .mq5 sources (relative to stage_mql5) of the #resource .ex5 files a compile couldn't
+    find, for the ones that exist in the stage: \\Indicators\\X.ex5 -> Indicators/X.mq5."""
+    if not log_bytes:
+        return []
+    out = []
+    for res in MISSING_RESOURCE.findall(decode_log(log_bytes)):
+        rel = Path(res.replace("\\", "/").lstrip("/")).with_suffix(".mq5")
+        if (Path(stage_mql5) / rel).is_file() and str(rel) not in out:
+            out.append(str(rel))
+    return out
+
+
 def make_verdict(key, source, program_rel, build, log_bytes, reason, mapping, stage_mql5):
     v = {"key": key, "source": source["name"], "program": program_rel, "metaeditor_build": build,
          "status": "ok", "diagnostics": []}
@@ -482,6 +498,11 @@ def referee(sources, stage_only=False, table_reader=read_process_table, compile_
             out(f"stopping before {program}: {why_busy}")
             return None
         log_bytes, why = compile_fn(stage_mql5, staged)
+        missing = missing_resource_sources(stage_mql5, log_bytes)
+        if missing:  # MetaEditor can't build a resource that has #resources of its own: build them first
+            for dependency in missing:
+                compile_fn(stage_mql5, dependency)
+            log_bytes, why = compile_fn(stage_mql5, staged)
         why_busy = busy_reason(table_reader(), own_pids=(os.getpid(),))
         if why_busy:  # a backtest started mid-compile and may have killed MetaEditor: don't keep it
             stopped = why_busy
@@ -589,6 +610,13 @@ def self_test():
         check("no result -> crash", make_verdict("k" * 64, {"name": "s"}, "A.mq5", 1, b"", None, {}, stage)["excluded_reason"] == "crash")
         missing = ("\ufeffA.mq5(1,1) : error 106: can't open include file\r\nResult: 1 errors, 0 warnings\r\n").encode("utf-16")
         check("error 106 -> missing-include", make_verdict("k" * 64, {"name": "s"}, "A.mq5", 1, missing, None, {}, stage)["excluded_reason"] == "missing-include")
+
+        # a missing #resource whose source is staged is built first
+        (stage / "Indicators").mkdir(parents=True, exist_ok=True)
+        (stage / "Indicators" / "CE.mq5").write_text("x")
+        log310 = ("\ufeffA.mq5(71,12) : error 310: resource file '\\Indicators\\CE.ex5' not found\r\n"
+                  "A.mq5(72,12) : error 310: resource file '\\Indicators\\Gone.ex5' not found\r\n").encode("utf-16")
+        check("missing resource source found", missing_resource_sources(stage, log310) == ["Indicators/CE.mq5"])
 
         # key: header edits and builds change it, header order doesn't
         k1 = verdict_key(b"p", [("a", b"1"), ("b", b"2")], 5430)
