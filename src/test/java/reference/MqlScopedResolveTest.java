@@ -39,6 +39,12 @@ public class MqlScopedResolveTest extends BasePlatformTestCase {
         assertEquals("wrong target for " + use + ": " + target.getText(), code.indexOf(decl), name.getTextOffset());
     }
 
+    public void testVariableAfterAStructBodyResolvesAndTypesMembers() {
+        String code = "struct Settings { int SelectedTab; } sets;\nvoid OnStart() { sets.SelectedTab = 1; }\n";
+        assertResolvesTo(code, "sets.Sel", "sets;");
+        assertResolvesTo(code, "SelectedTab = 1", "SelectedTab; }");
+    }
+
     public void testImportModuleQualifiedCallResolvesToTheImport() {
         String code = "#import \"..\\\\Libraries\\\\Kernel32.dll\"\nuint GetLastError(void);\n#import\n"
                 + "void OnStart() { uint e = kernel32::GetLastError(); }\n";

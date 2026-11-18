@@ -6,6 +6,8 @@
 
 package inspection;
 
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.PsiErrorElement;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
@@ -124,6 +126,30 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                 void OnStart() { vector v; Print(v.Summ()); }
                 """;
         assertEquals(List.of(), undeclared("test.mq4", code));
+    }
+
+    public void testVariablesDeclaredAfterAStructBodyAreGlobals() {
+        String code = """
+                struct Settings
+                  {
+                   int    SelectedTab;
+                   double Risk;
+                  } sets, history[3];
+                class CPanel
+                  {
+                   struct Inner { int depth; } inner;
+                   int Depth() { return inner.depth; }
+                  };
+                void OnStart()
+                  {
+                   sets.SelectedTab = 1;
+                   history[0].Risk = sets.Risk;
+                   Print(sets.Nope);
+                  }
+                """;
+        assertEquals(List.of("'Nope' - undeclared identifier"), undeclared("test.mq5", code));
+        assertEquals("no parse errors", List.of(), PsiTreeUtil.findChildrenOfType(myFixture.getFile(), PsiErrorElement.class).stream()
+                .map(PsiErrorElement::getErrorDescription).toList());
     }
 
     public void testImportedModuleQualifiesItsFunctions() {

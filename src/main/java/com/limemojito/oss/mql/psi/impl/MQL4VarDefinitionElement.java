@@ -101,6 +101,16 @@ public class MQL4VarDefinitionElement extends StubBasedPsiElementBase<MQL4Global
                 typeName = child.getText();
             }
         }
+        if (typeName == null && list == statement.getFirstChildNode()) {
+            // struct Settings { ... } sets; -- the type is the class just before the statement
+            ASTNode prev = statement.getTreePrev();
+            while (prev != null && com.limemojito.oss.mql.psi.MQL4TokenSets.COMMENTS_OR_WS.contains(prev.getElementType())) {
+                prev = prev.getTreePrev();
+            }
+            if (prev != null && prev.getPsi() instanceof MQL4ClassElement cls) {
+                typeName = cls.getName();
+            }
+        }
         return typeName;
     }
 
