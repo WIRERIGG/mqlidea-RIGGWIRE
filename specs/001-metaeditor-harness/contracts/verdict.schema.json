@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MetaEditorVerdict",
+  "type": "object",
+  "required": ["key", "source", "program", "metaeditor_build", "status", "diagnostics"],
+  "properties": {
+    "key": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source": {"type": "string"},
+    "program": {"type": "string"},
+    "metaeditor_build": {"type": "integer"},
+    "status": {"enum": ["ok", "excluded"]},
+    "excluded_reason": {"enum": ["missing-include", "no-log", "crash", "timeout"]},
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "severity", "code", "message"],
+        "properties": {
+          "file": {"type": "string"},
+          "line": {"type": "integer", "minimum": 1},
+          "col": {"type": "integer", "minimum": 1},
+          "severity": {"enum": ["error", "warning"]},
+          "code": {"type": "integer"},
+          "message": {"type": "string"}
+        }
+      }
+    },
+    "compiled_at": {"type": "string"}
+  }
+}
