@@ -90,6 +90,30 @@ public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
         assertEquals(List.of(), undefined("test.mq5", code));
     }
 
+    public void testAMacroFromANonMqlHeaderDeeperInTheChainIsNotGuessed() {
+        myFixture.addFileToProject("Std.h", "#define STRUCT_ENUM(S, E) S::E\n");
+        myFixture.addFileToProject("Base.mqh", "#include \"Std.h\"\n");
+        assertEquals(List.of(), undefined("test.mq5", "#include \"Base.mqh\"\nvoid OnStart() { Print(STRUCT_ENUM(A, B)); }\n"));
+        assertEquals("the check still bites without such a header", List.of("'Missing' - undeclared identifier"),
+                undefined("plain.mq5", "void OnStart() { Missing(); }\n"));
+    }
+
+    public void testNamesDeclaredByTokenPastingMacrosAreClean() {
+        String code = """
+                #define BOOL_PROP(PropName, OptionName) \\
+                   bool is##PropName() const { return true; } \\
+                   bool set##PropName(bool value) { return value; }
+                class CChart
+                  {
+                public:
+                   BOOL_PROP(ShowOHLC, 1)
+                   void              setShow(bool v) { setShowOHLC(v); isShowOHLC(); setShowGrid(v); }
+                  };
+                """;
+        assertEquals("only the name no macro pastes is flagged",
+                List.of("'setShowGrid' - undeclared identifier"), undefined("test.mq5", code));
+    }
+
     public void testMql4OnlyFunctionsAreFlaggedInMql5Only() {
         String code = "void OnStart() { double l = OrderLots(); int h = TimeHour(TimeCurrent()); Print(l, h, AccountInfoDouble(ACCOUNT_BALANCE)); }\n";
         assertEquals(List.of("'OrderLots' - undeclared identifier (an MQL4 function, not in MQL5)",

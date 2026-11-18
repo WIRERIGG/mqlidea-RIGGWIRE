@@ -77,6 +77,7 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
         PsiElement psi = identifier.getPsi();
         PsiFile file = psi.getContainingFile();
         return MqlResolveUtil.resolve(psi, name).isEmpty() && !MqlVisibleNames.isDeclared(name, file)
+                && !UndeclaredNames.isPastedByMacro(name, file)
                 && !UndeclaredNames.isDeclaredOutsidePsi(name, file) && !UndeclaredNames.isInheritedBuiltinMember(name, psi);
     }
 
@@ -98,8 +99,9 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
                     ? MqlTypeResolver.resolveBuiltinValueTypeName(qualifier) : null;
             return valueType != null && !com.limemojito.oss.mql.doc.VectorMatrixCatalog.of(valueType).has(member.getText());
         }
-        if (!hierarchyKnown(receiver, new HashSet<>())) {
-            return false;
+        if (!hierarchyKnown(receiver, new HashSet<>())
+                || UndeclaredNames.isPastedByMacro(member.getText(), receiver.getContainingFile())) {
+            return false; // chart.setShowOHLC(): a member a token-pasting macro declares in the class's file
         }
         return MqlResolveUtil.resolveMemberInClassHierarchy(receiver, member.getText()).isEmpty();
     }

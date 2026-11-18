@@ -57,7 +57,8 @@ public class UndefinedFunctionCallInspection extends MQL5SafetyInspectionBase {
             return null;
         }
         PsiElement psi = identifier.getPsi();
-        if (!MqlResolveUtil.resolve(psi, name).isEmpty() || MqlVisibleNames.isDeclared(name, psi.getContainingFile())) {
+        if (!MqlResolveUtil.resolve(psi, name).isEmpty() || MqlVisibleNames.isDeclared(name, psi.getContainingFile())
+                || UndeclaredNames.isPastedByMacro(name, psi.getContainingFile())) {
             return null;
         }
         return "'" + name + "' - undeclared identifier" + (mql4Only ? " (an MQL4 function, not in MQL5)" : "");
