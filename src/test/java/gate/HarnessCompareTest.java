@@ -106,4 +106,33 @@ class HarnessCompareTest {
         assertThat(one).contains("**plugin:parse:PsiErrorElement**: 1 programs", "  - b/Z.mq5:3");
         assertThat(one).doesNotContain("E.mq5:9");
     }
+
+    @Test
+    void mutantIsCaughtOnlyByANewErrorNearTheInjectedLine() {
+        var near = HarnessCompare.classifyMutant("s", "A.mq5", "missing-semicolon", 10, true, List.of(11), List.of(), List.of());
+        assertThat(near.counted() && near.caught() && !near.caughtAsWarning()).isTrue();
+        assertThat(HarnessCompare.classifyMutant("s", "A.mq5", "missing-semicolon", 10, true, List.of(12), List.of(), List.of()).caught())
+                .isFalse();
+        assertThat(HarnessCompare.classifyMutant("s", "A.mq5", "missing-semicolon", 10, true, List.of(10), List.of(), List.of(10)).caught())
+                .as("an error the original already had proves nothing").isFalse();
+        var warned = HarnessCompare.classifyMutant("s", "A.mq5", "type-mismatch", 10, true, List.of(), List.of(9), List.of());
+        assertThat(!warned.caught() && warned.caughtAsWarning()).isTrue();
+        var accepted = HarnessCompare.classifyMutant("s", "A.mq5", "type-mismatch", 10, false, List.of(10), List.of(), List.of());
+        assertThat(accepted.counted() || accepted.caught()).as("MetaEditor accepted it: not counted, not caught").isFalse();
+    }
+
+    @Test
+    void mutationReportPerKindWithSc007Floor() {
+        var ms = List.of(
+                HarnessCompare.classifyMutant("o", "A.mq5", "missing-semicolon", 3, true, List.of(3), List.of(), List.of()),
+                HarnessCompare.classifyMutant("o", "A.mq5", "missing-semicolon", 7, true, List.of(), List.of(), List.of()),
+                HarnessCompare.classifyMutant("o", "A.mq5", "unbalanced-brace", 9, false, List.of(), List.of(), List.of()),
+                HarnessCompare.classifyMutant("r", "B.mq5", "missing-semicolon", 1, true, List.of(1), List.of(), List.of()));
+        var roles = Map.of("o", "open", "r", "report");
+        assertThat(HarnessCompare.mutationReport(ms, roles))
+                .contains("| missing-semicolon | 2 | 2 (below 50, SC-007) | 1 | 0 | 50% |")
+                .contains("| unbalanced-brace | 1 | 0 (below 50, SC-007) | 0 | 0 | - |")
+                .contains("- missing-semicolon: o/A.mq5:7");
+        assertThat(HarnessCompare.caughtPerKind(ms, roles)).isEqualTo(Map.of("missing-semicolon", 1L));
+    }
 }

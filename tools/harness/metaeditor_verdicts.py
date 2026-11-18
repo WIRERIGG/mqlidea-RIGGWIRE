@@ -26,6 +26,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutate  # noqa: E402
+
 HOME = Path.home()
 WINE = Path("/Applications/MetaTrader 5.app/Contents/SharedSupport/wine/bin/wine64")
 WINEPREFIX = HOME / "Library/Application Support/net.metaquotes.wine.metatrader5"
@@ -35,6 +38,8 @@ STAGE_ROOT = Path(os.environ.get("MQL_HARNESS_STAGE", "/tmp/mqlidea-harness"))
 STORE = Path(os.environ.get("MQL_HARNESS_STORE", HOME / ".cache/mqlidea-harness/verdicts"))
 LOCK = Path(os.environ.get("MQL_HARNESS_LOCK", "/tmp/mqlidea-harness.lock"))
 COMPILE_TIMEOUT = int(os.environ.get("MQL_HARNESS_TIMEOUT", "180"))
+MUTANTS_PER_KIND = int(os.environ.get("MQL_HARNESS_MUTANTS", "2"))  # per clean program and kind (FR-017)
+MUTATION_SEED = os.environ.get("MQL_HARNESS_SEED", "20261117")
 
 # MetaQuotes' own Standard Library (same list as tools/corpus-gate.sh): the rest of Include is the user's.
 STDLIB = ["Arrays", "Canvas", "ChartObjects", "Charts", "Controls", "Expert", "Files", "Generic", "Graphics",
@@ -155,11 +160,14 @@ RESULT = re.compile(r"^\s*result:\s*(\d+)\s*errors?,\s*(\d+)\s*warnings?", re.I)
 
 
 def decode_log(data):
+    """MetaEditor's logs are UTF-16 with a BOM; sources are UTF-16, UTF-8 (BOM or not) or ANSI."""
     if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
-        return data.decode("utf-16")
-    if len(data) > 1 and data[1:2] == b"\x00":
-        return data.decode("utf-16-le")
-    return data.decode("utf-8", "replace")
+        text = data.decode("utf-16")
+    elif len(data) > 1 and data[1:2] == b"\x00":
+        text = data.decode("utf-16-le")
+    else:
+        text = data.decode("utf-8", "replace")
+    return text[1:] if text.startswith("\ufeff") else text
 
 
 def parse_log(text, to_repo_path):
@@ -267,7 +275,12 @@ def stage_source(source, stage_root=None, mql5=None):
     /tmp. MetaEditor under Wine can't compile from a path with a space: a program whose file name has
     one gets a space-free copy beside it, and staged folder names replace spaces with '_' (quoted
     includes name files, rarely folders; one that does shows up as missing-include).
-    Returns (stage_mql5, mapping staged-rel -> repo-rel, programs as staged-rel paths, unsupported repo-rel paths)."""
+    Every repository header no program includes gets a stub program in MQL5/Scripts/<name>/ (FR-018):
+    its #include and an empty OnStart, in /tmp only. A stub's verdict is filed under the header's
+    repo path, so the plugin side scores the header itself; errors MetaEditor puts on the stub's own
+    lines map to "<stub>/..." and never count.
+    Returns (stage_mql5, mapping staged-rel -> repo-rel, programs as staged-rel paths, unsupported
+    repo-rel paths, stubs staged-rel -> header repo-rel)."""
     stage_root, mql5 = stage_root or STAGE_ROOT, mql5 or MQL5
     repo = Path(source["path"]).expanduser()
     stage_mql5 = Path(stage_root) / source["name"].replace(" ", "_") / "MQL5"
@@ -314,18 +327,65 @@ def stage_source(source, stage_root=None, mql5=None):
             shutil.copy2(spaced, dest)
             mapping[str(dest.relative_to(stage_mql5))] = str(rel)
         programs.append(str(dest.relative_to(stage_mql5)))
-    return stage_mql5, mapping, programs, unsupported
+    stubs = {}
+    covered = included_repo_files(stage_mql5, mapping, programs)
+    prefix = str(experts.relative_to(stage_mql5)) + "/"
+    headers = sorted((staged, rel) for staged, rel in mapping.items()
+                     if staged.startswith(prefix) and rel.lower().endswith(".mqh") and rel not in covered)
+    for n, (staged, rel) in enumerate(headers, 1):
+        stub = stage_mql5 / "Scripts" / source["name"].replace(" ", "_") / f"stub_{n}.mq5"
+        stub.parent.mkdir(parents=True, exist_ok=True)
+        target = os.path.relpath(stage_mql5 / staged, stub.parent).replace("/", "\\")
+        stub.write_text(f'// harness stub for {rel} (FR-018)\n#include "{target}"\nvoid OnStart() {{ }}\n')
+        staged_stub = str(stub.relative_to(stage_mql5))
+        mapping[staged_stub] = "<stub>/" + rel
+        stubs[staged_stub] = rel
+        programs.append(staged_stub)
+    return stage_mql5, mapping, programs, unsupported, stubs
+
+
+INCLUDE = re.compile(r'^\s*#\s*include\s*([<"])([^>"]+)[>"]', re.M)
+
+
+def included_repo_files(stage_mql5, mapping, programs):
+    """Repo paths of every staged file the programs reach through #include, read as text the way
+    MetaEditor resolves it: "x" beside the including file first, then MQL5/Include; <x> from Include.
+    File names compare case-insensitively, as on Windows."""
+    by_lower = {k.lower(): k for k in mapping}
+    seen, queue = set(), list(programs)
+    while queue:
+        staged = queue.pop()
+        if staged in seen:
+            continue
+        seen.add(staged)
+        try:
+            text = decode_log((Path(stage_mql5) / staged).read_bytes())
+        except OSError:
+            continue
+        for quote, name in INCLUDE.findall(text):
+            name = name.strip().replace("\\", "/")
+            options = ([os.path.join(os.path.dirname(staged), name)] if quote == '"' else []) + [os.path.join("Include", name)]
+            for option in options:
+                hit = by_lower.get(os.path.normpath(option).lower())
+                if hit:
+                    queue.append(hit)
+                    break
+    return {mapping[s] for s in seen if s in mapping}
 
 
 def header_files(source):
-    """(repo-relative path, bytes) of every file in the source's header roots, for the key."""
+    """(repo-relative path, bytes) of every file in the source's header roots and every .mqh/.h in
+    the repository (a quoted include can reach one outside the roots), for the key. Programs are
+    left out, so editing one program invalidates only its own verdict."""
     repo = Path(source["path"]).expanduser()
-    out = []
-    for root in source.get("include_roots", []):
-        for f in (repo / root).rglob("*"):
-            if f.is_file():
-                out.append((str(f.relative_to(repo)), f.read_bytes()))
-    return out
+    out = {}
+    files = [f for root in source.get("include_roots", []) for f in (repo / root).rglob("*")]
+    files += [f for f in repo.rglob("*") if f.suffix.lower() in (".mqh", ".h")]
+    for f in files:
+        rel = f.relative_to(repo)
+        if f.is_file() and ".git" not in rel.parts:
+            out[str(rel)] = f.read_bytes()
+    return sorted(out.items())
 
 
 # ---- compile ----------------------------------------------------------------------------------------
@@ -374,7 +434,9 @@ def make_verdict(key, source, program_rel, build, log_bytes, reason, mapping, st
 
 def referee(sources, stage_only=False, table_reader=read_process_table, compile_fn=compile_program, out=print):
     """Compiles every program without a fresh verdict. Stops cleanly (verdicts so far kept) as soon
-    as MetaTrader is busy. Returns (compiled, reused, stopped_reason or None, untouched_diff)."""
+    as MetaTrader is busy. Then, for each program whose verdict is clean, compiles its seeded
+    mutants (FR-017); a mutant's verdict carries its kind, line and text, and it counts only if
+    MetaEditor rejects it. Returns (compiled, reused, stopped_reason or None, untouched_diff)."""
     reason = busy_reason(table_reader(), own_pids=(os.getpid(),))
     if reason and not stage_only:
         out(f"not starting: {reason}")
@@ -383,18 +445,37 @@ def referee(sources, stage_only=False, table_reader=read_process_table, compile_
     before = snapshot(MQL5) if MQL5.exists() else {}
     compiled = reused = 0
     stopped = None
-    current = []
+    current, mutants = [], []
 
     def finish():
         diff = snapshot_diff(before, snapshot(MQL5) if MQL5.exists() else {})
         if not stage_only:
-            write_current(current, build, stopped is None, diff)
+            write_current(current, build, stopped is None, diff, mutants=mutants)
         return compiled, reused, stopped, diff
+
+    def judge(stage_mql5, staged, key, source, program, mapping, extra=None):
+        """Reuses or compiles one staged file; returns the verdict, or None when MetaTrader got busy."""
+        nonlocal compiled, reused, stopped
+        verdict = load_verdict(key)
+        if verdict is not None:
+            reused += 1
+            return verdict
+        why_busy = busy_reason(table_reader(), own_pids=(os.getpid(),))
+        if why_busy:
+            stopped = why_busy
+            out(f"stopping before {program}: {why_busy}")
+            return None
+        log_bytes, why = compile_fn(stage_mql5, staged)
+        verdict = make_verdict(key, source, program, build, log_bytes, why, mapping, stage_mql5)
+        verdict.update(extra or {})
+        save_verdict(verdict)
+        compiled += 1
+        return verdict
 
     if True:
         for source in sources:
-            stage_mql5, mapping, programs, unsupported = stage_source(source)
-            out(f"{source['name']}: {len(programs)} programs staged at {stage_mql5}"
+            stage_mql5, mapping, programs, unsupported, stubs = stage_source(source)
+            out(f"{source['name']}: {len(programs) - len(stubs)} programs and {len(stubs)} header stubs staged at {stage_mql5}"
                 + (f", {len(unsupported)} unsupported (space in folder)" if unsupported else ""))
             if stage_only:
                 continue
@@ -404,32 +485,44 @@ def referee(sources, stage_only=False, table_reader=read_process_table, compile_
                 current.append({"source": source["name"], "program": rel, "key": key})
                 save_verdict({"key": key, "source": source["name"], "program": rel, "metaeditor_build": build,
                               "status": "excluded", "excluded_reason": "unsupported-path", "diagnostics": []})
+            clean = []
             for staged in programs:
+                program = stubs.get(staged, mapping[staged])  # a stub is scored as its header
                 program_bytes = (stage_mql5 / staged).read_bytes()
-                key = verdict_key(program_bytes, headers, build, source["name"] + ":" + mapping[staged])
-                current.append({"source": source["name"], "program": mapping[staged], "key": key})
-                if load_verdict(key) is not None:
-                    reused += 1
-                    continue
-                reason = busy_reason(table_reader(), own_pids=(os.getpid(),))
-                if reason:
-                    stopped = reason
-                    out(f"stopping before {mapping[staged]}: {reason}")
-                    current.pop()
+                key = verdict_key(program_bytes, headers, build, source["name"] + ":" + program)
+                verdict = judge(stage_mql5, staged, key, source, program, mapping)
+                if verdict is None:
                     return finish()
-                log_bytes, why = compile_fn(stage_mql5, staged)
-                save_verdict(make_verdict(key, source, mapping[staged], build, log_bytes, why, mapping, stage_mql5))
-                compiled += 1
+                current.append({"source": source["name"], "program": program, "key": key})
+                if staged not in stubs and verdict["status"] == "ok" and not any(
+                        d["severity"] == "error" for d in verdict["diagnostics"]):
+                    clean.append((staged, program, program_bytes))
+            for staged, program, program_bytes in clean:
+                text = decode_log(program_bytes)
+                for kind in mutate.KINDS:
+                    for i, m in enumerate(mutate.mutate(text, kind, MUTATION_SEED, MUTANTS_PER_KIND)):
+                        mutant_staged = str(Path(staged).with_name(f"{Path(staged).stem}__mutant_{kind}_{i}.mq5"))
+                        data = b"\xef\xbb\xbf" + m.text.encode("utf-8")  # BOM: non-ASCII comments stay UTF-8
+                        (stage_mql5 / mutant_staged).write_bytes(data)
+                        mapping[mutant_staged] = program  # its errors belong on the program's lines
+                        key = verdict_key(data, headers, build, f"{source['name']}:{program}#mutant:{kind}:{i}")
+                        verdict = judge(stage_mql5, mutant_staged, key, source, program, mapping,
+                                        {"mutant": {"kind": kind, "index": i, "line": m.line, "text": m.text}})
+                        if verdict is None:
+                            return finish()
+                        mutants.append({"source": source["name"], "program": program, "kind": kind, "index": i, "key": key})
     return finish()
 
 
-def write_current(entries, build, complete, untouched_diff, store=None):
+def write_current(entries, build, complete, untouched_diff, store=None, mutants=()):
     """The verdict index the plugin side reads (current.json beside the store): one key per program
-    for this run, the MetaEditor build, whether the run finished, and the untouched check."""
+    for this run and one per mutant, the MetaEditor build, whether the run finished, and the
+    untouched check."""
     p = Path(store or STORE).parent / "current.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     data = {"metaeditor_build": build, "complete": complete, "metatrader_untouched": not untouched_diff,
-            "programs": sorted(entries, key=lambda e: (e["source"], e["program"]))}
+            "programs": sorted(entries, key=lambda e: (e["source"], e["program"])),
+            "mutants": sorted(mutants, key=lambda e: (e["source"], e["program"], e["kind"], e["index"]))}
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=1, sort_keys=True))
     os.replace(tmp, p)
@@ -526,6 +619,7 @@ def self_test():
             c, r, why, _ = referee([src], table_reader=lambda: next(tables),
                                    compile_fn=lambda s, p: (calls.append(p), (b"\xff\xfeR\x00", None))[1], out=msgs.append)
             check("stops before the next compile", c == 1 and len(calls) == 1 and why is not None)
+            check("verdicts so far are kept", len(list((Path(td) / "verdicts").glob("*.json"))) == 1)
             idx = json.loads((Path(td) / "current.json").read_text())
             check("index marks a partial run", idx["complete"] is False and len(idx["programs"]) == 1)
             check("staged names have no spaces", all(" " not in p for p in calls))
@@ -534,11 +628,71 @@ def self_test():
             (repo / "Spaced Dir" / "C.mq5").write_text("x")
             (repo / "Include").mkdir()
             (repo / "Include" / "My Utils.mqh").write_text("x")
-            st, mp, progs, unsup = stage_source(dict(src, include_roots=["Include"]))
+            st, mp, progs, unsup, stubs = stage_source(dict(src, include_roots=["Include"]))
             check("spaced file name gets a space-free copy", "Experts/demo_repo/Experts/My_EA.mq5" in progs
                   and mp["Experts/demo_repo/Experts/My_EA.mq5"] == "Experts/My EA.mq5")
             check("spaced folder staged space-free", "Experts/demo_repo/Spaced_Dir/C.mq5" in progs and unsup == [])
             check("header names keep their spaces", (st / "Include" / "My Utils.mqh").exists())
+
+            # header stubs (FR-018): only headers no program reaches, filed under the header's path
+            (repo / "Experts" / "A.mq5").write_text('#include "Used.mqh"\nvoid OnStart(){}\n')
+            (repo / "Experts" / "used.MQH").write_text('#include <Lib/Deep.mqh>\n')
+            (repo / "Include" / "Lib").mkdir()
+            (repo / "Include" / "Lib" / "Deep.mqh").write_text("int deep;\n")
+            (repo / "Include" / "Lonely.mqh").write_text("int lonely;\n")
+            st, mp, progs, unsup, stubs = stage_source(dict(src, include_roots=["Include"]))
+            check("stubs only for unreached headers", sorted(stubs.values()) == ["Include/Lonely.mqh", "Include/My Utils.mqh"])
+            stub = next(k for k, v in stubs.items() if v == "Include/Lonely.mqh")
+            check("stub is a program in Scripts", stub in progs and stub.startswith("Scripts/demo_repo/"))
+            check("stub includes the repo copy", '"..\\..\\Experts\\demo_repo\\Include\\Lonely.mqh"' in (st / stub).read_text())
+            check("stub's own lines never map to the repo", mp[stub] == "<stub>/Include/Lonely.mqh")
+
+            # key covers a header outside the roots; another program's edit doesn't touch it
+            loose = dict(src, include_roots=[])
+            k_before = verdict_key(b"p", header_files(loose), 1)
+            (repo / "Experts" / "used.MQH").write_text("int changed;\n")
+            check("loose header edit changes the key", k_before != verdict_key(b"p", header_files(loose), 1))
+            k_before = verdict_key(b"p", header_files(loose), 1)
+            (repo / "Experts" / "B.mq5").write_text("void OnStart(){ int b; }\n")
+            check("another program's edit keeps the key", k_before == verdict_key(b"p", header_files(loose), 1))
+
+            # mutants: only from clean programs, compiled after them, recorded with kind and line
+            mrepo = Path(td) / "mrepo"
+            (mrepo / "Experts").mkdir(parents=True)
+            (mrepo / "Experts" / "Clean.mq5").write_text("int F(int a) { return a; }\nvoid OnStart()\n  {\n   int x = F(1);\n   x = F(x);\n  }\n")
+            (mrepo / "Experts" / "Broken.mq5").write_text("void OnStart() { int x = F(1); }\n")
+            clean_log = "\ufeffResult: 0 errors, 0 warnings\r\n".encode("utf-16")
+            bad_log = "\ufeffBroken.mq5(1,26) : error 256: 'F' - undeclared identifier\r\nResult: 1 errors, 0 warnings\r\n".encode("utf-16")
+            compiled_files = []
+
+            def fake_compile(stage, staged):
+                compiled_files.append(staged)
+                return (bad_log if "Broken" in staged or "__mutant_" in staged else clean_log), None
+            msrc = {"name": "m", "path": str(mrepo), "include_roots": [], "programs": "**/*.mq5"}
+            c, r, why, _ = referee([msrc], table_reader=lambda: [], compile_fn=fake_compile, out=msgs.append)
+            idx = json.loads((Path(td) / "current.json").read_text())
+            check("finished run", why is None and idx["complete"] is True)
+            check("mutants only from the clean program", idx["mutants"] and all(e["program"] == "Experts/Clean.mq5" for e in idx["mutants"]))
+            check("mutants compiled after programs", compiled_files[:2] == sorted(compiled_files[:2]) and "__mutant_" not in "".join(compiled_files[:2]))
+            mv = load_verdict(idx["mutants"][0]["key"])
+            check("mutant verdict carries kind, line and text", mv["mutant"]["kind"] in mutate.KINDS
+                  and mv["mutant"]["line"] >= 1 and mv["mutant"]["text"] != (mrepo / "Experts" / "Clean.mq5").read_text())
+            n = len(compiled_files)
+            c, r, why, _ = referee([msrc], table_reader=lambda: [], compile_fn=fake_compile, out=msgs.append)
+            check("rerun compiles nothing", len(compiled_files) == n and c == 0 and r == n)
+
+            # one build per score (FR-020): a MetaEditor update recompiles everything first
+            global metaeditor_build
+            real_build = metaeditor_build
+            metaeditor_build = lambda exe=None: 999999
+            try:
+                c, r, why, _ = referee([msrc], table_reader=lambda: [], compile_fn=fake_compile, out=msgs.append)
+            finally:
+                metaeditor_build = real_build
+            idx = json.loads((Path(td) / "current.json").read_text())
+            check("build change recompiles every verdict", c == n and r == 0)
+            check("index carries the new build only", idx["metaeditor_build"] == 999999 and all(
+                load_verdict(e["key"])["metaeditor_build"] == 999999 for e in idx["programs"] + idx["mutants"]))
         finally:
             STAGE_ROOT, STORE = saved
 

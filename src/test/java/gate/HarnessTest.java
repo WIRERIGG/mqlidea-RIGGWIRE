@@ -15,6 +15,7 @@ import com.intellij.codeInspection.LocalInspectionEP;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.application.WriteAction;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.RootsChangeRescanningInfo;
 import com.intellij.openapi.roots.ex.ProjectRootManagerEx;
@@ -88,6 +89,14 @@ public class HarnessTest extends BasePlatformTestCase {
             keys.computeIfAbsent(o.get("source").getAsString(), k -> new TreeMap<>()).put(o.get("program").getAsString(), o.get("key").getAsString());
         }
         int build = current.get("metaeditor_build").getAsInt();
+        Map<String, List<JsonObject>> mutantsBySource = new TreeMap<>();
+        if (current.has("mutants")) {
+            for (JsonElement e : current.getAsJsonArray("mutants")) {
+                JsonObject o = e.getAsJsonObject();
+                mutantsBySource.computeIfAbsent(o.get("source").getAsString(), k -> new ArrayList<>()).add(o);
+            }
+        }
+        List<HarnessCompare.MutantResult> mutantResults = new ArrayList<>();
 
         enableDefaultErrorInspections();
         loadMetaTraderInclude(mql5.resolve("Include"));
@@ -106,6 +115,7 @@ public class HarnessTest extends BasePlatformTestCase {
             Path repo = Paths.get(source.get("path").getAsString().replaceFirst("^~", home.toString()));
             boolean allInclude = source.has("link_metatrader_include") && source.get("link_metatrader_include").getAsBoolean();
             Loaded loaded = load(name, repo, strings(source.getAsJsonArray("include_roots")), allInclude);
+            Map<String, Set<Integer>> originalErrorLines = new TreeMap<>(); // program -> lines the plugin flags unmutated
             try {
                 for (Map.Entry<String, String> program : keys.get(name).entrySet()) {
                     Verdict verdict = readVerdict(store, program.getValue(), name, program.getKey(), build);
@@ -120,12 +130,17 @@ public class HarnessTest extends BasePlatformTestCase {
                     highlightMillis += (System.nanoTime() - start) / 1_000_000;
                     highlighted++;
                     results.add(HarnessCompare.classify(withRepoFiles(verdict), plugin));
+                    originalErrorLines.put(program.getKey(), plugin.stream().filter(d -> program.getKey().equals(d.file()))
+                            .map(PluginDiag::line).collect(Collectors.toSet()));
+                }
+                for (JsonObject m : mutantsBySource.getOrDefault(name, List.of())) {
+                    mutantResults.add(scoreMutant(store, m, name, build, loaded, originalErrorLines));
                 }
             } finally {
                 unload(loaded);
             }
         }
-        String report = HarnessCompare.report(results, roles)
+        String report = HarnessCompare.report(results, roles) + HarnessCompare.mutationReport(mutantResults, roles)
                 + "\n## Run\n\n- MetaEditor build: " + build
                 + "\n- referee run complete: " + current.get("complete").getAsBoolean()
                 + "\n- MetaTrader's MQL5 folder untouched by the referee: " + current.get("metatrader_untouched").getAsBoolean()
@@ -134,7 +149,7 @@ public class HarnessTest extends BasePlatformTestCase {
         Files.writeString(REPORT, report, StandardCharsets.UTF_8);
         System.out.println("harness: " + highlighted + " programs highlighted in " + highlightMillis + " ms ("
                 + (highlighted == 0 ? 0 : highlightMillis / highlighted) + " ms each); report " + REPORT);
-        ratchet(results, roles);
+        ratchet(results, mutantResults, roles);
     }
 
     /** One source as project files: the repo under src/NAME, MetaTrader's Include (or its Standard Library) under include/. */
@@ -221,6 +236,48 @@ public class HarnessTest extends BasePlatformTestCase {
         return out;
     }
 
+    /**
+     * Puts one mutant's text into its program's document, highlights the program at WARNING and
+     * restores the original text (FR-017, FR-021). Only MetaEditor-rejected mutants are highlighted.
+     */
+    private HarnessCompare.MutantResult scoreMutant(Path store, JsonObject entry, String source, int build, Loaded loaded,
+                                                    Map<String, Set<Integer>> originalErrorLines) throws IOException {
+        String program = entry.get("program").getAsString();
+        String kind = entry.get("kind").getAsString();
+        Path p = store.resolve(entry.get("key").getAsString() + ".json");
+        if (!Files.exists(p)) {
+            return HarnessCompare.classifyMutant(source, program, kind, 0, false, List.of(), List.of(), List.of());
+        }
+        JsonObject v = JsonParser.parseString(Files.readString(p)).getAsJsonObject();
+        assertEquals("verdict from another MetaEditor build (FR-020): " + p, build, v.get("metaeditor_build").getAsInt());
+        JsonObject mutant = v.getAsJsonObject("mutant");
+        int line = mutant.get("line").getAsInt();
+        boolean rejected = "ok".equals(v.get("status").getAsString()) && v.getAsJsonArray("diagnostics").asList().stream()
+                .anyMatch(d -> "error".equals(d.getAsJsonObject().get("severity").getAsString()));
+        VirtualFile vf = loaded.byRepoPath().get(program);
+        if (!rejected || vf == null) {
+            return HarnessCompare.classifyMutant(source, program, kind, line, false, List.of(), List.of(), List.of());
+        }
+        myFixture.openFileInEditor(vf);
+        Document doc = myFixture.getEditor().getDocument();
+        String original = doc.getText();
+        List<Integer> errors = new ArrayList<>();
+        List<Integer> warnings = new ArrayList<>();
+        try {
+            WriteCommandAction.runWriteCommandAction(getProject(), () -> doc.setText(com.intellij.openapi.util.text.StringUtil.convertLineSeparators(mutant.get("text").getAsString())));
+            PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+            for (HighlightInfo info : myFixture.doHighlighting(HighlightSeverity.WARNING)) {
+                int at = doc.getLineNumber(Math.min(info.getStartOffset(), doc.getTextLength())) + 1;
+                (info.getSeverity().compareTo(HighlightSeverity.ERROR) >= 0 ? errors : warnings).add(at);
+            }
+        } finally {
+            WriteCommandAction.runWriteCommandAction(getProject(), () -> doc.setText(original));
+            PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+        }
+        return HarnessCompare.classifyMutant(source, program, kind, line, true, errors, warnings,
+                originalErrorLines.getOrDefault(program, Set.of()));
+    }
+
     private void enableDefaultErrorInspections() {
         List<LocalInspectionTool> tools = new ArrayList<>();
         for (LocalInspectionEP ep : LocalInspectionEP.LOCAL_INSPECTION.getExtensionList()) {
@@ -257,10 +314,29 @@ public class HarnessTest extends BasePlatformTestCase {
                 .filter(d -> !d.file().startsWith("<")).toList());
     }
 
-    private static void ratchet(List<Result> results, Map<String, String> roles) throws IOException {
+    private static final Path DATA_MODEL = Paths.get("specs/001-metaeditor-harness/data-model.md");
+
+    /** sha256 of data-model.md's scoring-rules block, line endings normalised (FR-022). */
+    static String rulesHash() throws IOException {
+        String text = Files.readString(DATA_MODEL).replace("\r\n", "\n");
+        int begin = text.indexOf("<!-- scoring-rules:begin");
+        int end = text.indexOf("<!-- scoring-rules:end -->");
+        assertTrue("scoring-rules markers missing in " + DATA_MODEL, begin >= 0 && end > begin);
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(text.substring(begin, end).getBytes(StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void ratchet(List<Result> results, List<HarnessCompare.MutantResult> mutants, Map<String, String> roles) throws IOException {
         Map<Outcome, Long> open = HarnessCompare.counts(results.stream().filter(r -> "open".equals(roles.get(r.source()))).toList());
         Properties now = new Properties();
         open.forEach((o, n) -> now.setProperty("open." + HarnessCompare.label(o), String.valueOf(n)));
+        HarnessCompare.caughtPerKind(mutants, roles).forEach((kind, n) -> now.setProperty("mutants.caught." + kind, String.valueOf(n)));
+        now.setProperty("rules.sha256", rulesHash());
         if ("1".equals(System.getenv("MQL_HARNESS_UPDATE")) || !Files.exists(BASELINE)) {
             StringBuilder sb = new StringBuilder("# MetaEditor harness baseline (counts only). MQL_HARNESS_UPDATE=1 tools/harness/harness.sh rewrites it.\n");
             now.stringPropertyNames().stream().sorted().forEach(k -> sb.append(k).append('=').append(now.getProperty(k)).append('\n'));
@@ -272,11 +348,24 @@ public class HarnessTest extends BasePlatformTestCase {
             base.load(in);
         }
         List<String> worse = new ArrayList<>();
+        if (!now.getProperty("rules.sha256").equals(base.getProperty("rules.sha256"))) {
+            worse.add("the scoring rules in " + DATA_MODEL + " changed without rewriting the baseline (FR-022): "
+                    + "commit the rule change on its own, with MQL_HARNESS_UPDATE=1 and the before/after numbers");
+        }
         for (String k : List.of("open.false-error", "open.missed-error", "open.disjoint-errors")) {
             long was = Long.parseLong(base.getProperty(k, "0"));
             long is = Long.parseLong(now.getProperty(k, "0"));
             if (is > was) {
                 worse.add(k + ": " + was + " -> " + is);
+            }
+        }
+        for (String k : base.stringPropertyNames()) {
+            if (k.startsWith("mutants.caught.")) {
+                long was = Long.parseLong(base.getProperty(k));
+                long is = Long.parseLong(now.getProperty(k, "0"));
+                if (is < was) {
+                    worse.add(k + ": " + was + " -> " + is);
+                }
             }
         }
         assertTrue("harness regressions (see " + REPORT + "):\n" + String.join("\n", worse), worse.isEmpty());

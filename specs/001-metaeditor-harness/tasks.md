@@ -43,13 +43,13 @@
 
 ## Phase 4b: Detection and coverage (from the second /invert)
 
-- [ ] T019a [US1] Header stubs (FR-018): for each header no program includes, generate `/tmp/.../Scripts/<repo>/stub_<n>.mq5` (`#include` the header, empty `OnStart`); judged like programs; never written to any repository
-- [ ] T019b [US1] Mutation set (FR-017, FR-021): seeded, text/token-based generator (no plugin parser) writing mutants to `/tmp` only, 6 kinds (missing `;`, misspelt identifier, wrong argument count, type mismatch, unbalanced brace, undeclared member); keep a mutant only if MetaEditor rejects it; report catch rate per kind
+- [x] T019a [US1] Header stubs (FR-018): for each header no program includes, generate `/tmp/.../Scripts/<repo>/stub_<n>.mq5` (`#include` the header, empty `OnStart`); judged like programs; never written to any repository — **Done:** stubs staged in `MQL5/Scripts/<name>/stub_<n>.mq5` for every repo `.mqh` no program reaches (text-level include closure, quoted beside the file then Include, case-insensitive); the verdict is filed under the header's repo path, so HarnessTest scores the header with no special case; errors on the stub's own lines map to `<stub>/...`. Stage-only: geraked 1, sibvic 189, EA 2. The verdict key now also hashes every `.mqh`/`.h` in the repo (a quoted include can reach outside the roots) but no other program, so one program edit still means one recompile (self-tested).
+- [x] T019b [US1] Mutation set (FR-017, FR-021): seeded, text/token-based generator (no plugin parser) writing mutants to `/tmp` only, 6 kinds (missing `;`, misspelt identifier, wrong argument count, type mismatch, unbalanced brace, undeclared member); keep a mutant only if MetaEditor rejects it; report catch rate per kind — **Done:** `tools/harness/mutate.py` (text + token mask only, seeded, 6 kinds, own self-test); the referee compiles up to `MQL_HARNESS_MUTANTS`=2 mutants per kind per clean program after the programs, mutant text kept in the verdict; HarnessTest swaps the text into the program document, highlights at WARNING, restores; `HarnessCompare.classifyMutant`/`mutationReport` (unit-tested); `mutants.caught.<kind>` ratcheted. Dry run on placeholder verdicts (every mutant "rejected"): 480 mutants from 40 programs; missing `;` caught 1%, unbalanced brace 0%, wrong argument count 0%, type mismatch 0%, misspelt identifier 97%, undeclared member 100%. Probe confirmed the first two are the plugin, not the harness: a missing `;` gives no error at all (tolerant parser), and an unbalanced brace is reported at the opening brace, outside the ±1 rule.
 - [X] T019c [US3] Lock and single MetaEditor (FR-019): harness lock file; skip and wait while another `metaeditor64.exe` runs; self-test with a stubbed process line — done: lock with owner PID, stale takeover, exit 6 when held; another MetaEditor is busy
-- [ ] T019d [US1] One build per score (FR-020): report refuses to mix builds; build change → stale verdicts recompiled first
+- [x] T019d [US1] One build per score (FR-020): report refuses to mix builds; build change → stale verdicts recompiled first — **Done:** HarnessTest already refused verdicts from another build; the referee self-test now proves a build change recompiles every program and mutant before the next index, and the index carries only the new build.
 - [ ] T019e ⛔ SC-007: at least 50 counted mutants per kind; otherwise widen the program sample
 
-- [ ] T019f ⛔ Rule-change discipline (FR-022): a check in HarnessTest that fails if data-model.md's rule block changed without the baseline being rewritten in the same commit
+- [x] T019f ⛔ Rule-change discipline (FR-022): a check in HarnessTest that fails if data-model.md's rule block changed without the baseline being rewritten in the same commit — **Done:** data-model.md's rules sit between `scoring-rules` markers (mutant rules added there); the baseline stores `rules.sha256` and HarnessTest fails when the block changes without a baseline rewrite. Verified both ways on placeholder verdicts.
 
 ## Phase 5: User Story 4 - Fast reruns (P2)
 
@@ -71,6 +71,12 @@
 ## Dependencies
 
 T001 → T002 → everything. T003–T007 before T008. T008–T010 before T013. T011–T012 can start right after T002 (pure code). Phase 5 and 6 need the MVP checkpoint. T026 needs T024.
+
+## Found by the mutation dry run (plugin gaps, for T026)
+
+- A statement missing its `;` produces no plugin error (the parser recovers silently); MetaEditor rejects it. Largest catch-rate gap; a parser change, so it needs its own spec (ruin line: new parse errors in real code).
+- An unbalanced brace is reported at the opening brace, not near the missing `}`; under the frozen ±1 rule it never counts as caught. Whether to score "caught anywhere in the file" for this kind is a rule change (FR-022: its own commit).
+- No argument-count or type checks exist yet, so those kinds sit at 0% until features add them.
 
 ## Found by the dry run (placeholder verdicts, before MetaEditor)
 

@@ -159,6 +159,58 @@ final class HarnessCompare {
         return out.toString();
     }
 
+    /** At least this many counted mutants per kind before a catch rate means anything (SC-007). */
+    static final int MIN_COUNTED_PER_KIND = 50;
+
+    /**
+     * One mutant (FR-017): {@code counted} when MetaEditor rejects it; {@code caught} when the plugin
+     * reports an error within {@link #LINE_TOLERANCE} lines of the injected one that it didn't report
+     * on the original program; {@code caughtAsWarning} when only a warning lands there (FR-021).
+     */
+    record MutantResult(String source, String program, String kind, int line, boolean counted, boolean caught,
+                        boolean caughtAsWarning) {
+    }
+
+    static MutantResult classifyMutant(String source, String program, String kind, int line, boolean rejected,
+                                       java.util.Collection<Integer> errorLines, java.util.Collection<Integer> warningLines,
+                                       java.util.Collection<Integer> originalErrorLines) {
+        boolean caught = rejected && errorLines.stream()
+                .anyMatch(l -> Math.abs(l - line) <= LINE_TOLERANCE && !originalErrorLines.contains(l));
+        boolean warned = rejected && !caught && warningLines.stream().anyMatch(l -> Math.abs(l - line) <= LINE_TOLERANCE);
+        return new MutantResult(source, program, kind, line, rejected, caught, warned);
+    }
+
+    /** Counted mutants caught per kind, open sources only: the ratchet's numbers. */
+    static Map<String, Long> caughtPerKind(List<MutantResult> mutants, Map<String, String> roleBySource) {
+        return mutants.stream().filter(m -> "open".equals(roleBySource.get(m.source())) && m.caught())
+                .collect(Collectors.groupingBy(MutantResult::kind, TreeMap::new, Collectors.counting()));
+    }
+
+    static String mutationReport(List<MutantResult> mutants, Map<String, String> roleBySource) {
+        StringBuilder out = new StringBuilder("\n## Mutation set (open sources)\n\n");
+        List<MutantResult> open = mutants.stream().filter(m -> "open".equals(roleBySource.get(m.source()))).toList();
+        if (open.isEmpty()) {
+            return out.append("No mutants.\n").toString();
+        }
+        out.append("| Kind | Generated | Counted (MetaEditor rejects) | Caught | Caught as warning | Catch rate |\n|---|---|---|---|---|---|\n");
+        Map<String, List<MutantResult>> byKind = open.stream()
+                .collect(Collectors.groupingBy(MutantResult::kind, TreeMap::new, Collectors.toList()));
+        byKind.forEach((kind, ms) -> {
+            long counted = ms.stream().filter(MutantResult::counted).count();
+            long caught = ms.stream().filter(MutantResult::caught).count();
+            long warned = ms.stream().filter(MutantResult::caughtAsWarning).count();
+            out.append("| ").append(kind).append(" | ").append(ms.size()).append(" | ").append(counted)
+                    .append(counted < MIN_COUNTED_PER_KIND ? " (below " + MIN_COUNTED_PER_KIND + ", SC-007)" : "")
+                    .append(" | ").append(caught).append(" | ").append(warned).append(" | ")
+                    .append(counted == 0 ? "-" : Math.round(100.0 * caught / counted) + "%").append(" |\n");
+        });
+        out.append("\nMissed mutants (first 5 per kind):\n\n");
+        byKind.forEach((kind, ms) -> ms.stream().filter(m -> m.counted() && !m.caught()).limit(5)
+                .forEach(m -> out.append("- ").append(kind).append(": ").append(m.source()).append('/')
+                        .append(m.program()).append(':').append(m.line()).append('\n')));
+        return out.toString();
+    }
+
     private static Optional<Example> exampleOf(Result r, String kind) {
         return r.kinds().stream().filter(x -> x.kind().equals(kind)).findFirst();
     }
