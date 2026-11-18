@@ -39,6 +39,14 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                 "'m_mx' - undeclared identifier"), undeclared("test.mq5", code));
     }
 
+    public void testTemplateParameterNameOutsideItsTemplateIsFlagged() {
+        String code = """
+                template<typename T> T Twice(T x) { T r = x + x; return r; }
+                void OnStart() { T stray = 1; Print(Twice(2), stray); }
+                """;
+        assertEquals(List.of("'T' - undeclared identifier"), undeclared("test.mq5", code));
+    }
+
     public void testDeclaredNamesBuiltinsAndPreprocessorAreClean() {
         String code = """
                 #property copyright "x"

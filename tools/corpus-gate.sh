@@ -10,7 +10,7 @@ EA="${MQL_EA_DIR:-$HOME/CLionProjects/RIGGWIRE-EA-TC/RIGGWIRE-EA-LIVE}"
 [[ -d "$MT5" ]] || { echo "no MetaTrader MQL5 folder at $MT5 (set MT5_MQL5)"; exit 1; }
 # MetaQuotes' own Standard Library only: the rest of Include is the user's own (it changes).
 export MQL_INCLUDE_ONLY="Arrays/,Canvas/,ChartObjects/,Charts/,Controls/,Expert/,Files/,Generic/,Graphics/,Indicators/,Math/,OpenCL/,Strings/,Tools/,Trade/,WinAPI/,Object.mqh,StdLibErr.mqh,VirtualKeys.mqh,MovingAverages.mqh"
-export MQL_CORPORA="include=$MT5/Include;examples=$MT5/Experts/Examples,$MT5/Indicators/Examples,$MT5/Scripts/Examples,$MT5/Scripts/UnitTests;free=$MT5/Experts/Free Robots,$MT5/Indicators/Free Indicators;report:ea=$EA"
+export MQL_CORPORA="include=$MT5/Include;examples=$MT5/Experts/Examples,$MT5/Indicators/Examples,$MT5/Scripts/Examples,$MT5/Scripts/UnitTests;free=$MT5/Experts/Free Robots,$MT5/Indicators/Free Indicators;report:ea=$EA${MQL_EXTRA_CORPORA:+;$MQL_EXTRA_CORPORA}"
 export JAVA_HOME="${JAVA_HOME:-/Applications/CLion.app/Contents/jbr/Contents/Home}"
 # the gate re-indexes a few hundred files; a killed run leaves the test sandbox's index corrupt,
 # which then fails unrelated unit tests, so start and finish with a fresh one

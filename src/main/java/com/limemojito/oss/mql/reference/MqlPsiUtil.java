@@ -59,6 +59,9 @@ public final class MqlPsiUtil {
         if (parent instanceof MQL4NamedStubElement<?> named) { // typedef, #define
             return leaf.equals(named.getNameIdentifier());
         }
+        if (parent instanceof com.limemojito.oss.mql.psi.impl.MQL4TemplateParameterElement parameter) {
+            return leaf.equals(parameter.getNameIdentifier());
+        }
         if (parent instanceof MQL4NamespaceElement namespace) {
             return leaf.equals(namespace.getNameIdentifier());
         }

@@ -209,6 +209,7 @@ public class ClassParsing implements MQL4Elements {
                 boolean r = parseEmptyStatement(b)
                         || parseComment(b)
                         || parsePreprocessorBlock(b)
+                        || TopLevelParsing.parseTemplateHeader(b)
                         || parseFunction(b)
                         || parseEnum(b, l + 1)
                         || parseClassOrStruct(b, l + 1)

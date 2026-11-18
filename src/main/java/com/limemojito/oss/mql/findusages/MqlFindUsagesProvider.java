@@ -67,6 +67,9 @@ public class MqlFindUsagesProvider implements FindUsagesProvider {
         if (element instanceof MQL4EnumFieldElement) {
             return "enum constant";
         }
+        if (element instanceof com.limemojito.oss.mql.psi.impl.MQL4TemplateParameterElement) {
+            return "template parameter";
+        }
         if (element instanceof MQL4FunctionArgElement) {
             return "parameter";
         }

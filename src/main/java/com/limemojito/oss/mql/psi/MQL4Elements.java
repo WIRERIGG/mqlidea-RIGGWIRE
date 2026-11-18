@@ -32,6 +32,10 @@ public interface MQL4Elements extends MQL4StubElements, MQL4LexerElements {
     IElementType CLASS_INNER_BLOCK = new MQL4ElementType("CLASS_INNER_BLOCK");
     IElementType CLASS_INIT_BLOCK = new MQL4ElementType("CLASS_INIT_BLOCK");
     IElementType TYPE_TEMPLATE_BLOCK = new MQL4ElementType("TYPE_TEMPLATE_BLOCK");
+    /** {@code template<typename T, class U>} heading a class, struct or function. */
+    IElementType TEMPLATE_HEADER = new MQL4ElementType("TEMPLATE_HEADER");
+    /** One {@code typename T} in a {@link #TEMPLATE_HEADER}. */
+    IElementType TEMPLATE_PARAMETER = new MQL4ElementType("TEMPLATE_PARAMETER");
 
     IElementType BRACKETS_BLOCK = new MQL4ElementType("BRACKETS_BLOCK");
     IElementType CAST_BLOCK = new MQL4ElementType("CAST_BLOCK");

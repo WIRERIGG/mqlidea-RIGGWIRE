@@ -93,11 +93,10 @@ final class UndeclaredNames {
     }
 
     /**
-     * Names a file declares outside the PSI the resolver sees: template parameters
-     * ({@code template<typename T>}, visible to the template they head), {@code #resource}
+     * Names a file declares outside the PSI the resolver sees: {@code #resource}
      * variables ({@code #resource "k.cl" as string src}) and parameters that an invoked macro's
-     * expansion declares ({@code EVENT_MAP_BEGIN(C)} opens {@code OnEvent(const int id, ...)}). Template parameters are matched by name
-     * across the file, which can only hide a real error named like one.
+     * expansion declares ({@code EVENT_MAP_BEGIN(C)} opens {@code OnEvent(const int id, ...)}).
+     * (Template parameters are declarations scoped to their template and resolve directly.)
      */
     static boolean isDeclaredOutsidePsi(@NotNull String name, @NotNull PsiFile file) {
         return CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(
@@ -116,12 +115,7 @@ final class UndeclaredNames {
         Set<String> macrosSeen = new HashSet<>();
         for (ASTNode leaf = firstLeaf(file.getNode()); leaf != null; leaf = nextLeaf(leaf)) {
             IElementType t = leaf.getElementType();
-            if ((t == MQL4Elements.TYPENAME_KEYWORD || t == MQL4Elements.CLASS_KEYWORD) && inTemplateHeader(leaf)) {
-                ASTNode next = nextMeaningful(leaf);
-                if (next != null && next.getElementType() == MQL4Elements.IDENTIFIER) {
-                    names.add(next.getText());
-                }
-            } else if (t == MQL4Elements.IDENTIFIER && MACRO_NAME.matcher(leaf.getText()).matches()
+            if (t == MQL4Elements.IDENTIFIER && MACRO_NAME.matcher(leaf.getText()).matches()
                     && macrosSeen.add(leaf.getText())) {
                 // EVENT_MAP_BEGIN(CBox) expands to bool CBox::OnEvent(const int id,const long& lparam,...) {
                 for (PsiElement target : MqlResolveUtil.resolve(leaf.getPsi(), leaf.getText())) {
@@ -200,25 +194,6 @@ final class UndeclaredNames {
         return com.limemojito.oss.mql.parser.MQL4ParserDefinition.WHITE_SPACES.contains(n.getElementType()) && n.textContains('\n');
     }
 
-    private static boolean inTemplateHeader(@NotNull ASTNode leaf) {
-        for (ASTNode p = leaf.getTreeParent(); p != null; p = p.getTreeParent()) {
-            if (p.getElementType() == MQL4Elements.TYPE_TEMPLATE_BLOCK) {
-                return true;
-            }
-        }
-        ASTNode prev = leaf;
-        for (int i = 0; i < 64 && (prev = prevMeaningfulLeaf(prev)) != null; i++) {
-            IElementType t = prev.getElementType();
-            if (t == MQL4Elements.TEMPLATE_KEYWORD) {
-                return true;
-            }
-            if (t == MQL4Elements.SEMICOLON || t == MQL4Elements.L_CURLY_BRACKET || t == MQL4Elements.R_CURLY_BRACKET || t == MQL4Elements.GT) {
-                return false;
-            }
-        }
-        return false;
-    }
-
     @Nullable
     private static ASTNode firstLeaf(@NotNull ASTNode node) {
         ASTNode n = node;
@@ -236,24 +211,6 @@ final class UndeclaredNames {
     @Nullable
     private static ASTNode prevLeaf(@NotNull ASTNode node) {
         return com.intellij.psi.impl.source.tree.TreeUtil.prevLeaf(node);
-    }
-
-    @Nullable
-    private static ASTNode nextMeaningful(@NotNull ASTNode node) {
-        ASTNode n = nextLeaf(node);
-        while (n != null && (com.limemojito.oss.mql.parser.MQL4ParserDefinition.WHITE_SPACES.contains(n.getElementType()) || MQL4TokenSets.COMMENTS.contains(n.getElementType()))) {
-            n = nextLeaf(n);
-        }
-        return n;
-    }
-
-    @Nullable
-    private static ASTNode prevMeaningfulLeaf(@NotNull ASTNode node) {
-        ASTNode n = prevLeaf(node);
-        while (n != null && (com.limemojito.oss.mql.parser.MQL4ParserDefinition.WHITE_SPACES.contains(n.getElementType()) || MQL4TokenSets.COMMENTS.contains(n.getElementType()))) {
-            n = prevLeaf(n);
-        }
-        return n;
     }
 
     static boolean isBuiltin(@NotNull String name) {
