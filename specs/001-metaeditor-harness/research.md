@@ -20,6 +20,7 @@
 ## R4. Busy check
 
 - **Decision** (revised by lattice.md): port the plugin's *background-compile* rule to Python: busy = a command line running `metatester64.exe` (path ends `\name.exe` or `/name.exe`), an `mt5 backtest` driver, or `terminal64.exe` started with `/config:` (a tester run); table from `ps -axww -o command=`; unreadable table = busy. Checked at start and before every compile.
+- **Open question (seen 2026-11-17, to settle in T001/T004)**: during a backtest, `ps` shows eight `metatester64.exe /run /address:0.0.0.0:200N` agents plus one `metatester64.exe /local ...` agent. If the `/run` agents stay up when no test runs, "any metatester64" would starve the referee too; the rule would then be `/local` agent, `mt5 backtest` driver, or `terminal64 /config:`. Observe `ps` after the backtests end before writing `is_busy()`.
 - **Why not "any terminal64"**: a plain terminal with charts open is not a backtest, compiles are safe beside it, and the owner's terminal is often open, so the stricter rule would starve the referee.
 
 ## R5. Plugin-side verdict

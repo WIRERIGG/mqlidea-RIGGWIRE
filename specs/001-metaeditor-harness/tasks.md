@@ -29,8 +29,8 @@
 
 ## Phase 4: User Story 1 + 2 - Score and ranked gap list (P1) 🎯 MVP
 
-- [ ] T011 [P] [US1] `src/test/java/gate/HarnessCompare.java`: pure classification per data-model.md (`agree-clean`, `agree-errors`, `disjoint-errors`, `false-error`, `missed-error`, `excluded`; ±1-line match; first error per file for kinds) and report text, fully sorted, no timestamps
-- [ ] T012 [P] [US1] `src/test/java/gate/HarnessCompareTest.java`: every outcome incl. `disjoint-errors`, cascades don't change outcome, warnings never decide, report byte-identical across two calls
+- [X] T011 [P] [US1] `src/test/java/gate/HarnessCompare.java`: pure classification per data-model.md (`agree-clean`, `agree-errors`, `disjoint-errors`, `false-error`, `missed-error`, `excluded`; ±1-line match; first error per file for kinds) and report text, fully sorted, no timestamps
+- [X] T012 [P] [US1] `src/test/java/gate/HarnessCompareTest.java`: every outcome incl. `disjoint-errors`, cascades don't change outcome, warnings never decide, report byte-identical across two calls
 - [ ] T013 [US1] `src/test/java/gate/HarnessTest.java`: no-op without `MQL_HARNESS`; per source, load files as project files, set `MqlIncludeRoots.setTestRoots` to the source's roots + the Standard Library, enable default-on ERROR inspections, `doHighlighting(HighlightSeverity.ERROR)` per judged file (research R5), compare against the store, write `build/harness-report.md`
 - [ ] T014 [US1] ⛔ Time check on the MVP: average highlight time × full corpus size; over 10 minutes → restrict to programs + headers MetaEditor named (lattice.md) before going on
 - [ ] T015 [US2] Report sections: headline, per source, ranked kinds with ≤5 `file:line` examples, MQL4 "no referee", MetaTrader-untouched result (data-model.md Report)
