@@ -18,7 +18,12 @@ import org.jetbrains.annotations.NotNull;
 
 import com.intellij.psi.tree.TokenSet;
 import com.limemojito.oss.mql.psi.MQL4Elements;
+import com.limemojito.oss.mql.psi.impl.MQL4FunctionArgElement;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class StackOverflowRiskInspection extends MQL5SafetyInspectionBase {
 
@@ -56,16 +61,88 @@ public class StackOverflowRiskInspection extends MQL5SafetyInspectionBase {
         return false;
     }
 
+    /**
+     * The first call in {@code body} to the function's own name that only this function can take.
+     * A call with too few or too many arguments goes to another overload
+     * ({@code double calcVolume(double vol) { return calcVolume(1, 1, vol, 0); }}), and so may a call
+     * another overload in the file can also take ({@code Add(CWnd &c) { return Add(GetPointer(c)); }}):
+     * telling those apart needs argument types, so it is not reported.
+     */
+    private ASTNode selfCall(ASTNode body, @NotNull MQL4FunctionElement func, @NotNull Map<String, Map<List<String>, int[]>> overloads) {
+        Map<List<String>, int[]> byTypes = overloads.getOrDefault(func.getFunctionName(), Map.of());
+        List<String> own = withoutDefaults(parameterTypes(func));
+        int[] range = byTypes.getOrDefault(own, arity(parameterTypes(func)));
+        List<int[]> others = byTypes.entrySet().stream().filter(e -> !e.getKey().equals(own)).map(Map.Entry::getValue).toList();
+        ASTNode[] found = {null};
+        StatementAst.forEachCall(body, Set.of(func.getFunctionName()), call -> {
+            int args = StatementAst.callArgCount(call);
+            if (found[0] == null && args >= range[0] && args <= range[1]
+                    && others.stream().noneMatch(o -> args >= o[0] && args <= o[1])) {
+                found[0] = call;
+            }
+        });
+        return found[0];
+    }
+
+    /** {required, all} parameter counts. */
+    private static int[] arity(@NotNull List<String> types) {
+        return new int[]{(int) types.stream().filter(t -> !t.endsWith("=")).count(), types.size()};
+    }
+
+    private static List<String> withoutDefaults(@NotNull List<String> types) {
+        return types.stream().map(t -> t.endsWith("=") ? t.substring(0, t.length() - 1) : t).toList();
+    }
+
+    /**
+     * One entry per parameter: its type tokens (everything before the name, plus array brackets),
+     * ending in {@code =} when it has a default. Parameter names are left out, so a declaration and
+     * its definition give the same list.
+     */
+    private List<String> parameterTypes(@NotNull MQL4FunctionElement func) {
+        List<ASTNode> params = getFunctionArgs(func);
+        if (params.size() == 1 && params.get(0).getText().trim().equals("void")) {
+            return List.of();
+        }
+        List<String> types = new ArrayList<>();
+        for (ASTNode param : params) {
+            ASTNode name = param.getPsi() instanceof MQL4FunctionArgElement arg && arg.getNameIdentifier() != null
+                    ? arg.getNameIdentifier().getNode() : null;
+            StringBuilder type = new StringBuilder();
+            boolean afterName = false;
+            for (ASTNode t = param.getFirstChildNode(); t != null; t = t.getTreeNext()) {
+                if (t == name) {
+                    afterName = true;
+                } else if (t.getElementType() == MQL4Elements.EQ) {
+                    break;
+                } else if (!StatementAst.isTrivia(t) && (!afterName || t.getElementType() == MQL4Elements.L_SQUARE_BRACKET)) {
+                    type.append(t.getText()).append(' ');
+                }
+            }
+            types.add(type.toString().trim() + (param.findChildByType(MQL4Elements.EQ) != null ? "=" : ""));
+        }
+        return types;
+    }
+
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new SmartList<>();
-        for (PsiElement child : childrenAndClassMethods(file)) {
+        List<PsiElement> declarations = childrenAndClassMethods(file);
+        // name -> parameter types -> {required, all}; a declaration's defaults widen its definition's range
+        Map<String, Map<List<String>, int[]>> overloads = new HashMap<>();
+        for (PsiElement child : declarations) {
+            if (child instanceof MQL4FunctionElement func) {
+                List<String> types = parameterTypes(func);
+                overloads.computeIfAbsent(func.getFunctionName(), k -> new HashMap<>())
+                        .merge(withoutDefaults(types), arity(types), (a, b) -> new int[]{Math.min(a[0], b[0]), a[1]});
+            }
+        }
+        for (PsiElement child : declarations) {
             ProgressManager.checkCanceled();
             if (child instanceof MQL4FunctionElement func && !func.isDeclaration()) {
                 String name = func.getFunctionName();
                 if (name.equals(MQL4FunctionElement.UNKNOWN_NAME) || name.startsWith("~")) continue;
                 ASTNode body = findBracketsBlock(child);
-                ASTNode recursiveCall = StatementAst.findCall(body, name);
+                ASTNode recursiveCall = selfCall(body, func, overloads);
                 if (recursiveCall != null) {
                     String text = StatementAst.heuristicText(body);
                     boolean hasDepthCheck = text.contains("depth") || text.contains("level")

@@ -11,4 +11,4 @@
 - [X] T009 ⛔ Public corpus (1,127 files) alone, master vs branch: parse errors 371 = 371; first pass +33 undeclared (modifier between header and function, body parsed apart from its signature) → tolerant `templateHeaderBefore` + 3 tests → undeclared flags identical to master (2,198, none new); one false undefined-function call gone (`T(x)` cast); a +1 MissingDestructor did not reproduce on the file alone and master itself varies run to run (resolved ±97): public-corpus gate runs are not fully deterministic (note for 001 SC-003)
 - [X] T009b Found in passing: `unsigned int` in a parameter list is a plugin parse error (EA31337 SerializerDict.mqh); whether MetaEditor accepts it is for the 001 harness / one compile once backtests stop
 - [X] T010 Rebaseline: Standard Library unresolved 6,112 → 4,853 (−1,259), resolved 394,613 → 395,687; README/CLAUDE.md; 658 tests
-- [ ] T011 Live check in CLion after the next install (owner)
+- [X] T011 Live check in CLion after the next install (owner): 2026-11-19, 2026.1.10 in CLion 2026.3; geraked's templated `Storage.mqh`, `EAUtils.mqh` and `WinINet.mqh` show no errors

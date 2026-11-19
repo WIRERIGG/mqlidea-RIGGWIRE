@@ -868,6 +868,30 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "bool SafeOrderModify(ulong ticket) { return CTradeOperationWrapper::SafeOrderModify(ticket); }");
     }
 
+    public void testStackOverflowRiskSkipsACallToAnotherOverload() {
+        // geraked EAUtils.mqh: a short overload forwards to the full one; the argument count rules itself out
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "double Vol(double in, double sl, double risk = 0.01, string sym = NULL) { return in * sl * risk; }\n" +
+                "double Vol(double v, string sym = NULL) { return Vol(1, 1, v, sym); }");
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "bool Allowed(string s, int f, int e) { return f == e; }\n" +
+                "bool Allowed(string s, int f) { return Allowed(s, f, 0); }");
+        // a call its own defaults allow is still a self-call
+        assertHasProblems(new StackOverflowRiskInspection(),
+                "int Loop(int n, int step = 1) { Print(n); return Loop(n + step); }");
+        assertHasProblems(new StackOverflowRiskInspection(),
+                "void Spin(void) { Spin(); }");
+        // Standard Library CWndContainer: same argument count, other parameter type
+        assertNoProblems(new StackOverflowRiskInspection(),
+                "class C { bool Add(CWnd *c); bool Add(CWnd &c); };\n" +
+                "bool C::Add(CWnd *c) { return c != NULL; }\n" +
+                "bool C::Add(CWnd &c) { return Add(GetPointer(c)); }");
+        // a declaration's default and its definition are one function, not two overloads
+        assertHasProblems(new StackOverflowRiskInspection(),
+                "class D { int Walk(int n, int step = 1); };\n" +
+                "int D::Walk(int n, int step) { Print(n); return Walk(n + step); }");
+    }
+
     public void testDanglingObjectReference() {
         assertHasProblems(new DanglingObjectReferenceInspection(),
                 "void foo() { delete ptr; int x = ptr.value; }");

@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,6 +68,8 @@ public class HarnessTest extends BasePlatformTestCase {
 
     private static final Path BASELINE = Paths.get("src/test/resources/gate/harness-baseline.properties");
     private static final Path REPORT = Paths.get("build/harness-report.md");
+    /** Every plugin error scored, once per file and line, for comparing with CLion (T019). */
+    private static final Path ERRORS = Paths.get("build/harness-plugin-errors.tsv");
     private static final List<String> STDLIB = List.of("Arrays", "Canvas", "ChartObjects", "Charts", "Controls", "Expert",
             "Files", "Generic", "Graphics", "Indicators", "Math", "OpenCL", "Strings", "Tools", "Trade", "WinAPI",
             "Object.mqh", "StdLibErr.mqh", "VirtualKeys.mqh", "MovingAverages.mqh");
@@ -101,6 +104,7 @@ public class HarnessTest extends BasePlatformTestCase {
         enableDefaultErrorInspections();
         loadMetaTraderInclude(mql5.resolve("Include"));
         List<Result> results = new ArrayList<>();
+        Set<String> errorRows = new TreeSet<>();
         Map<String, String> roles = new TreeMap<>();
         long highlightMillis = 0;
         int highlighted = 0;
@@ -131,6 +135,7 @@ public class HarnessTest extends BasePlatformTestCase {
                     highlightMillis += (System.nanoTime() - start) / 1_000_000;
                     highlighted++;
                     results.add(HarnessCompare.classify(withRepoFiles(verdict), plugin));
+                    plugin.forEach(d -> errorRows.add(name + "\t" + d.file() + "\t" + d.line() + "\t" + d.id() + "\t" + d.message()));
                     originalErrorLines.put(program.getKey(), plugin.stream().filter(d -> program.getKey().equals(d.file()))
                             .map(PluginDiag::line).collect(Collectors.toSet()));
                 }
@@ -148,6 +153,7 @@ public class HarnessTest extends BasePlatformTestCase {
                 + "\n- MQL4 sources: no referee (MetaTrader 5's MetaEditor can't compile MQL4)\n";
         Files.createDirectories(REPORT.getParent());
         Files.writeString(REPORT, report, StandardCharsets.UTF_8);
+        Files.writeString(ERRORS, String.join("\n", errorRows) + "\n", StandardCharsets.UTF_8);
         System.out.println("harness: " + highlighted + " programs highlighted in " + highlightMillis + " ms ("
                 + (highlighted == 0 ? 0 : highlightMillis / highlighted) + " ms each); report " + REPORT);
         ratchet(results, mutantResults, roles);
