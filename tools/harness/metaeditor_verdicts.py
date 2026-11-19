@@ -347,7 +347,8 @@ def stage_source(source, stage_root=None, mql5=None):
     covered = included_repo_files(stage_mql5, mapping, programs)
     prefix = str(experts.relative_to(stage_mql5)) + "/"
     headers = sorted((staged, rel) for staged, rel in mapping.items()
-                     if staged.startswith(prefix) and rel.lower().endswith(".mqh") and rel not in covered)
+                     if staged.startswith(prefix) and rel.lower().endswith(".mqh") and rel not in covered
+                     and "mql4" not in (part.lower() for part in Path(rel).parts[:-1]))  # MQL4 trees aren't MetaEditor 5's
     for n, (staged, rel) in enumerate(headers, 1):
         stub = stage_mql5 / "Scripts" / source["name"].replace(" ", "_") / f"stub_{n}.mq5"
         stub.parent.mkdir(parents=True, exist_ok=True)
@@ -696,6 +697,8 @@ def self_test():
             (repo / "Include" / "Lib").mkdir()
             (repo / "Include" / "Lib" / "Deep.mqh").write_text("int deep;\n")
             (repo / "Include" / "Lonely.mqh").write_text("int lonely;\n")
+            (repo / "MQL4" / "Include").mkdir(parents=True)
+            (repo / "MQL4" / "Include" / "Old.mqh").write_text("int old;\n")
             st, mp, progs, unsup, stubs = stage_source(dict(src, include_roots=["Include"]))
             check("stubs only for unreached headers", sorted(stubs.values()) == ["Include/Lonely.mqh", "Include/My Utils.mqh"])
             stub = next(k for k, v in stubs.items() if v == "Include/Lonely.mqh")

@@ -47,3 +47,11 @@
 ## R8. Throughput
 
 - **Measured in T001 (2026-11-18)**: 3.3 s (MACD Sample, ChartInChart), 4.9 s (2MAAOS), 10.1 s on the first, cold Wine start. All 16 sources: 587 programs and header stubs plus about 2,200 mutants, so roughly 3–4 hours of compiles in total, run in batches between backtests (the referee stops cleanly when one starts and reuses every verdict on the next run). Paid once per corpus or MetaEditor change.
+
+## T010 tripwire (2026-11-18, first full referee run: 587 programs and stubs, 1,006 counted mutants, MQL5 untouched)
+
+Excluded share per source: every source is under 30% except MegaJoctan__ML5 (17 of 30) and EarnForex__Account-Protector (1 of 3).
+- **ML5:** its `Sklearn/` headers include `MALE5\MatrixExtend.mqh` and `MALE5\MqPlotLib\plots.mqh`, which the repository no longer contains (commit 739cf81). No include root can fix that; the 13 programs that compile still count. Kept, recorded here.
+- **Account-Protector and PositionSizer:** the one exclusion each was a header stub for a header under `MQL4/`, compiled by MetaEditor 5. Headers in an MQL4 folder are no longer stubbed.
+- **sibvic (12%):** its snippets include each other as `<AAction.mqh>` although the file is in `snippets/Actions/`, because they are generator templates.
+- **EA31337:** 129 of 136 programs have errors. That is a real verdict, not staging: build 6230 rejects `DateTime.mqh:246` ("cannot convert parameter 'MqlDateTime&' to 'const DateTimeEntry&'"), and 120 programs include it.
