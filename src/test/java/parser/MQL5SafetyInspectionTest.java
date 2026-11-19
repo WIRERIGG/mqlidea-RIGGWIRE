@@ -1615,6 +1615,13 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void Foo(int unused) { Print(\"hi\"); }");
     }
 
+    public void testParameterUsedInAnInitializerListIsUsed() {
+        assertNoProblems(new UnusedParameterInspection(),
+                "class CPoint { double m_v; datetime m_t; CPoint(datetime t = 0, double v = 0) : m_t(t), m_v(v) {} };", "test.mq5");
+        assertHasProblems(new UnusedParameterInspection(),
+                "class CPoint { double m_v; CPoint(int unused, double v) : m_v(v) {} };", "test.mq5");
+    }
+
     public void testUnusedParameterClean() {
         assertNoProblems(new UnusedParameterInspection(),
                 "void Foo(int used) { Print(used); }");
