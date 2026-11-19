@@ -31,6 +31,14 @@ The four near-zero kinds are the next features. Each needs its own spec with the
 3. **Type mismatch** (MetaEditor 246/219): assigning a number to a pointer or object, and an initialiser list to a scalar.
 4. **Unbalanced brace**: reported at the opening brace, not where MetaEditor reports it (the end of file or the next function). This is a rule question for the FR-022 scoring rules: change it in its own commit if line agreement should allow it.
 
+## Next parser feature: macro calls where a declaration belongs
+
+After the fix branch, nearly every parse error left in the 1,127-file public corpus (about 200 of 218) is a function-like macro used where the parser expects a declaration:
+- a member line in a class body: `SOCKOPT_WRAP(int)` in mql-zmq `Include/Zmq/SocketOptions.mqh:137-139`, and 61 similar lines in mql4-lib;
+- a macro as a parameter type: `ARRAY_REF(X, array)` and `STRUCT_ENUM(...)` in EA31337.
+
+MetaEditor expands them, so these files compile. In the plugin each parse error switches off the MetaEditor annotator for its file. A spec should parse a known `#define`'s call in declaration position as a macro-call node (the parser has no macro table, so that needs a syntactic rule), under 002's ruin line.
+
 ## Found while building the harness (fixed)
 
 - **Fix branch:** a quoted `#include` from a file sitting directly in an include root didn't resolve when that root was also project content (Object.mqh → "StdLibErr.mqh"). The unseen-include guard then silenced checks for every Standard Library user in the gate and harness setups. The mutation set caught it; the corpus gate couldn't. Fixed with a regression test.
