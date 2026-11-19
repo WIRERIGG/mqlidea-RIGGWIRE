@@ -243,6 +243,20 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
         assertEquals(List.of(), undeclared("unsigned.mq5", code));
     }
 
+    public void testCommissionStructureIsBuiltIn() {
+        // MetaEditor 5 build 6230 knows MqlCommission and SymbolInfoCommissions (compile-checked)
+        String code = """
+                void OnStart()
+                  {
+                   MqlCommission c[];
+                   MqlCommission one;
+                   if(SymbolInfoCommissions(_Symbol, c) > 0)
+                      Print(one.mode_entry, one.currency, ArraySize(one.tiers), one.nope);
+                  }
+                """;
+        assertEquals(List.of("'nope' - undeclared identifier"), undeclared("commission.mq5", code));
+    }
+
     public void testImportedModuleQualifiesItsFunctions() {
         String code = """
                 #import "kernel32.dll"

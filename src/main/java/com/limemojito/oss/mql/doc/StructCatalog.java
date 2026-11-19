@@ -57,7 +57,10 @@ public final class StructCatalog {
                 for (Map.Entry<String, JsonElement> e : root.entrySet()) {
                     if (e.getValue().isJsonObject()) {
                         JsonObject entry = e.getValue().getAsJsonObject();
-                        out.put(e.getKey(), new Members(names(entry, "fields"), names(entry, "methods")));
+                        // "arrays": fields that are arrays (MqlCommission.tiers); verify-structs.py touches them with ArraySize
+                        List<String> fields = new java.util.ArrayList<>(names(entry, "fields"));
+                        fields.addAll(names(entry, "arrays"));
+                        out.put(e.getKey(), new Members(List.copyOf(fields), names(entry, "methods")));
                     }
                 }
             } catch (Exception e) {

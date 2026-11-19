@@ -11,6 +11,7 @@
   "MqlTradeTransaction": {"fields": ["deal", "order", "symbol", "type", "order_type", "order_state", "deal_type", "time_type", "time_expiration", "price", "price_trigger", "price_sl", "price_tp", "volume", "position", "position_by"]},
   "MqlCalendarCountry": {"fields": ["id", "name", "code", "currency", "currency_symbol", "url_name"]},
   "MqlCalendarEvent": {"fields": ["id", "type", "sector", "frequency", "time_mode", "country_id", "unit", "importance", "multiplier", "digits", "source_url", "event_code", "name"]},
+  "MqlCommission": {"fields": ["currency", "mode_direction", "mode_entry", "mode_profit", "mode_range"], "arrays": ["tiers"]},
   "MqlCalendarValue": {"fields": ["id", "event_id", "time", "period", "revision", "actual_value", "prev_value", "revised_prev_value", "forecast_value", "impact_type"],
                        "methods": ["HasActualValue", "HasPreviousValue", "HasRevisedValue", "HasForecastValue", "GetActualValue", "GetPreviousValue", "GetRevisedValue", "GetForecastValue"]}
 }
