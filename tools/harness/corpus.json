@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {"name": "geraked__metatrader5", "path": "~/mql-corpus/geraked__metatrader5", "commit": "d3eb29c", "licence": "MIT",
+     "role": "open", "include_roots": ["Include"], "programs": "**/*.mq5"},
+    {"name": "sibvic__mq5-templates", "path": "~/mql-corpus/sibvic__mq5-templates", "commit": "6de6720", "licence": "MIT",
+     "role": "open", "include_roots": ["snippets"], "programs": "**/*.mq5"},
+    {"name": "metaquotes-examples", "path": "~/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/Program Files/MetaTrader 5/MQL5/Experts/Examples",
+     "commit": "installed", "licence": "MetaQuotes (read in place, never copied into the repo)", "role": "open", "include_roots": [], "programs": "**/*.mq5"},
+    {"name": "riggwire-ea", "path": "~/CLionProjects/RIGGWIRE-EA-TC/RIGGWIRE-EA-LIVE", "commit": "working tree", "licence": "owner",
+     "role": "report", "include_roots": ["."], "programs": "*.mq5", "link_metatrader_include": true},
+    {"name": "dingmaotu__mql-zmq", "path": "~/mql-corpus/dingmaotu__mql-zmq", "commit": "802c86c", "licence": "Apache-2.0", "role": "open", "include_roots": ["Include"], "programs": "**/*.mq5"},
+    {"name": "EarnForex__PositionSizer", "path": "~/mql-corpus/EarnForex__PositionSizer", "commit": "3b99c9d", "licence": "Apache-2.0", "role": "open", "include_roots": [], "programs": "MQL5/**/*.mq5"},
+    {"name": "EA31337__EA31337-classes", "path": "~/mql-corpus/EA31337__EA31337-classes", "commit": "a723dd7", "licence": "GPL-3.0", "role": "open", "include_roots": [], "programs": "**/*.mq5"},
+    {"name": "MegaJoctan__ML5", "path": "~/mql-corpus/MegaJoctan__ML5", "commit": "739cf81", "licence": "MIT", "role": "open", "include_roots": ["."], "programs": "**/*.mq5", "include_as": "MALE5"},
+    {"name": "darwinex__dwxconnect", "path": "~/mql-corpus/darwinex__dwxconnect", "commit": "ca43c7b", "licence": "BSD-3-Clause", "role": "open", "include_roots": [], "programs": "mql/*.mq5"},
+    {"name": "xxvw__ICT_Library_MQ5", "path": "~/mql-corpus/xxvw__ICT_Library_MQ5", "commit": "b85a8f6", "licence": "MIT", "role": "open", "include_roots": ["Include"], "programs": "**/*.mq5"},
+    {"name": "EarnForex__MarketProfile", "path": "~/mql-corpus/EarnForex__MarketProfile", "commit": "f819c3c", "licence": "Apache-2.0", "role": "open", "include_roots": [], "programs": "*.mq5"},
+    {"name": "erlonfs__bad-robot.framework", "path": "~/mql-corpus/erlonfs__bad-robot.framework", "commit": "a62e247", "licence": "MIT", "role": "open", "include_roots": ["Include"], "programs": "**/*.mq5"},
+    {"name": "vivazzi__JAson", "path": "~/mql-corpus/vivazzi__JAson", "commit": "15cb555", "licence": "MIT", "role": "open", "include_roots": ["Include"], "programs": "**/*.mq5"},
+    {"name": "EarnForex__Account-Protector", "path": "~/mql-corpus/EarnForex__Account-Protector", "commit": "61d2852", "licence": "Apache-2.0", "role": "heldout", "include_roots": [], "programs": "MQL5/**/*.mq5"},
+    {"name": "Roffild__RoffildLibrary", "path": "~/mql-corpus/Roffild__RoffildLibrary", "commit": "6285c60", "licence": "Apache-2.0", "role": "heldout", "include_roots": ["Include"], "programs": "**/*.mq5"},
+    {"name": "landim32__LadinoBot", "path": "~/mql-corpus/landim32__LadinoBot", "commit": "2aa8043", "licence": "GPL-3.0", "role": "heldout", "include_roots": ["Include"], "programs": "**/*.mq5"}
+  ]
+}

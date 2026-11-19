@@ -152,6 +152,7 @@ Without any of these, every editor feature still works; only inline compiler dia
 - **Plugin Verifier**: compatible with IntelliJ IDEA 2025.3.2 and CLion 2026.3, using no internal or experimental platform API
 - **Hermetic tests**: the 680 unit tests never depend on the machine's MetaTrader install
 - **MetaEditor is the referee**: language support and built-in name lists are checked by compiling probes in the real MetaEditor; no mql5.com documentation text is bundled
+- **MetaEditor harness**: 234 MQL5 programs (14 open-source repositories, plus MetaQuotes' examples and one private EA read from the local install and never copied), their 335 otherwise-unreached headers, and 1,006 seeded mistakes are compiled in MetaEditor, and the plugin is scored against those verdicts. Its false errors, missed errors and caught mistakes per kind may not get worse. The first baseline: 285 programs where both are clean, 31 where only the plugin reports an error, 67 where only MetaEditor does. The plugin catches 91% of misspelt names and 93% of misspelt members; it does not yet catch a missing `;`, a wrong argument count or a type mismatch (see `specs/001-metaeditor-harness/findings.md`)
 
 ---
 

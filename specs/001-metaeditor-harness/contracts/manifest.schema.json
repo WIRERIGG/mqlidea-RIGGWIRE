@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HarnessCorpus",
+  "type": "object",
+  "required": ["sources"],
+  "properties": {
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path", "commit", "licence", "role", "include_roots"],
+        "properties": {
+          "name": {"type": "string"},
+          "path": {"type": "string"},
+          "commit": {"type": "string"},
+          "licence": {"type": "string"},
+          "role": {"enum": ["open", "heldout", "report"]},
+          "include_roots": {"type": "array", "items": {"type": "string"}},
+          "programs": {"type": "string", "default": "**/*.mq5"},
+          "link_metatrader_include": {"type": "boolean", "default": false, "description": "link every entry of MetaTrader's Include (user headers too), not only the Standard Library; for the owner's EA"}
+        }
+      }
+    }
+  }
+}

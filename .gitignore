@@ -20,3 +20,4 @@ gradle/native/
 gradle/wrapper/dists/
 .env
 *.env
+__pycache__/
