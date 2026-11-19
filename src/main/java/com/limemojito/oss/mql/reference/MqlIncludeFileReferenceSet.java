@@ -58,10 +58,24 @@ public class MqlIncludeFileReferenceSet extends FileReferenceSet {
     @NotNull
     @Override
     public Collection<PsiFileSystemItem> computeDefaultContexts() {
-        if (!angleBracket) {
-            return super.computeDefaultContexts();
-        }
         PsiFile containingFile = getContainingFile();
+        if (!angleBracket) {
+            // The platform's default misses the folder when the including file sits directly in an include
+            // root (MQL5/Include/Object.mqh -> "StdLibErr.mqh"), so the file's own folder comes first.
+            PsiFile original = containingFile == null ? null : containingFile.getOriginalFile();
+            com.intellij.psi.PsiDirectory folder = original == null ? null : original.getContainingDirectory();
+            if (folder == null) {
+                return super.computeDefaultContexts();
+            }
+            List<PsiFileSystemItem> contexts = new ArrayList<>();
+            contexts.add(folder);
+            for (PsiFileSystemItem context : super.computeDefaultContexts()) {
+                if (!folder.equals(context)) {
+                    contexts.add(context);
+                }
+            }
+            return contexts;
+        }
         if (containingFile == null) {
             return super.computeDefaultContexts();
         }

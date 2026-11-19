@@ -89,6 +89,24 @@ public class MqlIncludeLibraryTest extends BasePlatformTestCase {
         }
     }
 
+    public void testQuotedIncludeFromAFileDirectlyInAnInProjectIncludeRootResolves() {
+        // The corpus gate and the MetaEditor harness load MQL5/Include as project files and make that folder
+        // the include root. There, Object.mqh's "StdLibErr.mqh" failed to resolve, so every program using the
+        // Standard Library looked like it had an unseen include and its undeclared-name checks went quiet.
+        myFixture.addFileToProject("inc/Top.mqh", "#include \"Err.mqh\"\nint TopHelper() { return ERR_TOP; }\n");
+        myFixture.addFileToProject("inc/Err.mqh", "#define ERR_TOP 1\n");
+        setRoots(List.of(myFixture.getTempDirFixture().getFile("inc")));
+        PsiFile main = myFixture.configureByText("Main.mq5", """
+                #include <Top.mqh>
+                void OnStart() { Print(TopHelper(), ERR_TOP); NoSuchFunction(); }
+                """);
+        assertNotNull("Err.mqh, reached through Top.mqh's quoted include, should resolve", resolveIn(main, "ERR_TOP)"));
+        myFixture.enableInspections(new UndefinedFunctionCallInspection());
+        List<String> errors = myFixture.doHighlighting(HighlightSeverity.ERROR).stream()
+                .map(HighlightInfo::getDescription).filter(d -> d != null && d.contains("NoSuchFunction")).toList();
+        assertEquals("the check stays on", 1, errors.size());
+    }
+
     public void testProjectDeclarationWinsOverStaleLibraryCopy() {
         myFixture.addFileToProject("Trend.mqh", "struct Snapshot { bool active; };\nbool g_bullish = false;\n");
         myFixture.addFileToProject("Analyzer.mqh", "void Record() { Snapshot s; s.active = g_bullish; }\n");
