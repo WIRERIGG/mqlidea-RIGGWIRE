@@ -226,6 +226,23 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                 """));
     }
 
+    public void testUnsignedIntegerTypesParse() {
+        // DictBase.mqh (EA31337) declares 'unsigned int& position' after other parameters; that failed to parse
+        String code = """
+                unsigned int g_count;
+                unsigned short Low(const int k, unsigned int& position, unsigned long big)
+                  {
+                   unsigned char c = 0;
+                   position = k + c + (int)big + (int)g_count;
+                   return 0;
+                  }
+                """;
+        myFixture.configureByText("unsigned.mq5", code);
+        assertEquals(List.of(), com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(myFixture.getFile(),
+                com.intellij.psi.PsiErrorElement.class).stream().map(com.intellij.psi.PsiErrorElement::getErrorDescription).toList());
+        assertEquals(List.of(), undeclared("unsigned.mq5", code));
+    }
+
     public void testImportedModuleQualifiesItsFunctions() {
         String code = """
                 #import "kernel32.dll"

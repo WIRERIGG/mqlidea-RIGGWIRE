@@ -50,7 +50,9 @@ public interface MQL4StubElements {
     // v28: variables declared after a class/struct body (struct S {...} v;) parse as top-level
     // VAR_DECLARATION_STATEMENTs, adding global-var stubs; qualified parameter and base types
     // (Outer::Item *p) parse, so functions that failed there now produce their stubs.
-    int STUB_SCHEMA_VERSION = 28;
+    // v29: 'unsigned int' parses as 'int' (the modifier is skipped), so functions and globals that failed there
+    // now produce their stubs.
+    int STUB_SCHEMA_VERSION = 29;
 
     // The debug name goes through the constructor: getDebugName() is internal API and not for overriding.
     ILightStubFileElementType FILE = new ILightStubFileElementType("RIGGWIRE MQL File", MQL4Language.INSTANCE) {
