@@ -962,6 +962,18 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testDataConsistency() {
         assertHasProblems(new DataConsistencyInspection(),
                 "void foo() { double ask = Ask; if(ask == 1.2345) { } }");
+        assertHasProblems(new DataConsistencyInspection(),
+                "void foo(double sl) { if (SymbolInfoDouble(_Symbol, SYMBOL_BID) != sl) Print(1); }");
+    }
+
+    public void testDataConsistencyIgnoresZeroOrderingAndPlainUse() {
+        // Standard Library ExpertMoney.mqh: `if(price==0.0) lot=...m_symbol.Ask()...` compares a sentinel, exactly
+        assertNoProblems(new DataConsistencyInspection(),
+                "double Lot(double price) { double lot; if (price == 0.0) lot = m_symbol.Ask(); else lot = 1; return lot; }");
+        assertNoProblems(new DataConsistencyInspection(),
+                "void foo() { double ask = Ask; if (ask > 1.2345) Print(ask); if (ask != 0) Print(1); }");
+        assertNoProblems(new DataConsistencyInspection(),
+                "void foo(double p) { if (NormalizeDouble(Ask, _Digits) == NormalizeDouble(p, _Digits)) Print(1); }");
     }
 
     public void testTimeseriesDirection() {
