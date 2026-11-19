@@ -7,6 +7,7 @@
 package reference;
 
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.PsiNameIdentifierOwner;
 import com.intellij.psi.PsiReference;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
@@ -36,6 +37,25 @@ public class MqlScopedResolveTest extends BasePlatformTestCase {
         PsiElement name = target instanceof PsiNameIdentifierOwner owner && owner.getNameIdentifier() != null
                 ? owner.getNameIdentifier() : target;
         assertEquals("wrong target for " + use + ": " + target.getText(), code.indexOf(decl), name.getTextOffset());
+    }
+
+    public void testVariableAfterAStructBodyResolvesAndTypesMembers() {
+        String code = "struct Settings { int SelectedTab; } sets;\nvoid OnStart() { sets.SelectedTab = 1; }\n";
+        assertResolvesTo(code, "sets.Sel", "sets;");
+        assertResolvesTo(code, "SelectedTab = 1", "SelectedTab; }");
+    }
+
+    public void testImportModuleQualifiedCallResolvesToTheImport() {
+        String code = "#import \"..\\\\Libraries\\\\Kernel32.dll\"\nuint GetLastError(void);\n#import\n"
+                + "void OnStart() { uint e = kernel32::GetLastError(); }\n";
+        assertResolvesTo(code, "GetLastError(); }", "GetLastError(void)");
+        PsiElement target = resolve(code, "GetLastError(); }");
+        assertEquals("Kernel32", com.limemojito.oss.mql.reference.MqlResolveUtil.importModuleOf(target));
+        String outside = "#import \"a.dll\"\nint F(void);\n#import\nint G(void) { return 1; }\n";
+        myFixture.configureByText("o.mq5", outside);
+        PsiElement g = PsiTreeUtil.findChildrenOfType(myFixture.getFile(), com.limemojito.oss.mql.psi.impl.MQL4FunctionElement.class)
+                .stream().filter(fn -> "G".equals(fn.getName())).findFirst().orElseThrow();
+        assertNull("a bare #import closes the block", com.limemojito.oss.mql.reference.MqlResolveUtil.importModuleOf(g));
     }
 
     public void testGlobalScopeOperatorSkipsTheLocal() {

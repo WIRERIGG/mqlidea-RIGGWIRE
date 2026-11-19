@@ -47,4 +47,19 @@ class MqlColorAwareLexerTest {
             assertThat(typeOf("int " + name + ";", name)).as(name).isEqualTo(MQL4Elements.IDENTIFIER);
         }
     }
+
+    @Test
+    void unsignedBeforeAnIntegerTypeIsAModifier() {
+        // MetaEditor 5 takes 'unsigned int' (build 6230); the parser skips the modifier
+        for (String code : new String[]{"unsigned int x;", "unsigned  long x;", "void F(int a, unsigned char c)", "unsigned\nshort s;"}) {
+            assertThat(typeOf(code, "unsigned")).as(code).isEqualTo(MQL4Elements.UNSIGNED_KEYWORD);
+        }
+    }
+
+    @Test
+    void unsignedAnywhereElseStaysAnIdentifier() {
+        for (String code : new String[]{"int unsigned;", "unsigned x;", "unsigned integer;", "unsigned int_t;", "unsigned"}) {
+            assertThat(typeOf(code, "unsigned")).as(code).isEqualTo(MQL4Elements.IDENTIFIER);
+        }
+    }
 }

@@ -67,20 +67,41 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
             return false;
         }
         String name = identifier.getText();
+        if (UndeclaredNames.nextType(identifier) == MQL4Elements.COLON_COLON
+                && MqlResolveUtil.importModulesVisibleFrom(identifier.getPsi().getContainingFile()).contains(name)) {
+            return false; // kernel32 in kernel32::GetLastError() after #import "kernel32.dll"
+        }
         if (UndeclaredNames.isBuiltin(name) || UndeclaredNames.onResourceLine(identifier)) {
             return false;
         }
         PsiElement psi = identifier.getPsi();
         PsiFile file = psi.getContainingFile();
-        return MqlResolveUtil.resolve(psi, name).isEmpty() && !MqlVisibleNames.isDeclared(name, file)
+        return MqlResolveUtil.resolve(psi, name).isEmpty()
+                && !MqlVisibleNames.isDeclared(name, file, com.limemojito.oss.mql.MqlDialect.isMql5(file))
+                && !UndeclaredNames.isPastedByMacro(name, file)
                 && !UndeclaredNames.isDeclaredOutsidePsi(name, file) && !UndeclaredNames.isInheritedBuiltinMember(name, psi);
+    }
+
+    /** {@code items} in {@code items.Size()} where {@code items} is declared as an array ({@code CItem *items[];}). */
+    private static boolean isUnindexedArray(@NotNull PsiElement qualifier) {
+        if (qualifier.getNode().getElementType() != MQL4Elements.IDENTIFIER) {
+            return false;
+        }
+        for (PsiElement target : MqlResolveUtil.resolve(qualifier, qualifier.getText())) {
+            PsiElement name = target instanceof com.intellij.psi.PsiNameIdentifierOwner owner ? owner.getNameIdentifier() : null;
+            PsiElement next = name == null ? null : PsiTreeUtil.nextVisibleLeaf(name);
+            if (next != null && next.getNode().getElementType() == MQL4Elements.L_SQUARE_BRACKET) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isMissingMember(@NotNull ASTNode member) {
         PsiElement dot = PsiTreeUtil.prevVisibleLeaf(member.getPsi());
         PsiElement qualifier = dot == null ? null : PsiTreeUtil.prevVisibleLeaf(dot);
-        if (qualifier == null) {
-            return false;
+        if (qualifier == null || isUnindexedArray(qualifier)) {
+            return false; // items.Size(): the receiver is the array, not an element of its type
         }
         MQL4ClassElement receiver = MqlTypeResolver.resolveQualifierClass(qualifier);
         if (receiver == null) {
@@ -94,8 +115,9 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
                     ? MqlTypeResolver.resolveBuiltinValueTypeName(qualifier) : null;
             return valueType != null && !com.limemojito.oss.mql.doc.VectorMatrixCatalog.of(valueType).has(member.getText());
         }
-        if (!hierarchyKnown(receiver, new HashSet<>())) {
-            return false;
+        if (!hierarchyKnown(receiver, new HashSet<>())
+                || UndeclaredNames.isPastedByMacro(member.getText(), receiver.getContainingFile())) {
+            return false; // chart.setShowOHLC(): a member a token-pasting macro declares in the class's file
         }
         return MqlResolveUtil.resolveMemberInClassHierarchy(receiver, member.getText()).isEmpty();
     }

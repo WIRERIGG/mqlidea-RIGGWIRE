@@ -6,6 +6,7 @@
 
 package com.limemojito.oss.mql.parser.parsing;
 
+import com.limemojito.oss.mql.parser.parsing.statement.VarDeclarationStatement;
 import com.intellij.lang.PsiBuilder;
 import com.intellij.lang.PsiBuilder.Marker;
 import com.intellij.psi.tree.IElementType;
@@ -33,7 +34,39 @@ public class ClassParsing implements MQL4Elements {
     /**
      * Form: [abstract] (class|struct|interface|union) name [pack(n)] [final] [pack(n)] [: inheritance] { }
      */
+    /**
+     * A class, struct or interface, then any variables declared after its body
+     * ({@code struct Settings { ... } sets;}): those follow as their own VAR_DECLARATION_STATEMENT
+     * beside the CLASS node, so at file level they are globals like {@code Settings sets;}.
+     */
     public static boolean parseClassOrStruct(PsiBuilder b, int l) {
+        if (!parseClassOrStructNode(b, l)) {
+            return false;
+        }
+        if (previousTokenIs(b, R_CURLY_BRACKET) && b.getTokenType() == IDENTIFIER
+                && TRAILING_DECLARATOR_FOLLOW.contains(b.lookAhead(1))) {
+            Marker statement = b.mark();
+            if (VarDeclarationStatement.parseVarDefinitionList(b, l + 1) == VarDeclarationStatement.ListEnd.INITIALIZER) {
+                b.advanceLexer(); // ';' after the last initializer
+            }
+            statement.done(VAR_DECLARATION_STATEMENT);
+        }
+        return true;
+    }
+
+    /** What may follow the first name of {@code } name;}: {@code ;}, {@code ,}, {@code [} or {@code =}. */
+    private static final TokenSet TRAILING_DECLARATOR_FOLLOW = TokenSet.create(SEMICOLON, COMMA, L_SQUARE_BRACKET, EQ);
+
+    private static boolean previousTokenIs(PsiBuilder b, IElementType type) {
+        for (int i = -1; ; i--) {
+            IElementType t = b.rawLookup(i);
+            if (t == null || !com.limemojito.oss.mql.psi.MQL4TokenSets.COMMENTS_OR_WS.contains(t)) {
+                return t == type;
+            }
+        }
+    }
+
+    private static boolean parseClassOrStructNode(PsiBuilder b, int l) {
         if (isUnionStart(b)) {
             return parseUnion(b, l);
         }

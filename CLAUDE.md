@@ -20,7 +20,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.9) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (663 pass)
+./gradlew test           # tests only (680 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip (on a release, also update README's version, test count and feature list)
 tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 tools/corpus-gate.sh          # ratchet over real MQL corpora (needs a local MetaTrader install)

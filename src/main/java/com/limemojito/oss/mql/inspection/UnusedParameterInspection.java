@@ -36,7 +36,8 @@ public class UnusedParameterInspection extends MQL5SafetyInspectionBase {
                 if (args.isEmpty()) continue;
                 // Collect the body's identifier set once, then test each parameter against it —
                 // instead of walking the whole body once per parameter.
-                java.util.Set<String> usedNames = StatementAst.collectIdentifiers(body);
+                java.util.Set<String> usedNames = new java.util.HashSet<>(StatementAst.collectIdentifiers(body));
+                addInitializerListNames(func.getNode(), body, usedNames); // C(int a) : m(a) {}
                 for (ASTNode arg : args) {
                     ASTNode idNode = arg.findChildByType(MQL4Elements.IDENTIFIER);
                     if (idNode == null) continue;
@@ -60,5 +61,17 @@ public class UnusedParameterInspection extends MQL5SafetyInspectionBase {
             }
         }
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
+    }
+
+    /** Identifiers between the parameter list and the body: a constructor's initializer list. */
+    private static void addInitializerListNames(@NotNull ASTNode function, @NotNull ASTNode body, @NotNull java.util.Set<String> names) {
+        ASTNode args = function.findChildByType(MQL4Elements.FUNCTION_ARGS_LIST);
+        for (ASTNode n = args == null ? null : args.getTreeNext(); n != null && n != body; n = n.getTreeNext()) {
+            if (n.getElementType() == MQL4Elements.IDENTIFIER) {
+                names.add(n.getText());
+            } else if (n.getFirstChildNode() != null) {
+                names.addAll(StatementAst.collectIdentifiers(n));
+            }
+        }
     }
 }

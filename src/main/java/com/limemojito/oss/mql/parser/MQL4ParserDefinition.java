@@ -29,7 +29,8 @@ public class MQL4ParserDefinition implements ParserDefinition, MQL4Elements {
 
     public static final TokenSet WHITE_SPACES = TokenSet.create(WHITE_SPACE, LINE_TERMINATOR);
 
-    public static final TokenSet COMMENTS = TokenSet.create(BLOCK_COMMENT, LINE_COMMENT);
+    // UNSIGNED_KEYWORD: 'unsigned int' parses as 'int', the modifier skipped like a comment
+    public static final TokenSet COMMENTS = TokenSet.create(BLOCK_COMMENT, LINE_COMMENT, MQL4Elements.UNSIGNED_KEYWORD);
 
     @NotNull
     @Override

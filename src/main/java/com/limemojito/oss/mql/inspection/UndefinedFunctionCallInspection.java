@@ -52,12 +52,13 @@ public class UndefinedFunctionCallInspection extends MQL5SafetyInspectionBase {
             return null;
         }
         String name = identifier.getText();
-        boolean mql4Only = mql5 && MqlBuiltinFunctions.isMql4Only(name);
+        boolean mql4Only = mql5 && MqlBuiltinFunctions.isMql4Only(name) && !UndeclaredNames.inMql4OnlyBranch(identifier);
         if (!mql4Only && UndeclaredNames.isBuiltin(name)) {
             return null;
         }
         PsiElement psi = identifier.getPsi();
-        if (!MqlResolveUtil.resolve(psi, name).isEmpty() || MqlVisibleNames.isDeclared(name, psi.getContainingFile())) {
+        if (!MqlResolveUtil.resolve(psi, name).isEmpty() || MqlVisibleNames.isDeclared(name, psi.getContainingFile())
+                || UndeclaredNames.isPastedByMacro(name, psi.getContainingFile())) {
             return null;
         }
         return "'" + name + "' - undeclared identifier" + (mql4Only ? " (an MQL4 function, not in MQL5)" : "");

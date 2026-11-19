@@ -33,7 +33,7 @@ Plugin id: `io.riggwire.mql`
 
 - **Three file types** — `MQL4 File` (`.mq4`, `.mql4`), `MQL5 File` (`.mq5`, `.mql5`), and `MQL Header` (`.mqh`) — each with its own icon
 - JFlex lexer and hand-written parser with error recovery — a syntax error does not break highlighting or navigation for the rest of the file
-- The MQL5 language as MetaEditor accepts it: classes, structs and **unions**, `pack(n)`, interfaces, operator methods, **namespaces**, `typedef` function pointers, templates, `input group`, `export`, `#`/`##` in macros, `D'…'` datetime and `C'…'` color literals, `\x` escapes, and the `vector`/`matrix`/`complex` types
+- The MQL5 language as MetaEditor accepts it: classes, structs and **unions**, `pack(n)`, interfaces, operator methods, **namespaces**, `typedef` function pointers, templates, `input group`, `export`, `#`/`##` in macros, `unsigned int` (and `unsigned char/short/long`), `D'…'` datetime and `C'…'` color literals, `\x` escapes, and the `vector`/`matrix`/`complex` types
 - Dialect awareness (`MqlDialect`): files are classified as MQL4 or MQL5 (a `.mqh` header inherits its project's dialect), and dialect-specific completion and inspections only apply where they belong
 - Syntax highlighting with a configurable **Color Settings** page, plus a semantic annotator for event handlers (`OnInit`, `OnTick`, …), `input` parameters and MetaEditor's own literal errors (out-of-range character codes, MQL5 `extern` initializers)
 - Read-vs-write identifier highlighting and a bundled MQL/MetaTrader spellchecking dictionary
@@ -47,7 +47,7 @@ Plugin id: `io.riggwire.mql`
 - **83 local inspections** in 13 groups — Trading Safety (14), Advanced Patterns, Performance, Control Flow, Memory & Allocation, Function Signature, Class Structure, Security & Data, Code Complexity, Trading-Specific, Naming & Style, Type Safety, and Preprocessor
 - **Trading Safety** covers unchecked `OrderSend()` results, unchecked or double-released indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, unchecked `CopyRates`/`CopyBuffer`, `delete` without a null guard, and more
 - **Indicator buffer contract**: `SetIndexBuffer`, `CopyBuffer` and `iCustom` buffer indexes checked against the indicator's declared buffers and plots (literal values)
-- **Call to an undefined function**: MetaEditor's "undeclared identifier" (error 256), reported as you type; skipped for any file whose `#include` doesn't resolve, so it never guesses
+- **Call to an undefined function**: MetaEditor's "undeclared identifier" (error 256), reported as you type; skipped when anything the file's `#include`s reach (or the programs that include it read) doesn't resolve or isn't MQL, such as a C++ `.h` header, so it never guesses. Calls through an `#import` module (`kernel32::GetLastError()`), names a `##` macro pastes together, and MQL4 functions inside `#ifdef __MQL4__` branches are understood
 - **Undeclared names and members**: a variable or type nothing declares, and a member a type doesn't have, for your classes, built-in structures (`dt.hours` on `MqlDateTime`) and `vector`/`matrix`/`complex` (`v.Summ()`); a stray template parameter name outside its template is reported too
 - A cross-file **global inspection**: unused global function across the entire `#include` closure
 - Safety checks are on by default (57); style, naming and complexity checks are opt-in (26)
@@ -150,7 +150,7 @@ Without any of these, every editor feature still works; only inline compiler dia
 
 - **Corpus gate**: over MetaQuotes' Standard Library and examples (read from your local MetaTrader install, never copied into this repo), the plugin must report **0 parse errors and 0 false "undeclared" errors**, and no inspection's count may grow without a deliberate, committed baseline change
 - **Plugin Verifier**: compatible with IntelliJ IDEA 2025.3.2 and CLion 2026.3, using no internal or experimental platform API
-- **Hermetic tests**: the 663 unit tests never depend on the machine's MetaTrader install
+- **Hermetic tests**: the 680 unit tests never depend on the machine's MetaTrader install
 - **MetaEditor is the referee**: language support and built-in name lists are checked by compiling probes in the real MetaEditor; no mql5.com documentation text is bundled
 
 ---

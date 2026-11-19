@@ -34,6 +34,9 @@ public class MqlColorAwareLexer extends DelegateLexer {
     @Nullable
     public IElementType getTokenType() {
         IElementType type = super.getTokenType();
+        if (type == MQL4Elements.IDENTIFIER && isUnsignedModifier()) {
+            return MQL4Elements.UNSIGNED_KEYWORD;
+        }
         if (type == MQL4Elements.COLOR_CONSTANT_LITERAL) {
             CharSequence text = getBufferSequence().subSequence(getTokenStart(), getTokenEnd());
             if (isBareColorName(text)) {
@@ -41,6 +44,29 @@ public class MqlColorAwareLexer extends DelegateLexer {
             }
         }
         return type;
+    }
+
+    /** {@code unsigned int}: MetaEditor 5 takes {@code unsigned} before an integer type (same as {@code uint}). */
+    private boolean isUnsignedModifier() {
+        CharSequence buffer = getBufferSequence();
+        int start = getTokenStart();
+        int end = getTokenEnd();
+        if (end - start != 8 || !"unsigned".contentEquals(buffer.subSequence(start, end))) {
+            return false;
+        }
+        int i = end;
+        while (i < buffer.length() && Character.isWhitespace(buffer.charAt(i))) {
+            i++;
+        }
+        int word = i;
+        while (i < buffer.length() && Character.isLetter(buffer.charAt(i))) {
+            i++;
+        }
+        if (word == end || i < buffer.length() && (Character.isLetterOrDigit(buffer.charAt(i)) || buffer.charAt(i) == '_')) {
+            return false;
+        }
+        String next = buffer.subSequence(word, i).toString();
+        return next.equals("char") || next.equals("short") || next.equals("int") || next.equals("long");
     }
 
     /** True for a colour token that is NOT the {@code clr}-prefixed form — i.e. a bare name that must be an identifier. */

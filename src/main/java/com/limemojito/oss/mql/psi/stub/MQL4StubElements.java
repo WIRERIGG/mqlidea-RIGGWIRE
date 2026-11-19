@@ -47,7 +47,12 @@ public interface MQL4StubElements {
     // v25: `export` functions and `pack(n)` classes/structs parse into FUNCTION / CLASS nodes.
     // v26: unions are CLASS stubs of kind Union; TYPEDEF and #define (PREPROCESSOR_DEFINE_BLOCK) stubs;
     // namespace bodies, operator methods and operator-like functions now produce FUNCTION/CLASS stubs.
-    int STUB_SCHEMA_VERSION = 27;
+    // v28: variables declared after a class/struct body (struct S {...} v;) parse as top-level
+    // VAR_DECLARATION_STATEMENTs, adding global-var stubs; qualified parameter and base types
+    // (Outer::Item *p) parse, so functions that failed there now produce their stubs.
+    // v29: 'unsigned int' parses as 'int' (the modifier is skipped), so functions and globals that failed there
+    // now produce their stubs.
+    int STUB_SCHEMA_VERSION = 29;
 
     // The debug name goes through the constructor: getDebugName() is internal API and not for overriding.
     ILightStubFileElementType FILE = new ILightStubFileElementType("RIGGWIRE MQL File", MQL4Language.INSTANCE) {

@@ -31,6 +31,7 @@ import com.limemojito.oss.mql.psi.impl.MQL4ClassElement;
 import com.limemojito.oss.mql.reference.MqlResolveUtil;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -59,11 +60,31 @@ final class UndeclaredNames {
      * default): its declarations are never indexed.
      */
     static boolean hasUnresolvedInclude(@NotNull PsiFile file) {
-        for (MQL4PreprocessorIncludeBlock include : PsiTreeUtil.findChildrenOfType(file, MQL4PreprocessorIncludeBlock.class)) {
-            PsiFile target = include.resolveIncludedFile();
-            if (target == null || (target.getVirtualFile() != null
-                    && com.intellij.psi.SingleRootFileViewProvider.isTooLargeForIntelligence(target.getVirtualFile()))) {
-                return true;
+        return CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(
+                closureHasUnseenInclude(file), PsiModificationTracker.MODIFICATION_COUNT,
+                com.intellij.openapi.vfs.VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS));
+    }
+
+    /**
+     * True when any file in {@code file}'s include closure, or in the closure of a program that
+     * includes it, has an {@code #include} the plugin can't
+     * see into: one that doesn't resolve, a file too large to parse, or a file that isn't MQL (a
+     * {@code .h} header, which CLion gives to C++): its macros and declarations are invisible, so
+     * checking names would guess.
+     */
+    private static boolean closureHasUnseenInclude(@NotNull PsiFile file) {
+        // a header also sees what its including programs included before it (Std.h, then MQL4.mqh)
+        Set<PsiFile> files = new java.util.LinkedHashSet<>(com.limemojito.oss.mql.reference.MqlVisibleNames.includeClosure(file));
+        for (PsiFile program : com.limemojito.oss.mql.reference.MqlVisibleNames.programsIncluding(file)) {
+            files.addAll(com.limemojito.oss.mql.reference.MqlVisibleNames.includeClosure(program));
+        }
+        for (PsiFile f : files) {
+            for (MQL4PreprocessorIncludeBlock include : PsiTreeUtil.findChildrenOfType(f, MQL4PreprocessorIncludeBlock.class)) {
+                PsiFile target = include.resolveIncludedFile();
+                if (target == null || !(target instanceof com.limemojito.oss.mql.psi.MQL4File) || (target.getVirtualFile() != null
+                        && com.intellij.psi.SingleRootFileViewProvider.isTooLargeForIntelligence(target.getVirtualFile()))) {
+                    return true;
+                }
             }
         }
         return false;
@@ -101,6 +122,146 @@ final class UndeclaredNames {
     static boolean isDeclaredOutsidePsi(@NotNull String name, @NotNull PsiFile file) {
         return CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(
                 collectOutsidePsi(file), PsiModificationTracker.MODIFICATION_COUNT)).contains(name);
+    }
+
+    /**
+     * True when {@code identifier} sits in a branch only MQL4 compiles: {@code #ifdef __MQL4__},
+     * {@code #ifndef __MQL5__}, or the {@code #else} of {@code #ifdef __MQL5__} (nested anywhere).
+     * MQL5 has no {@code #if}/{@code #elif}, so these four directives are the whole story.
+     */
+    static boolean inMql4OnlyBranch(@NotNull ASTNode identifier) {
+        PsiFile file = identifier.getPsi().getContainingFile();
+        int offset = identifier.getStartOffset();
+        for (com.intellij.openapi.util.TextRange r : CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(
+                mql4OnlyRanges(file), PsiModificationTracker.MODIFICATION_COUNT))) {
+            if (r.contains(offset)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private enum Branch { MQL4, MQL5, OTHER }
+
+    private static List<com.intellij.openapi.util.TextRange> mql4OnlyRanges(@NotNull PsiFile file) {
+        List<com.intellij.openapi.util.TextRange> ranges = new java.util.ArrayList<>();
+        java.util.Deque<Branch> open = new java.util.ArrayDeque<>();
+        int start = -1;
+        for (ASTNode leaf = firstLeaf(file.getNode()); leaf != null; leaf = nextLeaf(leaf)) {
+            IElementType t = leaf.getElementType();
+            boolean wasInside = open.contains(Branch.MQL4);
+            if (t == MQL4Elements.IFDEF_PP_KEYWORD || t == MQL4Elements.IFNDEF_PP_KEYWORD) {
+                PsiElement name = PsiTreeUtil.nextVisibleLeaf(leaf.getPsi());
+                String n = name == null ? "" : name.getText();
+                Branch b = "__MQL4__".equals(n) ? Branch.MQL4 : "__MQL5__".equals(n) ? Branch.MQL5 : Branch.OTHER;
+                if (t == MQL4Elements.IFNDEF_PP_KEYWORD && b != Branch.OTHER) {
+                    b = b == Branch.MQL4 ? Branch.MQL5 : Branch.MQL4;
+                }
+                open.push(b);
+            } else if (t == MQL4Elements.ELSE_PP_KEYWORD && !open.isEmpty()) {
+                Branch b = open.pop();
+                open.push(b == Branch.MQL4 ? Branch.MQL5 : b == Branch.MQL5 ? Branch.MQL4 : Branch.OTHER);
+            } else if (t == MQL4Elements.ENDIF_PP_KEYWORD && !open.isEmpty()) {
+                open.pop();
+            } else {
+                continue;
+            }
+            boolean inside = open.contains(Branch.MQL4);
+            if (inside && !wasInside) {
+                start = leaf.getTextRange().getEndOffset();
+            } else if (!inside && wasInside) {
+                ranges.add(new com.intellij.openapi.util.TextRange(start, leaf.getStartOffset()));
+            }
+        }
+        if (open.contains(Branch.MQL4)) {
+            ranges.add(new com.intellij.openapi.util.TextRange(start, file.getTextLength())); // unterminated
+        }
+        return ranges;
+    }
+
+    /**
+     * True when {@code name} is generated by a token-pasting macro invoked in {@code file}:
+     * {@code #define BOOL_PROP(P,O) bool set##P(bool v) ...} invoked as {@code BOOL_PROP(ShowOHLC, ...)}
+     * declares {@code setShowOHLC}; {@code m_##Private} with {@code magic} declares {@code m_magic}.
+     * The macro may be defined anywhere in the include closure.
+     */
+    static boolean isPastedByMacro(@NotNull String name, @NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(
+                collectPasted(file), PsiModificationTracker.MODIFICATION_COUNT)).contains(name);
+    }
+
+    /** {@code a ## B ## c}: identifiers joined by token pasting in a macro body. */
+    private static final java.util.regex.Pattern PASTE = java.util.regex.Pattern.compile(
+            "[A-Za-z_0-9]+(?:\\s*##\\s*[A-Za-z_0-9]+)+");
+
+    private static Set<String> collectPasted(@NotNull PsiFile file) {
+        java.util.Map<String, String> pasting = new java.util.HashMap<>(); // macro name -> its #define text
+        for (PsiFile f : com.limemojito.oss.mql.reference.MqlVisibleNames.includeClosure(file)) {
+            for (com.limemojito.oss.mql.psi.impl.MQL4DefineElement d
+                    : PsiTreeUtil.findChildrenOfType(f, com.limemojito.oss.mql.psi.impl.MQL4DefineElement.class)) {
+                if (d.getName() != null && d.getText().contains("##")) {
+                    pasting.put(d.getName(), d.getText());
+                }
+            }
+        }
+        if (pasting.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> names = new HashSet<>();
+        for (ASTNode leaf = firstLeaf(file.getNode()); leaf != null; leaf = nextLeaf(leaf)) {
+            if (leaf.getElementType() != MQL4Elements.IDENTIFIER || !pasting.containsKey(leaf.getText())) {
+                continue;
+            }
+            PsiElement open = PsiTreeUtil.nextVisibleLeaf(leaf.getPsi());
+            if (open == null || open.getNode().getElementType() != MQL4Elements.L_ROUND_BRACKET) {
+                continue; // the #define itself, or a use without arguments
+            }
+            List<String> args = new java.util.ArrayList<>();
+            StringBuilder arg = new StringBuilder();
+            int depth = 0;
+            for (PsiElement n = open; n != null; n = PsiTreeUtil.nextVisibleLeaf(n)) {
+                IElementType t = n.getNode().getElementType();
+                if (t == MQL4Elements.L_ROUND_BRACKET && depth++ == 0) {
+                    continue;
+                }
+                if (t == MQL4Elements.R_ROUND_BRACKET && --depth == 0) {
+                    args.add(arg.toString().trim());
+                    break;
+                }
+                if (t == MQL4Elements.COMMA && depth == 1) {
+                    args.add(arg.toString().trim());
+                    arg.setLength(0);
+                } else {
+                    arg.append(n.getText());
+                }
+            }
+            names.addAll(pastedNames(pasting.get(leaf.getText()), leaf.getText(), args));
+        }
+        return names;
+    }
+
+    /** The identifiers {@code define} pastes together when invoked as {@code macro(args)}. */
+    static Set<String> pastedNames(@NotNull String define, @NotNull String macro, @NotNull List<String> args) {
+        int open = define.indexOf('(', define.indexOf(macro) + macro.length());
+        int close = open < 0 ? -1 : define.indexOf(')', open);
+        if (open < 0 || close < 0) {
+            return Set.of();
+        }
+        List<String> params = java.util.Arrays.stream(define.substring(open + 1, close).split(","))
+                .map(String::trim).toList();
+        Set<String> out = new HashSet<>();
+        java.util.regex.Matcher m = PASTE.matcher(define.substring(close + 1));
+        while (m.find()) {
+            StringBuilder name = new StringBuilder();
+            for (String piece : m.group().split("\\s*##\\s*")) {
+                int i = params.indexOf(piece);
+                name.append(i >= 0 && i < args.size() ? args.get(i) : piece);
+            }
+            if (name.toString().matches("[A-Za-z_]\\w*")) {
+                out.add(name.toString());
+            }
+        }
+        return out;
     }
 
     /** {@code (const long& lparam,} in a macro body: group 1 is a parameter the expansion declares. */
@@ -266,7 +427,7 @@ final class UndeclaredNames {
     }
 
     @Nullable
-    private static IElementType nextType(@NotNull ASTNode node) {
+    static IElementType nextType(@NotNull ASTNode node) {
         PsiElement next = PsiTreeUtil.nextVisibleLeaf(node.getPsi());
         while (next != null && MQL4TokenSets.COMMENTS_OR_WS.contains(next.getNode().getElementType())) {
             next = PsiTreeUtil.nextVisibleLeaf(next);

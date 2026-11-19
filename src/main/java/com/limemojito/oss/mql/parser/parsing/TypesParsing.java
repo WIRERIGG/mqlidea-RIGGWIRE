@@ -24,18 +24,22 @@ public class TypesParsing implements MQL4Elements {
         if (b.getTokenType() != IDENTIFIER) {
             return false;
         }
-        b.advanceLexer(); // name
-
-        int templateParamSize = tryParseTemplateList(b, 0);
-        if (templateParamSize > 0) {
-            PsiBuilder.Marker m = b.mark();
-            try {
-                ParsingUtils.advanceLexer(b, templateParamSize);
-            } finally {
-                m.done(TYPE_TEMPLATE_BLOCK);
+        while (true) {
+            b.advanceLexer(); // name
+            int templateParamSize = tryParseTemplateList(b, 0);
+            if (templateParamSize > 0) {
+                PsiBuilder.Marker m = b.mark();
+                try {
+                    ParsingUtils.advanceLexer(b, templateParamSize);
+                } finally {
+                    m.done(TYPE_TEMPLATE_BLOCK);
+                }
             }
+            if (b.getTokenType() != COLON_COLON || b.lookAhead(1) != IDENTIFIER) {
+                return true;
+            }
+            b.advanceLexer(); // '::' of a qualified type: JSON::Object, Ns::CBase
         }
-        return true;
     }
 
 

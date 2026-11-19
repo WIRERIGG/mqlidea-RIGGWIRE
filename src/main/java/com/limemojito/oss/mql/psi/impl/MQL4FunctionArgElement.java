@@ -68,21 +68,23 @@ public class MQL4FunctionArgElement extends MQL4PsiElement implements PsiNameIde
     /**
      * The declared TYPE name of this parameter, or {@code null} when the type is a built-in
      * primitive (an {@code INT_KEYWORD} etc. -- never a class) or there is no distinct type token.
-     * For {@code CFoo &v} / {@code const CFoo *v} the type is the first IDENTIFIER child, which is
-     * distinct from the (last-IDENTIFIER) parameter name; for a primitive-typed parameter such as
+     * For {@code CFoo &v} / {@code const CFoo *v} the type is the IDENTIFIER before the parameter
+     * name, the last segment of a qualified type ({@code Outer::Item *v} gives {@code Item}); for a
+     * primitive-typed parameter such as
      * {@code int &v} the only IDENTIFIER is the name itself, so this returns {@code null}. Used by
      * {@link com.limemojito.oss.mql.reference.MqlTypeResolver} to type-resolve {@code v.member}.
      */
     @Nullable
     public String getDeclaredTypeName() {
         ASTNode nameNode = getNameIdentifierNode();
-        for (ASTNode child = getNode().getFirstChildNode(); child != null; child = child.getTreeNext()) {
+        String type = null;
+        for (ASTNode child = getNode().getFirstChildNode(); child != null && child != nameNode; child = child.getTreeNext()) {
             if (child.getElementType() == MQL4Elements.IDENTIFIER) {
-                // First IDENTIFIER: the declared type only when it is not the parameter name itself.
-                return child == nameNode ? null : child.getText();
+                // the last IDENTIFIER before the parameter name: Outer::Item* item -> Item
+                type = child.getText();
             }
         }
-        return null;
+        return type;
     }
 
     @Override

@@ -16,6 +16,15 @@ import java.util.List;
 /** MetaEditor's error 256 for global calls: undefined names are flagged, every declared kind is not. */
 public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
 
+    private List<String> undefinedIn(String existingPath) {
+        myFixture.configureFromTempProjectFile(existingPath);
+        myFixture.enableInspections(new UndefinedFunctionCallInspection());
+        return myFixture.doHighlighting(HighlightSeverity.ERROR).stream()
+                .map(HighlightInfo::getDescription)
+                .filter(d -> d != null && d.contains("undeclared identifier"))
+                .toList();
+    }
+
     private List<String> undefined(String fileName, String code) {
         myFixture.configureByText(fileName, code);
         myFixture.enableInspections(new UndefinedFunctionCallInspection());
@@ -69,6 +78,78 @@ public class UndefinedFunctionCallInspectionTest extends BasePlatformTestCase {
                 int Twice(int v) { return v * 2; }
                 """;
         assertEquals(List.of(), undefined("test.mq5", code));
+    }
+
+    public void testDatabaseColumnReadersAndSocketsAreBuiltins() {
+        String code = """
+                void OnStart()
+                  {
+                   int db = DatabaseOpen("x.sqlite", DATABASE_OPEN_READONLY);
+                   int rq = DatabasePrepare(db, "SELECT 1");
+                   int i; long n; double d; uchar blob[];
+                   DatabaseColumnInteger(rq, 0, i);
+                   DatabaseColumnLong(rq, 0, n);
+                   DatabaseColumnDouble(rq, 0, d);
+                   DatabaseColumnBlob(rq, 0, blob);
+                   int s = SocketCreate();
+                   if(SocketConnect(s, "example.com", 443, 1000) && SocketTlsHandshake(s, "example.com"))
+                      SocketClose(s);
+                  }
+                """;
+        assertEquals(List.of(), undefined("test.mq5", code));
+    }
+
+    public void testAMacroFromANonMqlHeaderDeeperInTheChainIsNotGuessed() {
+        myFixture.addFileToProject("Std.h", "#define STRUCT_ENUM(S, E) S::E\n");
+        myFixture.addFileToProject("Base.mqh", "#include \"Std.h\"\n");
+        assertEquals(List.of(), undefined("test.mq5", "#include \"Base.mqh\"\nvoid OnStart() { Print(STRUCT_ENUM(A, B)); }\n"));
+        myFixture.addFileToProject("Body.mqh", "void Run() { Print(PTR_ATTRIB(1)); }\n");
+        myFixture.addFileToProject("Prog.mq5", "#include \"Std.h\"\n#include \"Body.mqh\"\n");
+        assertEquals("a header whose including program reads a non-MQL header", List.of(),
+                undefinedIn("Body.mqh"));
+        assertEquals("the check still bites without such a header", List.of("'Missing' - undeclared identifier"),
+                undefined("plain.mq5", "void OnStart() { Missing(); }\n"));
+    }
+
+    public void testNamesDeclaredByTokenPastingMacrosAreClean() {
+        String code = """
+                #define BOOL_PROP(PropName, OptionName) \\
+                   bool is##PropName() const { return true; } \\
+                   bool set##PropName(bool value) { return value; }
+                class CChart
+                  {
+                public:
+                   BOOL_PROP(ShowOHLC, 1)
+                   void              setShow(bool v) { setShowOHLC(v); isShowOHLC(); setShowGrid(v); }
+                  };
+                """;
+        assertEquals("only the name no macro pastes is flagged",
+                List.of("'setShowGrid' - undeclared identifier"), undefined("test.mq5", code));
+    }
+
+    public void testMql4FunctionsInMql4OnlyBranchesAreClean() {
+        String code = """
+                void OnStart()
+                  {
+                #ifdef __MQL4__
+                   Print(AccountFreeMarginCheck(_Symbol, OP_BUY, 0.1));
+                #else
+                   Print(AccountFreeMarginCheck(_Symbol, 0, 0.1));
+                #endif
+                #ifndef __MQL5__
+                   Print(OrdersHistoryTotal());
+                #endif
+                #ifdef __MQL5__
+                   Print(1);
+                #else
+                   #ifdef SOME_FLAG
+                   Print(OrdersHistoryTotal());
+                   #endif
+                #endif
+                  }
+                """;
+        assertEquals("only the MQL5 branch's call is flagged",
+                List.of("'AccountFreeMarginCheck' - undeclared identifier (an MQL4 function, not in MQL5)"), undefined("test.mq5", code));
     }
 
     public void testMql4OnlyFunctionsAreFlaggedInMql5Only() {

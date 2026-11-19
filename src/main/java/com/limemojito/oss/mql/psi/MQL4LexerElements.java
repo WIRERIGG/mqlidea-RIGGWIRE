@@ -106,6 +106,8 @@ public interface MQL4LexerElements {
     // Access specifiers
     IElementType ABSTRACT_KEYWORD = new MQL4ElementType("ABSTRACT_KEYWORD");
     IElementType CONST_KEYWORD = new MQL4ElementType("CONST_KEYWORD");
+    /** {@code unsigned} before char/short/int/long: retagged by MqlColorAwareLexer, skipped by the parser like a comment. */
+    IElementType UNSIGNED_KEYWORD = new MQL4ElementType("UNSIGNED_KEYWORD");
     IElementType FINAL_KEYWORD = new MQL4ElementType("FINAL_KEYWORD");
     IElementType OVERRIDE_KEYWORD = new MQL4ElementType("OVERRIDE_KEYWORD");
     IElementType EXPORT_KEYWORD = new MQL4ElementType("EXPORT_KEYWORD");
