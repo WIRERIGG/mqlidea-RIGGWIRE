@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.9</version>
+    <version>2026.1.10</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,14 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.10</b> &ndash; far fewer false errors on real MQL5, scored against MetaEditor itself.
+               <code>unsigned int</code> and friends, <code>struct S { ... } v;</code>, <code>Outer::Item*</code>
+               parameters and template type parameters now parse and resolve; members of <code>vector</code>,
+               <code>matrix</code> and <code>complex</code> are checked; a for-loop variable used after its loop is
+               reported, as MetaEditor does. Calls through an <code>#import</code> module, names a <code>##</code>
+               macro builds, MQL4 calls in <code>#ifdef __MQL4__</code> branches and the Database, Socket and
+               commission built-ins are understood, and no undeclared name is guessed behind a header the plugin
+               can't read. Re-indexes once.</p>
             <p><b>2026.1.9</b> &ndash; compile errors are matched to files by the full path MetaEditor prints, so
                two headers with the same name in different folders (worktree copies) never trade errors. A program
                whose included headers fail to compile says which ones. The status bar and Compile Check Now work
