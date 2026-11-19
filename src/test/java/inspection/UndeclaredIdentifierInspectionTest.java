@@ -201,6 +201,31 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
                 List.of("'nope' - undeclared identifier"), undeclared("test.mq5", code));
     }
 
+    public void testAForLoopVariableIsOutOfScopeAfterTheLoopInMql5() {
+        // MetaEditor 5 (build 6230): error 256 on the Print(i) after the loop
+        String code = """
+                void OnStart()
+                  {
+                   for(int i = 0; i < 2; i++) { Print(i); }
+                   Print(i);
+                  }
+                """;
+        assertEquals(List.of("'i' - undeclared identifier"), undeclared("test.mq5", code));
+        assertEquals("a later declaration of the same name still counts",
+                List.of(), undeclared("test2.mq5", code.replace("   Print(i);", "   int i = 3;\n   Print(i);")));
+        assertEquals("MQL4 isn't judged", List.of(), undeclared("test.mq4", code));
+        assertEquals("a loop a macro declares is used beside the macro call", List.of(), undeclared("test3.mq5", """
+                #define each(n) for(int it = 0; it < n; it++)
+                void OnStart()
+                  {
+                   each(3)
+                     {
+                      Print(it);
+                     }
+                  }
+                """));
+    }
+
     public void testImportedModuleQualifiesItsFunctions() {
         String code = """
                 #import "kernel32.dll"

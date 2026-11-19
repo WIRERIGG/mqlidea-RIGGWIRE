@@ -72,15 +72,25 @@ public final class MqlVisibleNames {
             new Index<>(MQL4IndexKeys.TYPEDEF_NAME_INDEX_KEY, MQL4TypedefElement.class),
             new Index<>(MQL4IndexKeys.DEFINE_NAME_INDEX_KEY, MQL4DefineElement.class));
 
+    private static final java.util.regex.Pattern WORD = java.util.regex.Pattern.compile("[A-Za-z_]\\w*");
+
     private MqlVisibleNames() {
     }
 
     public static boolean isDeclared(@NotNull String name, @NotNull PsiFile file) {
-        if (closureNames(file).contains(name)) {
+        return isDeclared(name, file, false);
+    }
+
+    /**
+     * As {@link #isDeclared(String, PsiFile)}; with {@code skipLoopVariables}, a {@code for(int i = ...)} init variable
+     * doesn't count: in MQL5 it is scoped to its loop (MetaEditor 5 reports {@code i} after the loop as undeclared).
+     */
+    public static boolean isDeclared(@NotNull String name, @NotNull PsiFile file, boolean skipLoopVariables) {
+        if (names(file, skipLoopVariables).contains(name)) {
             return true;
         }
         for (PsiFile includer : includers(file)) {
-            if (closureNames(includer).contains(name)) {
+            if (names(includer, skipLoopVariables).contains(name)) {
                 return true;
             }
         }
@@ -99,23 +109,57 @@ public final class MqlVisibleNames {
     /** Every name declared in {@code file} and its {@code #include} closure. */
     @NotNull
     public static Set<String> closureNames(@NotNull PsiFile file) {
-        return CachedValuesManager.getCachedValue(file, () -> {
-            Set<String> names = new HashSet<>();
-            for (PsiFile current : closureFiles(file)) {
-                for (PsiElement declaration : PsiTreeUtil.findChildrenOfAnyType(current, MQL4FunctionElement.class,
-                        MQL4ClassElement.class, MQL4VarDefinitionElement.class, MQL4DefineElement.class,
-                        MQL4TypedefElement.class, MQL4EnumElement.class, MQL4EnumFieldElement.class,
-                        com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement.class)) {
-                    ProgressManager.checkCanceled();
-                    String name = ((PsiNamedElement) declaration).getName();
-                    if (name != null) {
-                        names.add(name);
+        return CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(collectNames(file, false),
+                PsiModificationTracker.getInstance(file.getProject()), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS));
+    }
+
+    @NotNull
+    private static Set<String> closureNamesOutsideLoops(@NotNull PsiFile file) {
+        return CachedValuesManager.getCachedValue(file, () -> CachedValueProvider.Result.create(collectNames(file, true),
+                PsiModificationTracker.getInstance(file.getProject()), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS));
+    }
+
+    @NotNull
+    private static Set<String> names(@NotNull PsiFile file, boolean skipLoopVariables) {
+        return skipLoopVariables ? closureNamesOutsideLoops(file) : closureNames(file);
+    }
+
+    @NotNull
+    private static Set<String> collectNames(@NotNull PsiFile file, boolean skipLoopVariables) {
+        Set<String> names = new HashSet<>();
+        for (PsiFile current : closureFiles(file)) {
+            for (PsiElement declaration : PsiTreeUtil.findChildrenOfAnyType(current, MQL4FunctionElement.class,
+                    MQL4ClassElement.class, MQL4VarDefinitionElement.class, MQL4DefineElement.class,
+                    MQL4TypedefElement.class, MQL4EnumElement.class, MQL4EnumFieldElement.class,
+                    com.limemojito.oss.mql.psi.impl.MQL4NamespaceElement.class)) {
+                ProgressManager.checkCanceled();
+                String name = ((PsiNamedElement) declaration).getName();
+                if (name != null && !(skipLoopVariables && isLoopVariable(declaration))) {
+                    names.add(name);
+                }
+                if (skipLoopVariables && declaration instanceof MQL4DefineElement) {
+                    // #define foreach(T, c) for(Iter<T> it(c); ...): the body isn't parsed, and 'it' is used beside the call
+                    java.util.regex.Matcher word = WORD.matcher(declaration.getText());
+                    while (word.find()) {
+                        names.add(word.group());
                     }
                 }
             }
-            return CachedValueProvider.Result.create(names, PsiModificationTracker.getInstance(file.getProject()),
-                    VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS);
-        });
+        }
+        return names;
+    }
+
+    /** A variable declared in a {@code for(...)} header's init clause. */
+    private static boolean isLoopVariable(@NotNull PsiElement declaration) {
+        if (!(declaration instanceof MQL4VarDefinitionElement)) {
+            return false;
+        }
+        PsiElement statement = declaration.getParent();
+        while (statement != null && statement.getNode().getElementType() != com.limemojito.oss.mql.psi.MQL4Elements.VAR_DECLARATION_STATEMENT) {
+            statement = statement instanceof PsiFile ? null : statement.getParent(); // VAR_DEFINITION -> VAR_DEFINITION_LIST -> statement
+        }
+        PsiElement header = statement == null ? null : statement.getParent();
+        return header != null && MqlPsiUtil.forHeaderOf(header.getParent()) == header.getNode();
     }
 
     /** {@code file} and every file its {@code #include}s reach, {@code file} first. */

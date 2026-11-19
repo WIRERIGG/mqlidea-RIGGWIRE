@@ -76,7 +76,8 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
         }
         PsiElement psi = identifier.getPsi();
         PsiFile file = psi.getContainingFile();
-        return MqlResolveUtil.resolve(psi, name).isEmpty() && !MqlVisibleNames.isDeclared(name, file)
+        return MqlResolveUtil.resolve(psi, name).isEmpty()
+                && !MqlVisibleNames.isDeclared(name, file, com.limemojito.oss.mql.MqlDialect.isMql5(file))
                 && !UndeclaredNames.isPastedByMacro(name, file)
                 && !UndeclaredNames.isDeclaredOutsidePsi(name, file) && !UndeclaredNames.isInheritedBuiltinMember(name, psi);
     }
