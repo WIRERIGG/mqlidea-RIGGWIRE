@@ -79,6 +79,7 @@ public class MqlRefactoringSupportProvider extends RefactoringSupportProvider {
                 || element instanceof MQL4EnumElement
                 || element instanceof MQL4EnumFieldElement
                 || element instanceof MQL4FunctionArgElement
+                || element instanceof com.limemojito.oss.mql.psi.impl.MQL4TemplateParameterElement
                 || element instanceof MQL4VarDefinitionElement;
     }
 }

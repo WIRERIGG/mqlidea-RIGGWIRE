@@ -26,6 +26,7 @@ public class TopLevelParsing implements MQL4Elements {
     public static boolean parseTopLevelItem(PsiBuilder b, int l) {
         return parseComment(b)
                 || parsePreprocessorBlock(b)
+                || parseTemplateHeader(b)
                 || parseNamespace(b, l)
                 || parseInputGroup(b)
                 || parseFunction(b)
@@ -37,6 +38,41 @@ public class TopLevelParsing implements MQL4Elements {
                 // narrow, tolerant, already-proven-safe gate used inside {} blocks.
                 || parseLocalVarDeclaration(b, l)
                 || parseBracketsBlock(b, l);
+    }
+
+    /**
+     * Form: template<typename T[, class U ...]>. Only the header is marked; the class, struct or
+     * function it heads parses on its own, as before. Any other shape (incomplete while typing, a
+     * non-type parameter) is rolled back and left as loose tokens, as it always was.
+     */
+    public static boolean parseTemplateHeader(PsiBuilder b) {
+        if (b.getTokenType() != TEMPLATE_KEYWORD || b.lookAhead(1) != LT) {
+            return false;
+        }
+        PsiBuilder.Marker m = b.mark();
+        b.advanceLexer(); // 'template'
+        b.advanceLexer(); // '<'
+        while (true) {
+            IElementType t = b.getTokenType();
+            if ((t != TYPENAME_KEYWORD && t != CLASS_KEYWORD) || b.lookAhead(1) != IDENTIFIER) {
+                m.rollbackTo();
+                return false;
+            }
+            PsiBuilder.Marker parameter = b.mark();
+            b.advanceLexer(); // 'typename' or 'class'
+            b.advanceLexer(); // name
+            parameter.done(TEMPLATE_PARAMETER);
+            if (b.getTokenType() == COMMA) {
+                b.advanceLexer();
+            } else if (b.getTokenType() == GT) {
+                b.advanceLexer();
+                m.done(TEMPLATE_HEADER);
+                return true;
+            } else {
+                m.rollbackTo();
+                return false;
+            }
+        }
     }
 
     /**

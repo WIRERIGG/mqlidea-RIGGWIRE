@@ -10,7 +10,7 @@
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
 ![Inspections](https://img.shields.io/badge/inspections-84-3ddc84?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-643%20passing-3ddc84?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-658%20passing-3ddc84?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--3.0-777777?style=flat-square)
 
 </div>
@@ -125,7 +125,7 @@ Everything in the editor works with no external tools installed; only compile ch
 ### Building from source
 
 ```bash
-./gradlew build                  # compile (deprecations are errors) + all 643 tests
+./gradlew build                  # compile (deprecations are errors) + all 658 tests
 ./gradlew buildPlugin            # produces build/distributions/*.zip
 ./gradlew verifyPlugin           # Plugin Verifier against 2025.3.2 and CLion 2026.3
 ./gradlew runIde                 # launch a sandbox IDE with the plugin installed
@@ -149,7 +149,7 @@ Without any of these, every editor feature still works; only inline compiler dia
 
 - **Corpus gate**: over MetaQuotes' Standard Library and examples (read from your local MetaTrader install, never copied into this repo), the plugin must report **0 parse errors and 0 false "undeclared" errors**, and no inspection's count may grow without a deliberate, committed baseline change
 - **Plugin Verifier**: compatible with IntelliJ IDEA 2025.3.2 and CLion 2026.3, using no internal or experimental platform API
-- **Hermetic tests**: the 643 unit tests never depend on the machine's MetaTrader install
+- **Hermetic tests**: the 658 unit tests never depend on the machine's MetaTrader install
 - **MetaEditor is the referee**: language support and built-in name lists are checked by compiling probes in the real MetaEditor; no mql5.com documentation text is bundled
 
 ---
@@ -163,7 +163,7 @@ When you stop typing (or run **Compile Check Now**), the annotator picks the fil
 ## 🗺️ Known limitations
 
 - **Inline compile checking on Windows and Linux is untested on real machines.** The launchers are wired in, but macOS is the only platform exercised day to day. Debugging is unsupported everywhere (MetaTrader has no public debug protocol).
-- **Templates**: template parameter names are known, but members of an instantiated template type (`CStack<double> s; s.Push(…)`) don't resolve.
+- **Templates**: template parameters (`template<typename T>`) are declarations scoped to their template, with go to declaration, find usages and rename; members of an instantiated template type (`CStack<double> s; s.Push(…)`) and members reached through a template-typed variable don't resolve yet.
 - **Built-in structure fields** (`dt.hour`) complete and are checked by name, but have no declaration to navigate to.
 - **Quick documentation in MQL5 files** shows nothing for language keywords and preprocessor directives: the bundled language reference is the MQL4 one, and showing nothing beats showing MQL4 behaviour. Function and constant docs work in both dialects.
 - **CLion's MCP `search_symbol`** never finds MQL symbols: CLion sends it to its C++ engine, and the only hook is internal API this plugin won't use. Goto Symbol in the IDE works.
@@ -203,7 +203,7 @@ src/main/resources/
 └── mql/                         Bundled MQL documentation + JSON catalogs (API names only)
 ```
 
-~300 Java source files; the **643 tests** cover the parser, resolution, inspections, quick-fixes, refactoring, editor extensions, compiler-output parsing, the MetaTrader workflow and log decoding.
+~300 Java source files; the **658 tests** cover the parser, resolution, inspections, quick-fixes, refactoring, editor extensions, compiler-output parsing, the MetaTrader workflow and log decoding.
 
 ---
 

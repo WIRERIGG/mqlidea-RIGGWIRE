@@ -64,6 +64,51 @@ public final class MqlResolveUtil {
     private MqlResolveUtil() {
     }
 
+    /**
+     * A template parameter of a declaration enclosing {@code identifier}: each enclosing element
+     * whose previous sibling is a {@code template<...>} header (a class and its members, a function,
+     * an out-of-line member definition) offers that header's parameters, innermost first, so a
+     * member template's own {@code T} hides its class's. A parameter wins over any global name.
+     */
+    @org.jetbrains.annotations.Nullable
+    public static com.limemojito.oss.mql.psi.impl.MQL4TemplateParameterElement resolveTemplateParameter(
+            @NotNull PsiElement identifier, @NotNull String name) {
+        for (PsiElement e = identifier; e != null && !(e instanceof PsiFile); e = e.getParent()) {
+            PsiElement header = templateHeaderBefore(e);
+            if (header == null) {
+                continue;
+            }
+            for (PsiElement child = header.getFirstChild(); child != null; child = child.getNextSibling()) {
+                if (child instanceof com.limemojito.oss.mql.psi.impl.MQL4TemplateParameterElement parameter
+                        && name.equals(parameter.getName())) {
+                    return parameter;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The template header that heads the declaration {@code e} belongs to, looking back past what can
+     * sit between them: modifiers ({@code static}, {@code virtual}, {@code const}) and, when a body
+     * parsed apart from its signature, that signature. Stops at a {@code ;}, {@code }} or {@code :}
+     * that ends an earlier declaration or an access label.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static PsiElement templateHeaderBefore(@NotNull PsiElement e) {
+        PsiElement s = PsiTreeUtil.skipWhitespacesAndCommentsBackward(e);
+        for (int i = 0; s != null && i < 8; i++, s = PsiTreeUtil.skipWhitespacesAndCommentsBackward(s)) {
+            if (s.getNode().getElementType() == MQL4Elements.TEMPLATE_HEADER) {
+                return s;
+            }
+            String text = s.getText();
+            if (text.isEmpty() || text.endsWith(";") || text.endsWith("}") || text.endsWith(":")) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     @NotNull
     public static List<PsiElement> resolve(@NotNull PsiElement identifier, @NotNull String name) {
         if (isMacroParameter(identifier, name)) {
@@ -79,6 +124,14 @@ public final class MqlResolveUtil {
         List<PsiElement> offsetofMember = resolveOffsetofMember(identifier, name, prev);
         if (offsetofMember != null) {
             return offsetofMember;
+        }
+        if (prev == null || prev.getNode().getElementType() != MQL4Elements.DOT) {
+            PsiElement parameter = resolveTemplateParameter(identifier, name);
+            if (parameter != null) {
+                List<PsiElement> single = new ArrayList<>(1);
+                single.add(parameter);
+                return single;
+            }
         }
         PsiElement local = resolveLocal(identifier, name);
         if (local != null) {

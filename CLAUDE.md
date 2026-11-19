@@ -20,7 +20,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.9) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (643 pass)
+./gradlew test           # tests only (658 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip (on a release, also update README's version, test count and feature list)
 tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 tools/corpus-gate.sh          # ratchet over real MQL corpora (needs a local MetaTrader install)
@@ -73,14 +73,14 @@ src/main/resources/
 ├── META-INF/plugin.xml                 # ALL extension points registered here
 ├── icons/ , inspectionDescriptions/ , liveTemplates/ , mql/ (doc HTML + JSON catalogs)
 
-src/test/                               # 643 tests: parser, resolve, inspections, compiler, MetaTrader workflow
+src/test/                               # 658 tests: parser, resolve, inspections, compiler, MetaTrader workflow
 ```
 
 ## Rules
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 643). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 658). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **27** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.
@@ -93,7 +93,7 @@ src/test/                               # 643 tests: parser, resolve, inspection
 (from the 2026 architecture review — being worked through)
 - Quick-fixes cover a growing subset; Trading Safety has: wrap unchecked `CopyRates`/`CopyBuffer`/`ArrayResize`/`OrderSend` in a failure check (`WrapCallInFailureCheckFix`; `!OrderSend` on MQL5, `< 0` on MQL4), `INVALID_HANDLE` guard (`CheckHandleAfterCreationFix`), release global handles in `OnDeinit` (`ReleaseIndicatorHandlesFix`).
 - Inspection suppression uses the modern `SuppressQuickFix` API (`MQL5SafetyInspectionBase.getBatchSuppressActions` → `MqlSuppressFix`), which is also a `LocalQuickFix` and so works in **both** the editor and batch **Inspect Code** (Suppress-for-function / Suppress-for-file via `//noinspection <id>`). Also statement scope: `//noinspection <id>` on the line above a statement, or trailing on the problem's line (`MqlStatementSuppressFix`).
-- Member-access (`obj.field`/`obj.Method()`) **is** type-resolved (`reference/MqlTypeResolver`: declared-type / param / `this` / base-class / bounded chain / array element `a[i].m` / call return type `Get().m`), so rename, find-usages, and dot-completion cover project-defined classes. `::name`, `Class::member`, `Namespace::name`, out-of-line `X::Method` bodies, `offsetof(S, m)`, `#define` names and typedefs resolve too. `x[i]` on an object with `operator[]` takes that operator's return type. Forward declarations (`class CFoo;`) never stand in for the definition. Casts (`((CFoo*)p).m`, `dynamic_cast<CFoo*>(p).m`) resolve. Out of scope: template instantiation (template parameter names are known, not their bound types).
+- Member-access (`obj.field`/`obj.Method()`) **is** type-resolved (`reference/MqlTypeResolver`: declared-type / param / `this` / base-class / bounded chain / array element `a[i].m` / call return type `Get().m`), so rename, find-usages, and dot-completion cover project-defined classes. `::name`, `Class::member`, `Namespace::name`, out-of-line `X::Method` bodies, `offsetof(S, m)`, `#define` names and typedefs resolve too. `x[i]` on an object with `operator[]` takes that operator's return type. Forward declarations (`class CFoo;`) never stand in for the definition. Casts (`((CFoo*)p).m`, `dynamic_cast<CFoo*>(p).m`) resolve. Template parameters are declarations (`TEMPLATE_HEADER`/`TEMPLATE_PARAMETER`, plain PSI, no stub) scoped to the declaration their header heads, found by `MqlResolveUtil.resolveTemplateParameter` (innermost first, past modifiers and a signature that parsed apart from its body); there is no name-anywhere fallback. Out of scope: template instantiation (bound types of `CStack<double>`).
 - Names resolve the way MetaEditor compiles: a file's own `#include` closure, then (for a header) the closures of the `.mq5`/`.mq4` files that include it (`MqlResolveUtil.includerScopeFor`). The MetaTrader `MQL5/Include` and `MQL4/Include` folders are indexed as a library (`MqlIncludeLibraryProvider`). They often hold stale copies of project headers, so every project-wide lookup goes through `MqlScopes.projectFirst` (project wins; a library declaration never stands in for a documented built-in), dialect inference and the undeclared-name fallback use project scope only, and Goto Class/Symbol honour "include non-project items". Macro parameters still resolve to nothing, by design.
 - CLion's MCP `search_symbol` never sees MQL symbols: CLion routes it to its C++ engine (`RadSymbolSearchEngine`), and the only hook (`SymbolSearchEngine`) is `@ApiStatus.Internal`. Platform limitation; the owner decided (2026-11-15) not to use the internal hook, to keep the plugin sturdy across IDE updates. Agents use `search_text`/`search_regex`. IntelliJ IDEA has no such engine, so it falls back to Goto Symbol.
 - Built-in structure members (`MqlDateTime dt; dt.hour`) complete and are checked by name (`StructCatalog`); they have no PSI, so they don't navigate.
