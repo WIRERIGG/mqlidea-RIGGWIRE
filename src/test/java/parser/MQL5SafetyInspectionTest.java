@@ -1634,6 +1634,40 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void OnTick() { datetime a = TimeCurrent(); datetime b = TimeCurrent(); datetime c = TimeCurrent(); }");
     }
 
+    public void testUnusedParameterSkipsVirtualMethods() {
+        // Standard Library CArray/CArrayChar: a virtual stub and an out-of-class override keep the hierarchy's signature
+        assertNoProblems(new UnusedParameterInspection(),
+                "class A { protected: virtual void Sort(int beg, int end, const int mode = 0) { m = -1; } int m; };");
+        assertNoProblems(new UnusedParameterInspection(),
+                "class B : public A { virtual void Sort(int beg, int end, const int mode = 0); };\n" +
+                "void B::Sort(int beg, int end, const int mode) { Print(beg + end); }");
+        assertNoProblems(new UnusedParameterInspection(),
+                "class C : public A { void Sort(int beg, int end, const int mode) override { Print(beg + end); } };");
+        // a plain method of the same shape is still reported
+        assertHasProblems(new UnusedParameterInspection(),
+                "class D { void Sort(int beg, int end); };\nvoid D::Sort(int beg, int end) { Print(beg); }");
+    }
+
+    public void testUnusedParameterNamesTheParameterNotItsDefault() {
+        // Standard Library Canvas.mqh: `const uint style=UINT_MAX` was reported as parameter 'UINT_MAX'
+        myFixture.configureByText("t.mq5", "void Tri(const uint clr, const uint style = UINT_MAX) { Print(clr); }");
+        myFixture.enableInspections(new UnusedParameterInspection());
+        java.util.List<String> messages = myFixture.doHighlighting().stream().map(h -> h.getDescription()).filter(d -> d != null && d.startsWith("Parameter")).toList();
+        assertEquals(java.util.List.of("Parameter 'style' is never used in function body"), messages);
+    }
+
+    public void testDanglingAndNullAfterDeleteIgnoreDeletingACallResult() {
+        // Standard Library SortedMap.mqh: `delete m_tree.Comparer();` deletes the comparer, not m_tree
+        assertNoProblems(new DanglingObjectReferenceInspection(),
+                "void Clear() { delete m_tree.Comparer(); ClearNodes(m_tree.Root()); }");
+        // Standard Library mamdanifuzzysystem.mqh: deleted in one branch, used in the else branch
+        assertNoProblems(new DanglingObjectReferenceInspection(),
+                "double D(int m) { if (m == 0) { delete mf; return 1; } else if (m == 1) { return mf.GetValue(0); } return 0; }");
+        // ruleparser.mqh: deleted twice on one path is still reported
+        assertHasProblems(new DanglingObjectReferenceInspection(),
+                "void P(bool c) { delete expressions; if (c) { return; } else { delete expressions; } }");
+    }
+
     public void testUnusedParameter() {
         assertHasProblems(new UnusedParameterInspection(),
                 "void Foo(int unused) { Print(\"hi\"); }");
@@ -1674,6 +1708,18 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
     public void testGlobalVariableConflictClean() {
         assertNoProblems(new GlobalVariableConflictInspection(),
                 "void foo() { GlobalVariableSet(\"gv\", 1.0); }");
+    }
+
+    public void testDanglingObjectReferenceSkipsUsesPastAReturn() {
+        // Standard Library ExpertBase.mqh: the failure branch deletes and returns, so the later use isn't reached from it
+        assertNoProblems(new DanglingObjectReferenceInspection(),
+                "bool Init() { if (!list.Add(m_open)) { Print(\"add\"); delete m_open; return(false); }\n" +
+                "  if (!m_open.Create()) return(false); return(true); }");
+        // a use before the return, and a branch without one, are still reported
+        assertHasProblems(new DanglingObjectReferenceInspection(),
+                "bool Init() { if (bad) { delete m_open; Print(m_open.Name()); return(false); } return(true); }");
+        assertHasProblems(new DanglingObjectReferenceInspection(),
+                "bool Init() { if (bad) { delete m_open; } m_open.Create(); return(true); }");
     }
 
     public void testDanglingObjectReferenceClean() {

@@ -78,7 +78,7 @@ public class NullAfterDeleteInspection extends MQL5SafetyInspectionBase {
                 String[] offenderName = {null};
                 StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
                     if (offenderNode[0] != null) return;
-                    ASTNode idNode = StatementAst.deletedIdentifier(stmt);
+                    ASTNode idNode = StatementAst.bareDeletedIdentifier(stmt);
                     if (idNode == null) return;
                     if (isDestructor && stmt.getTreeParent() == body) {
                         return; // ~CFoo() { delete m_a; delete m_b; }: the members die with the object

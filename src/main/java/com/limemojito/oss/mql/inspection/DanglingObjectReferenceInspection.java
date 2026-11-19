@@ -47,13 +47,16 @@ public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase 
                 ASTNode[] danglingUse = {null};
                 StatementAst.forEachDescendant(body, EXPRESSION_STATEMENTS, stmt -> {
                     if (danglingUse[0] != null) return;
-                    ASTNode idNode = StatementAst.deletedIdentifier(stmt);
+                    ASTNode idNode = StatementAst.bareDeletedIdentifier(stmt);
                     if (idNode == null) return;
                     String name = idNode.getText();
                     int deleteEnd = stmt.getTextRange().getEndOffset();
                     ASTNode reassignEq = StatementAst.findAssignmentAfter(body, name, deleteEnd);
                     ASTNode lhsToExclude = reassignEq != null ? StatementAst.prevNonTrivia(reassignEq) : null;
-                    ASTNode use = findDanglingUse(body, name, deleteEnd, lhsToExclude);
+                    ASTNode use = findDanglingUse(body, name, deleteEnd, lhsToExclude, stmt);
+                    if (use != null && use.getStartOffset() >= reachableEnd(stmt, body)) {
+                        use = null; // past a return that follows the delete: not reached from it
+                    }
                     if (use != null && reassignEq != null && use.getStartOffset() >= reassignEq.getStartOffset()) {
                         use = null; // at/after the reassignment — refers to the fresh value, not dangling
                     }
@@ -69,20 +72,54 @@ public class DanglingObjectReferenceInspection extends MQL5SafetyInspectionBase 
         return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
     }
 
+    /** True when {@code use} is in another branch of an {@code if} that holds {@code delete}: {@code if (a) delete p; else p.Use();} */
+    private static boolean inOtherBranch(@NotNull ASTNode delete, @NotNull ASTNode use) {
+        for (ASTNode branch = delete; branch.getTreeParent() != null; branch = branch.getTreeParent()) {
+            ASTNode parent = branch.getTreeParent();
+            if (parent.getElementType() == MQL4Elements.IF_STATEMENT && parent.getTextRange().contains(use.getTextRange())
+                    && !branch.getTextRange().contains(use.getTextRange())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * End of the code the delete can reach: the end of the first {@code return} that follows it in
+     * an enclosing {@code {...}} block ({@code if (!ok) { delete p; return false; } p.Use();}), or
+     * the end of the function.
+     */
+    private static int reachableEnd(@NotNull ASTNode delete, @NotNull ASTNode body) {
+        for (ASTNode node = delete; node != null && node != body; node = node.getTreeParent()) {
+            ASTNode parent = node.getTreeParent();
+            if (parent == null || parent.getElementType() != MQL4Elements.BRACKETS_BLOCK
+                    || parent.getFirstChildNode().getElementType() != MQL4Elements.L_CURLY_BRACKET) {
+                continue;
+            }
+            for (ASTNode next = node.getTreeNext(); next != null; next = next.getTreeNext()) {
+                if (next.getElementType() == MQL4Elements.RETURN_STATEMENT) {
+                    return next.getTextRange().getEndOffset();
+                }
+            }
+        }
+        return Integer.MAX_VALUE;
+    }
+
     /**
      * First {@code IDENTIFIER} token with text {@code name} at or after {@code fromOffset} in
      * {@code root}, skipping {@code excludeNode} (the reassignment's own left-hand identifier,
      * which is a write, not a use).
      */
     @Nullable
-    private static ASTNode findDanglingUse(@NotNull ASTNode root, @NotNull String name, int fromOffset, @Nullable ASTNode excludeNode) {
+    private static ASTNode findDanglingUse(@NotNull ASTNode root, @NotNull String name, int fromOffset, @Nullable ASTNode excludeNode,
+                                           @NotNull ASTNode delete) {
         for (ASTNode child = root.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             ProgressManager.checkCanceled();
             if (child.getElementType() == MQL4Elements.IDENTIFIER && name.equals(child.getText())
-                    && child.getStartOffset() >= fromOffset && child != excludeNode) {
+                    && child.getStartOffset() >= fromOffset && child != excludeNode && !inOtherBranch(delete, child)) {
                 return child;
             }
-            ASTNode found = findDanglingUse(child, name, fromOffset, excludeNode);
+            ASTNode found = findDanglingUse(child, name, fromOffset, excludeNode, delete);
             if (found != null) return found;
         }
         return null;
