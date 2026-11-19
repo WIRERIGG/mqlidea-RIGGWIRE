@@ -8,7 +8,7 @@
              url="https://github.com/WIRERIGG">
     <id>io.riggwire.mql</id>
     <name>RIGGWIRE MQL</name>
-    <version>2026.1.10</version>
+    <version>2026.1.11</version>
     <vendor url="https://github.com/WIRERIGG">RIGGWIRE Trading Systems</vendor>
     <description>
         <![CDATA[
@@ -65,6 +65,12 @@
 
     <change-notes>
         <![CDATA[
+            <p><b>2026.1.11</b> &ndash; fewer false warnings on real MQL5. A call to another overload is no longer
+               "recursion"; virtual and override methods keep their signature's unused parameters; a use after
+               the delete's branch returns, or in the other branch of the <code>if</code>, is not a dangling
+               reference, and <code>delete a.b();</code> deletes the result, not <code>a</code>; the price check reports
+               <code>==</code>/<code>!=</code> on a price instead of any function that reads one. An unused parameter
+               with a default is named correctly (not <code>'UINT_MAX'</code>).</p>
             <p><b>2026.1.10</b> &ndash; far fewer false errors on real MQL5, scored against MetaEditor itself.
                <code>unsigned int</code> and friends, <code>struct S { ... } v;</code>, <code>Outer::Item*</code>
                parameters and template type parameters now parse and resolve; members of <code>vector</code>,
