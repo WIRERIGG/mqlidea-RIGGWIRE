@@ -53,7 +53,7 @@
 
 ## Phase 5: User Story 4 - Fast reruns (P2)
 
-- [ ] T020 [US4] Rerun with no corpus change: zero MetaEditor starts (count them) and identical report; edit one staged-program's source copy in a temp clone: exactly one recompile
+- [X] T020 [US4] Rerun with no corpus change: zero MetaEditor starts (count them) and identical report; edit one staged-program's source copy in a temp clone: exactly one recompile — **done 2026-11-18**: a full rerun with nothing changed compiled 0 and reused 1,575 verdicts in 16 s. In a temp clone of dwxconnect, an unchanged run compiled 0; editing one program compiled 13 (the program plus its 12 seeded mutants, which derive from its text); with `MQL_HARNESS_MUTANTS=0`, exactly 1. MQL5 was untouched each time.
 - [x] T021 [US4] ⛔ Plugin-side full rescore under 10 minutes (SC-002) — **Done 2026-11-18 (placeholder verdicts; MetaEditor's answers don't change plugin-side time):** all 16 sources, 587 programs and stubs plus 2,209 mutants, held-out included: 318 s for the whole harness.sh run, 152 s of it highlighting (259 ms per program).
 
 ## Phase 6: User Story 5 - The corpus covers the language (P2)
