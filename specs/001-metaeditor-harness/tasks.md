@@ -37,7 +37,8 @@
 - [X] T016 [US1] Baseline ratchet: `src/test/resources/gate/harness-baseline.properties` (counts only); fail when `open.falseError` or `open.missedError` rises; `MQL_HARNESS_UPDATE=1` rewrites — done; the first real run writes the baseline **First real baseline 2026-11-18** (587 programs and stubs, 1,006 counted mutants): open sources 285 agree-clean, 79 agree-errors, 36 disjoint, 31 false-error, 67 missed, 40 excluded; caught per kind: misspelt identifier 150/164 (91%), undeclared member 102/110 (93%), missing `;` 1/155, unbalanced brace 2/134, type mismatch 0/144, argument count 0/146. A full scoring run took 346 s.
 - [X] T017 [US1] `tools/harness/harness.sh` (like `tools/corpus-gate.sh`: fresh test index before and after) — done
 - [X] T018 [US1] ⛔ Determinism: run `harness.sh` twice; reports must be byte-identical (SC-003) — dry run: two runs byte-identical; recheck on real verdicts — **rechecked on real verdicts 2026-11-18**: two full runs (346 s, 288 s) gave byte-identical reports.
-- [ ] T019 [US1] ⛔ Live cross-check (FR-015, research R7): on the EA and `geraked__metatrader5`, per-file error counts from the report equal `tools/clion-mcp-check.py` in CLion with the installed plugin; any mismatch → fix the harness setup, don't trust the score
+- [X] T019 [US1] ⛔ Live cross-check (FR-015, research R7): on the EA and `geraked__metatrader5`, per-file error counts from the report equal `tools/clion-mcp-check.py` in CLion with the installed plugin; any mismatch → fix the harness setup, don't trust the score
+  - 2026-11-19, plugin 2026.1.10: the harness now writes `build/harness-plugin-errors.tsv` (every plugin error it scores). EA: harness 0 errors, CLion 0 errors over 31 files. geraked: harness 8 errors, CLion the same 8 (`Indicators/DarvasBoxes.mq5:37-44`, extern initialisation, which MetaEditor rejects too) over 48 files. No mismatch.
 
 **Checkpoint**: MVP delivers a score and a ranked gap list for 3 sources + the EA (report-only).
 
