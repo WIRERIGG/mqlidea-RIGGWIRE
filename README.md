@@ -33,7 +33,7 @@ Plugin id: `io.riggwire.mql`
 
 - **Three file types** — `MQL4 File` (`.mq4`, `.mql4`), `MQL5 File` (`.mq5`, `.mql5`), and `MQL Header` (`.mqh`) — each with its own icon
 - JFlex lexer and hand-written parser with error recovery — a syntax error does not break highlighting or navigation for the rest of the file
-- The MQL5 language as MetaEditor accepts it: classes, structs and **unions**, `pack(n)`, interfaces, operator methods, **namespaces**, `typedef` function pointers, templates, `input group`, `export`, `#`/`##` in macros, `D'…'` datetime and `C'…'` color literals, `\x` escapes, and the `vector`/`matrix`/`complex` types
+- The MQL5 language as MetaEditor accepts it: classes, structs and **unions**, `pack(n)`, interfaces, operator methods, **namespaces**, `typedef` function pointers, templates, `input group`, `export`, `#`/`##` in macros, `unsigned int` (and `unsigned char/short/long`), `D'…'` datetime and `C'…'` color literals, `\x` escapes, and the `vector`/`matrix`/`complex` types
 - Dialect awareness (`MqlDialect`): files are classified as MQL4 or MQL5 (a `.mqh` header inherits its project's dialect), and dialect-specific completion and inspections only apply where they belong
 - Syntax highlighting with a configurable **Color Settings** page, plus a semantic annotator for event handlers (`OnInit`, `OnTick`, …), `input` parameters and MetaEditor's own literal errors (out-of-range character codes, MQL5 `extern` initializers)
 - Read-vs-write identifier highlighting and a bundled MQL/MetaTrader spellchecking dictionary
@@ -150,7 +150,7 @@ Without any of these, every editor feature still works; only inline compiler dia
 
 - **Corpus gate**: over MetaQuotes' Standard Library and examples (read from your local MetaTrader install, never copied into this repo), the plugin must report **0 parse errors and 0 false "undeclared" errors**, and no inspection's count may grow without a deliberate, committed baseline change
 - **Plugin Verifier**: compatible with IntelliJ IDEA 2025.3.2 and CLion 2026.3, using no internal or experimental platform API
-- **Hermetic tests**: the 663 unit tests never depend on the machine's MetaTrader install
+- **Hermetic tests**: the 680 unit tests never depend on the machine's MetaTrader install
 - **MetaEditor is the referee**: language support and built-in name lists are checked by compiling probes in the real MetaEditor; no mql5.com documentation text is bundled
 
 ---
