@@ -6,7 +6,7 @@
 
 **MQL4/MQL5 language support for IntelliJ IDEA & CLion — with inline MetaEditor compiler diagnostics.**
 
-![Version](https://img.shields.io/badge/version-2026.1.9-2381C4?style=flat-square)
+![Version](https://img.shields.io/badge/version-2026.1.10-2381C4?style=flat-square)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
 ![Inspections](https://img.shields.io/badge/inspections-84-3ddc84?style=flat-square)
@@ -150,9 +150,9 @@ Without any of these, every editor feature still works; only inline compiler dia
 
 - **Corpus gate**: over MetaQuotes' Standard Library and examples (read from your local MetaTrader install, never copied into this repo), the plugin must report **0 parse errors and 0 false "undeclared" errors**, and no inspection's count may grow without a deliberate, committed baseline change
 - **Plugin Verifier**: compatible with IntelliJ IDEA 2025.3.2 and CLion 2026.3, using no internal or experimental platform API
-- **Hermetic tests**: the 680 unit tests never depend on the machine's MetaTrader install
+- **Hermetic tests**: the 693 unit tests never depend on the machine's MetaTrader install
 - **MetaEditor is the referee**: language support and built-in name lists are checked by compiling probes in the real MetaEditor; no mql5.com documentation text is bundled
-- **MetaEditor harness**: 234 MQL5 programs (14 open-source repositories, plus MetaQuotes' examples and one private EA read from the local install and never copied), their 335 otherwise-unreached headers, and 1,006 seeded mistakes are compiled in MetaEditor, and the plugin is scored against those verdicts. Its false errors, missed errors and caught mistakes per kind may not get worse. The first baseline: 285 programs where both are clean, 31 where only the plugin reports an error, 67 where only MetaEditor does. The plugin catches 91% of misspelt names and 93% of misspelt members; it does not yet catch a missing `;`, a wrong argument count or a type mismatch (see `specs/001-metaeditor-harness/findings.md`)
+- **MetaEditor harness**: 234 MQL5 programs (14 open-source repositories, plus MetaQuotes' examples and one private EA read from the local install and never copied), their 335 otherwise-unreached headers, and 1,006 seeded mistakes are compiled in MetaEditor, and the plugin is scored against those verdicts. Its false errors, missed errors and caught mistakes per kind may not get worse. Today: 309 programs where both are clean, 7 where only the plugin reports an error, 86 where only MetaEditor does (mostly code that MetaEditor's newer compiler rejects for argument and struct-copy types). The plugin catches 90% of misspelt names and 93% of misspelt members; it does not yet catch a missing `;`, a wrong argument count or a type mismatch (see `specs/001-metaeditor-harness/findings.md`)
 
 ---
 

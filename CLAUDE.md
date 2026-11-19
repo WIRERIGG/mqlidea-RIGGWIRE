@@ -2,7 +2,7 @@
 
 ## What This Is
 
-An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.9) providing MQL4/MQL5 language support for MetaTrader trading development in IntelliJ IDEA and CLion. It focuses on being honest and genuinely helpful for real MQL projects: early, inline detection of syntactic/semantic errors, and full IDE assistance (navigation, refactoring, completion, docs, formatting) plus a compiler-backed error annotator.
+An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.10) providing MQL4/MQL5 language support for MetaTrader trading development in IntelliJ IDEA and CLion. It focuses on being honest and genuinely helpful for real MQL projects: early, inline detection of syntactic/semantic errors, and full IDE assistance (navigation, refactoring, completion, docs, formatting) plus a compiler-backed error annotator.
 
 > The former **AI Code Healing** subsystem (Grok analysis + Claude diff apply, SQLite DB, healing tool window, gutter markers, pre-commit prompts) was **removed in the 2026.1.0 revamp**. Only the AI-free "Generate MQL Inspection Catalog" action (`catalog/`) survives. Do not re-add healing.
 
@@ -20,7 +20,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.9) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (680 pass)
+./gradlew test           # tests only (693 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip (on a release, also update README's version, test count and feature list)
 tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 tools/corpus-gate.sh          # ratchet over real MQL corpora (needs a local MetaTrader install)
