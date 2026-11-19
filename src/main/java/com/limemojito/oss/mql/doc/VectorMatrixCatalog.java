@@ -30,6 +30,15 @@ public final class VectorMatrixCatalog {
     /** Instance methods, static constructors and fields of one type family. */
     public record Members(@NotNull List<String> methods, @NotNull List<String> statics, @NotNull List<String> fields) {
         static final Members NONE = new Members(List.of(), List.of(), List.of());
+
+        /** True when {@code name} is listed in any form: method, static constructor or field. */
+        public boolean has(@NotNull String name) {
+            return methods.contains(name) || statics.contains(name) || fields.contains(name);
+        }
+
+        public boolean isEmpty() {
+            return methods.isEmpty() && statics.isEmpty() && fields.isEmpty();
+        }
     }
 
     private VectorMatrixCatalog() {

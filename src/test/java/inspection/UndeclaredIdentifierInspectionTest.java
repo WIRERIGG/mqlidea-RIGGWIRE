@@ -47,6 +47,85 @@ public class UndeclaredIdentifierInspectionTest extends BasePlatformTestCase {
         assertEquals(List.of("'T' - undeclared identifier"), undeclared("test.mq5", code));
     }
 
+    public void testMisspeltVectorMatrixAndComplexMembersAreFlagged() {
+        String code = """
+                class CM
+                  {
+                   matrix<double>    m_matrix;
+                   bool              Drop() { return m_matrix.Rowz() > 0; }
+                  };
+                template<typename T> bool Grow(vector<T> &x, const int n) { return x.Resze(n); }
+                void OnStart()
+                  {
+                   vector v;
+                   vectorf f;
+                   complex z;
+                   Print(v.Summ(), f.Mean(), z.rel);
+                  }
+                """;
+        assertEquals(List.of("'Rowz' - undeclared identifier", "'Resze' - undeclared identifier",
+                "'Summ' - undeclared identifier", "'rel' - undeclared identifier"), undeclared("test.mq5", code));
+    }
+
+    public void testValidVectorMatrixAndComplexMembersAreClean() {
+        String code = """
+                class CM
+                  {
+                   matrix<double>    m_matrix;
+                   bool              Drop() { return m_matrix.Resize(m_matrix.Rows() - 1, m_matrix.Cols()); }
+                  };
+                template<typename T> bool Grow(vector<T> &x, const int n) { return x.Resize(n); }
+                void OnStart()
+                  {
+                   vector v = vector::Zeros(3);
+                   matrix m(2, 2);
+                   complex z;
+                   z.real = 1;
+                   Print(v.Sum(), v.Size(), m.Rows(), m.Transpose().Rows(), z.imag);
+                  }
+                """;
+        assertEquals(List.of(), undeclared("test.mq5", code));
+    }
+
+    public void testVectorMembersAreCheckedOnlyWhenTheTypeIsProven() {
+        String code = """
+                class CFoo { public: int Summ() { return 0; } };
+                template<typename T> int Use(T &t) { return t.Summ(); }
+                bool Finite(complex &x[], const int n) { return (int)x.Size() >= n; }
+                vector Make() { vector r; return r; }
+                void Run(vector &v)
+                  {
+                   CFoo w;
+                   vector arr[];
+                   Print(Make().Summ(), arr[0].Summ(), w.Summ(), arr.Size());
+                  }
+                """;
+        assertEquals(List.of(), undeclared("test.mq5", code));
+    }
+
+    public void testANearerDeclarationHidesAVectorParameter() {
+        String code = """
+                class CFoo { public: int Other() { return 0; } };
+                void Run(vector &v)
+                  {
+                   if(v.Size() > 0)
+                     {
+                      CFoo v;
+                      Print(v.Other());
+                     }
+                  }
+                """;
+        assertEquals(List.of(), undeclared("test.mq5", code));
+    }
+
+    public void testNoVectorChecksInMql4() {
+        String code = """
+                class vector { public: double Summ() { return 0; } };
+                void OnStart() { vector v; Print(v.Summ()); }
+                """;
+        assertEquals(List.of(), undeclared("test.mq4", code));
+    }
+
     public void testDeclaredNamesBuiltinsAndPreprocessorAreClean() {
         String code = """
                 #property copyright "x"

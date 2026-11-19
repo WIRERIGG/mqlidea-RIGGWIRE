@@ -20,7 +20,7 @@ An IntelliJ Platform plugin (`io.riggwire.mql`, v2026.1.9) providing MQL4/MQL5 l
 export JAVA_HOME=/Applications/CLion.app/Contents/jbr/Contents/Home
 ./gradlew build          # compile (-Werror on deprecation) + test
 ./gradlew verifyPlugin verifyPluginStructure   # NOT part of build; run before a release
-./gradlew test           # tests only (658 pass)
+./gradlew test           # tests only (663 pass)
 ./gradlew buildPlugin     # produces build/distributions/mqlidea-<version>.zip (on a release, also update README's version, test count and feature list)
 tools/publish-local-repo.sh   # copies that zip to ~/.mqlidea-repo + writes updatePlugins.xml
 tools/corpus-gate.sh          # ratchet over real MQL corpora (needs a local MetaTrader install)
@@ -73,14 +73,14 @@ src/main/resources/
 ├── META-INF/plugin.xml                 # ALL extension points registered here
 ├── icons/ , inspectionDescriptions/ , liveTemplates/ , mql/ (doc HTML + JSON catalogs)
 
-src/test/                               # 658 tests: parser, resolve, inspections, compiler, MetaTrader workflow
+src/test/                               # 663 tests: parser, resolve, inspections, compiler, MetaTrader workflow
 ```
 
 ## Rules
 
 - Be honest and genuinely helpful for real MQL4/MQL5 projects; detect errors early and inline. Prefer add/enhance over remove.
 - All new extensions MUST be registered in `plugin.xml`; removing an extension means removing its registration too.
-- All existing tests must pass after changes (`./gradlew test` — 658). Delete only tests covering deliberately-removed features.
+- All existing tests must pass after changes (`./gradlew test` — 663). Delete only tests covering deliberately-removed features.
 - Source is **Java 21** (not Kotlin). Both MQL4 and MQL5 use `language="MQL4"` in plugin.xml.
 - Stub schema version is **27** — increment when changing stub structure.
 - Respect the platform threading model: PSI/index access under read actions; long work off the EDT; actions override `getActionUpdateThread()`; index-backed extensions guard for dumb mode and call `ProgressManager.checkCanceled()`.

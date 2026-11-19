@@ -36,7 +36,8 @@ import java.util.Set;
  * <p>A member is checked only when the receiver's class and every class it derives from are
  * declared in the project or its headers: a base class from a missing header or a template could
  * supply any member. A built-in structure's members ({@code MqlDateTime dt; dt.hours}) are checked
- * against {@link StructCatalog}. Skipped as for calls (see {@link UndeclaredNames}), and also {@code #property}
+ * against {@link StructCatalog}, and those of {@code vector}, {@code matrix} and {@code complex}
+ * against {@link com.limemojito.oss.mql.doc.VectorMatrixCatalog} (MQL5 files, declared receivers only). Skipped as for calls (see {@link UndeclaredNames}), and also {@code #property}
  * lines, {@code #include} paths and {@code #ifdef} names.</p>
  */
 public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
@@ -85,7 +86,13 @@ public class UndeclaredIdentifierInspection extends MQL5SafetyInspectionBase {
         if (receiver == null) {
             // a built-in structure (MqlDateTime dt; dt.hours) is checked against its known members
             StructCatalog.Members builtin = StructCatalog.of(MqlTypeResolver.resolveQualifierTypeName(qualifier));
-            return builtin != null && !builtin.has(member.getText());
+            if (builtin != null) {
+                return !builtin.has(member.getText());
+            }
+            // vector / matrix / complex (vector v; v.Summ()): MQL5 only, type proven from the declaration
+            String valueType = com.limemojito.oss.mql.MqlDialect.isMql5(qualifier.getContainingFile())
+                    ? MqlTypeResolver.resolveBuiltinValueTypeName(qualifier) : null;
+            return valueType != null && !com.limemojito.oss.mql.doc.VectorMatrixCatalog.of(valueType).has(member.getText());
         }
         if (!hierarchyKnown(receiver, new HashSet<>())) {
             return false;

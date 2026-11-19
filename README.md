@@ -10,7 +10,7 @@
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ%20Platform-2025.3.2%2B-000000?style=flat-square&logo=intellijidea&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-E5393B?style=flat-square&logo=openjdk&logoColor=white)
 ![Inspections](https://img.shields.io/badge/inspections-84-3ddc84?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-658%20passing-3ddc84?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-663%20passing-3ddc84?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--3.0-777777?style=flat-square)
 
 </div>
@@ -48,6 +48,7 @@ Plugin id: `io.riggwire.mql`
 - **Trading Safety** covers unchecked `OrderSend()` results, unchecked or double-released indicator handles, missing `IndicatorRelease()`, MQL4 order-close loop direction, trade-context checks, unchecked `CopyRates`/`CopyBuffer`, `delete` without a null guard, and more
 - **Indicator buffer contract**: `SetIndexBuffer`, `CopyBuffer` and `iCustom` buffer indexes checked against the indicator's declared buffers and plots (literal values)
 - **Call to an undefined function**: MetaEditor's "undeclared identifier" (error 256), reported as you type; skipped for any file whose `#include` doesn't resolve, so it never guesses
+- **Undeclared names and members**: a variable or type nothing declares, and a member a type doesn't have, for your classes, built-in structures (`dt.hours` on `MqlDateTime`) and `vector`/`matrix`/`complex` (`v.Summ()`); a stray template parameter name outside its template is reported too
 - A cross-file **global inspection**: unused global function across the entire `#include` closure
 - Safety checks are on by default (57); style, naming and complexity checks are opt-in (26)
 - **Quick-fixes** that always emit compilable code: wrap an unchecked `CopyRates`/`CopyBuffer`/`ArrayResize`/`OrderSend` in a failure check, add an `INVALID_HANDLE` guard after handle creation, release global indicator handles in `OnDeinit`, and nullify a pointer after `delete`
@@ -125,7 +126,7 @@ Everything in the editor works with no external tools installed; only compile ch
 ### Building from source
 
 ```bash
-./gradlew build                  # compile (deprecations are errors) + all 658 tests
+./gradlew build                  # compile (deprecations are errors) + all 663 tests
 ./gradlew buildPlugin            # produces build/distributions/*.zip
 ./gradlew verifyPlugin           # Plugin Verifier against 2025.3.2 and CLion 2026.3
 ./gradlew runIde                 # launch a sandbox IDE with the plugin installed
@@ -149,7 +150,7 @@ Without any of these, every editor feature still works; only inline compiler dia
 
 - **Corpus gate**: over MetaQuotes' Standard Library and examples (read from your local MetaTrader install, never copied into this repo), the plugin must report **0 parse errors and 0 false "undeclared" errors**, and no inspection's count may grow without a deliberate, committed baseline change
 - **Plugin Verifier**: compatible with IntelliJ IDEA 2025.3.2 and CLion 2026.3, using no internal or experimental platform API
-- **Hermetic tests**: the 658 unit tests never depend on the machine's MetaTrader install
+- **Hermetic tests**: the 663 unit tests never depend on the machine's MetaTrader install
 - **MetaEditor is the referee**: language support and built-in name lists are checked by compiling probes in the real MetaEditor; no mql5.com documentation text is bundled
 
 ---
@@ -203,7 +204,7 @@ src/main/resources/
 └── mql/                         Bundled MQL documentation + JSON catalogs (API names only)
 ```
 
-~300 Java source files; the **658 tests** cover the parser, resolution, inspections, quick-fixes, refactoring, editor extensions, compiler-output parsing, the MetaTrader workflow and log decoding.
+~300 Java source files; the **663 tests** cover the parser, resolution, inspections, quick-fixes, refactoring, editor extensions, compiler-output parsing, the MetaTrader workflow and log decoding.
 
 ---
 
