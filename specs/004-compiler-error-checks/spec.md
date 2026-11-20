@@ -40,3 +40,12 @@ above the baseline (7 open-source programs), and the corpus gate's compiling cod
 - Missing `;`: done. Catch 1% -> 85% (132/155). Fixing it uncovered a parser bug: explicit
   template arguments in an initializer (`new CPair<K,V>(...)`, `Array::Size<int, T *>(...)`) split
   the declaration at their comma and declared a variable named after a type argument.
+- Type mismatch (value list given to a single value): done. `ScalarInitializerListInspection`
+  (ERROR). Catch 0% -> 99% (143/144); false errors 7 (unchanged); 0 on the corpus gate.
+- Wrong argument count, the program's own functions: done as a WARNING (`ArgumentCountInspection`);
+  0 on the corpus gate. Harness catch stays 0%: the seeded calls are almost all built-ins
+  (ArraySetAsSeries 22, SetIndexBuffer 12, ArrayResize 5 ...). Declaration initializers are flat
+  tokens, so the argument counter reads them from the tokens.
+- Next: built-in argument counts. The only catalog with parameter lists (`mql4-signatures.json`) comes
+  from the MQL4 documentation, so it can't drive an error. Each count must be verified by compiling a
+  probe in MetaEditor (D-1: no doc text), and only while no backtest runs.

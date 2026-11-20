@@ -1728,6 +1728,34 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
         assertNoProblems(i, "struct S { int a; double b; };\nenum E { ONE, TWO };\nS s = {1, 2.0};\n", "test.mq5");
     }
 
+    public void testScalarInitializerList() {
+        ScalarInitializerListInspection i = new ScalarInitializerListInspection();
+        // MetaEditor 186 "too many initializers" / 187 "'{' - constant expected"
+        assertHasProblems(i, "void F() { int a = {1, 2}; }", "test.mq5");
+        assertHasProblems(i, "void F() { int a = {1, 2}, b = 3; }", "test.mq5");
+        assertHasProblems(i, "void F() { int b = 3, a = {1, 2}; }", "test.mq5");
+        assertHasProblems(i, "input double Lot = {0.1, 0.2};", "test.mq5");
+        assertHasProblems(i, "static const string S = {\"a\", \"b\"};", "test.mq5");
+        // arrays, structs, vectors, pointers and single-value braces are fine or not this check
+        assertNoProblems(i, "struct P { int x; int y; };\nvoid F() { double c[] = {1, 2}; int m[2][2] = {{1, 2}, {3, 4}};\n"
+                + "  P p = {1, 2}; vector v = {1, 2}; complex z = {1, 2}; int a = 1, b = 2; MqlTick t = {}; }", "test.mq5");
+    }
+
+    public void testArgumentCount() {
+        ArgumentCountInspection i = new ArgumentCountInspection();
+        // MetaEditor 199 "wrong parameters count"
+        assertHasProblems(i, "double Lot(double risk, int sl) { return risk * sl; }\nvoid F() { Lot(1.0, 2, 0); }", "test.mq5");
+        assertHasProblems(i, "double Lot(double risk, int sl) { return risk * sl; }\nvoid F() { Lot(1.0); }", "test.mq5");
+        assertHasProblems(i, "void G() {}\nvoid F() { G(1); }", "test.mq5");
+        // defaults (in the declaration only, too), overloads, members, macros and built-ins are fine
+        assertNoProblems(i, "double Lot(double risk, int sl = 10);\ndouble Lot(double risk, int sl) { return risk * sl; }\n"
+                + "void H(int a) {}\nvoid H(int a, int b, int c) {}\nclass C { public: void Size(int a, int b) {} };\n"
+                + "#define M(a, b) H(a)\nint Size(int x) { return x; }\n"
+                + "void F() { Lot(1.0); Lot(1.0, 2); H(1); H(1, 2, 3); vector v; v.Size(); C c; c.Size(1, 2); M(1, 2);"
+                + " Print(1, 2, 3); C::Size(1, 2); double x = Lot(1.0, H2(3, (4)), y = Lot(1.0); }\nint H2(int a, int b) { return a; }", "test.mq5");
+        assertHasProblems(i, "double Lot(double risk, int sl) { return risk * sl; }\nvoid F() { double x = Lot(1.0, 2, 3); }", "test.mq5");
+    }
+
     public void testUnusedParameter() {
         assertHasProblems(new UnusedParameterInspection(),
                 "void Foo(int unused) { Print(\"hi\"); }");
