@@ -1702,6 +1702,32 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void f() { string h = \"X-App-Token: abc123\"; }");
     }
 
+    public void testMissingSemicolon() {
+        MissingSemicolonInspection i = new MissingSemicolonInspection();
+        // the shapes MetaEditor rejects with 154 "semicolon expected" / 149 "unexpected token"
+        assertHasProblems(i, "void OnTick() {\n  Print(1)\n  Print(2);\n}\n", "test.mq5");
+        assertHasProblems(i, "void OnTick() {\n  int a = 1\n  int b = 2;\n}\n", "test.mq5");
+        assertHasProblems(i, "void OnTick() {\n  int a = 0;\n  a = 2\n  if (a > 0) Print(a);\n}\n", "test.mq5");
+        assertHasProblems(i, "void OnTick() {\n  Print(1)\n}\n", "test.mq5");
+        assertHasProblems(i, "int F() {\n  return 1\n}\n", "test.mq5");
+        assertHasProblems(i, "input int A = 5\ninput int B = 3;\n", "test.mq5");
+        assertHasProblems(i, "void F(int n) {\n  for (int k = 0; k < n; k++) {\n    if (k > 2) break\n  }\n}\n", "test.mq5");
+    }
+
+    public void testMissingSemicolonLeavesValidCodeAlone() {
+        MissingSemicolonInspection i = new MissingSemicolonInspection();
+        assertNoProblems(i, "void OnTick() {\n  int a = 1;\n  for (int k = 0; k < 3; k++) a += k;\n"
+                + "  double x = a\n      + 2;\n  string s = \"a\"\n      \"b\";\n  Print(a, x, s); // done\n}\n", "test.mq5");
+        // a declaration split across lines, and a call spread over several
+        assertNoProblems(i, "class CFoo { public: int v; };\nvoid OnTick() {\n  CFoo\n    foo;\n  Print(foo.v,\n        1);\n}\n", "test.mq5");
+        // a macro may carry its own ';'
+        assertNoProblems(i, "#define LOG(x) Print(x);\n#define FOREACH(i, n) for (int i = 0; i < n; i++)\n"
+                + "void OnTick() {\n  LOG(1)\n  FOREACH(k, 3) { Print(k); }\n}\n", "test.mq5");
+        // a preprocessor line ends the statement's run
+        assertNoProblems(i, "void OnTick() {\n  int a = 1\n#ifdef X\n  + 1\n#endif\n  ;\n}\n", "test.mq5");
+        assertNoProblems(i, "struct S { int a; double b; };\nenum E { ONE, TWO };\nS s = {1, 2.0};\n", "test.mq5");
+    }
+
     public void testUnusedParameter() {
         assertHasProblems(new UnusedParameterInspection(),
                 "void Foo(int unused) { Print(\"hi\"); }");
