@@ -1,0 +1,15 @@
+<html>
+<body>
+Reports a single number, string or other scalar declared with a <code>{...}</code> list of several
+values. MetaEditor rejects it with error 186, "too many initializers" (187, "'{' - constant expected",
+at global scope).
+<!-- tooltip end -->
+<p>Example:</p>
+<pre>
+double lot = {0.1, 0.2};   // a double holds one value
+double lots[] = {0.1, 0.2}; // an array holds several
+</pre>
+<p>Arrays, structures, <code>vector</code>, <code>matrix</code> and <code>complex</code> take value
+lists and are not reported.</p>
+</body>
+</html>

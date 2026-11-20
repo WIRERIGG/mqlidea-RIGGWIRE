@@ -1,0 +1,14 @@
+<html>
+<body>
+Reports a call to one of your functions with a number of arguments that none of its overloads
+takes, counting default values. MetaEditor rejects it with error 199, "wrong parameters count".
+<!-- tooltip end -->
+<p>Example:</p>
+<pre>
+double Lot(double risk, int sl);
+Lot(1.0, 20, 0); // Lot takes 2
+</pre>
+<p>Built-in functions, member calls (<code>obj.Method()</code>), macros and files whose
+includes can't all be read are not checked.</p>
+</body>
+</html>
