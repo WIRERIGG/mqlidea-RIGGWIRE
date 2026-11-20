@@ -63,6 +63,13 @@ public class CorpusGateTest extends BasePlatformTestCase {
 
     private static final int SAMPLES = Integer.parseInt(java.util.Objects.requireNonNullElse(System.getenv("MQL_GATE_SAMPLES"), "25"));
     private static final Path BASELINE = Paths.get("src/test/resources/gate/corpus-baseline.properties");
+    /**
+     * Findings checked by hand to be real, which must keep being reported: {@code corpus.Inspection@path/suffix=min}.
+     * Counts per file, never lines or code text (a MetaTrader update moves lines; MetaQuotes code stays out of
+     * the repo). The baseline only stops counts rising, so it can't tell a fixed false positive from a check
+     * gone blind; this floor can. MQL_GATE_UPDATE never writes it.
+     */
+    private static final Path MUST_REPORT = Paths.get("src/test/resources/gate/must-report.properties");
 
     private record Loaded(String corpus, VirtualFile vf) {
         PsiFile file(com.intellij.openapi.project.Project project) {
@@ -116,6 +123,7 @@ public class CorpusGateTest extends BasePlatformTestCase {
     private void measureAndCompare(List<Loaded> loaded) throws IOException {
         Map<String, Long> metrics = new TreeMap<>();
         Map<String, List<String>> samples = new TreeMap<>();
+        Map<String, Long> perFile = new TreeMap<>(); // corpus.Inspection@path -> count
         Set<String> declared = new HashSet<>();
         for (Loaded l : loaded) {
             for (PsiNameIdentifierOwner n : PsiTreeUtil.findChildrenOfType(l.file(getProject()), PsiNameIdentifierOwner.class)) {
@@ -186,13 +194,44 @@ public class CorpusGateTest extends BasePlatformTestCase {
                 }
                 for (ProblemDescriptor p : problems) {
                     add(metrics, c + ".inspection." + tool.getShortName(), 1);
+                    add(perFile, c + "." + tool.getShortName() + "@" + where, 1);
                     sample(samples, c + ".inspection." + tool.getShortName(),
                             where + ":" + (p.getLineNumber() + 1) + " " + p.getDescriptionTemplate());
                 }
             }
         }
         writeReport(metrics, samples);
+        checkMustReport(perFile, loaded);
         compare(metrics);
+    }
+
+    private static void checkMustReport(Map<String, Long> perFile, List<Loaded> loaded) throws IOException {
+        if (!Files.exists(MUST_REPORT)) {
+            return;
+        }
+        Properties floor = new Properties();
+        floor.load(new StringReader(Files.readString(MUST_REPORT)));
+        Set<String> corpora = new HashSet<>();
+        loaded.forEach(l -> corpora.add(l.corpus()));
+        List<String> missing = new ArrayList<>();
+        for (String key : new java.util.TreeSet<>(floor.stringPropertyNames())) {
+            String corpus = key.substring(0, key.indexOf('.'));
+            if (!corpora.contains(corpus)) {
+                continue; // that corpus wasn't measured in this run
+            }
+            String suffix = "/" + key.substring(key.indexOf('@') + 1);
+            String prefix = key.substring(0, key.indexOf('@') + 1);
+            boolean fileThere = loaded.stream().anyMatch(l -> l.corpus().equals(corpus) && l.vf().getPath().endsWith(suffix));
+            long now = perFile.entrySet().stream().filter(e -> e.getKey().startsWith(prefix) && e.getKey().endsWith(suffix))
+                    .mapToLong(Map.Entry::getValue).sum();
+            long min = Long.parseLong(floor.getProperty(key).trim());
+            if (!fileThere) {
+                missing.add(key + ": file not in the corpus any more (MetaTrader update?): re-check by hand and edit " + MUST_REPORT);
+            } else if (now < min) {
+                missing.add(key + ": " + now + " reported, at least " + min + " expected (a check went blind?)");
+            }
+        }
+        assertTrue("known real findings no longer reported:\n" + String.join("\n", missing), missing.isEmpty());
     }
 
     /** {@code MQL_INCLUDE_ONLY}: comma-separated path prefixes kept from the include corpus (all if unset). */
