@@ -41,9 +41,10 @@ public class HardcodedCredentialsInspection extends MQL5SafetyInspectionBase {
     // inline form "password=hunter2" and the variable form  password = "hunter2"  (opening quote
     // then value), while EXCLUDING the safe URL/query idiom  "&token=" + m_key  where the char
     // after the keyword's '=' is the string's own CLOSING quote followed by whitespace/'+': there
-    // the secret lives in a variable, not the literal.
+    // the secret lives in a variable, not the literal. A '%' value is a format placeholder
+    // ("X-App-Token: %s"): the secret is StringFormat's argument, not the literal either.
     private static final Pattern CREDENTIAL_PATTERN =
-            Pattern.compile("(?i)\\b(password|api_?key|secret|token|passwd)\\b\\s*[=:]\\s*\"?\\s*[^\\s\"'+;)]");
+            Pattern.compile("(?i)\\b(password|api_?key|secret|token|passwd)\\b\\s*[=:]\\s*\"?\\s*[^\\s\"'+;)%]");
 
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {

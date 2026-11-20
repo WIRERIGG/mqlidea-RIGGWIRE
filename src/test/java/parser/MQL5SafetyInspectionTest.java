@@ -1680,6 +1680,28 @@ public class MQL5SafetyInspectionTest extends BasePlatformTestCase {
                 "void P(bool c) { delete expressions; if (c) { return; } else { delete expressions; } }");
     }
 
+    public void testEmptyLoopWhoseHeaderDoesTheWorkIsNotReported() {
+        // geraked Storage.mqh / Cot.mqh: the work is in the condition
+        String code = "void f(string rec) { while (GlobalVariableCheck(\"_DbLock\"));\n"
+                + "  while (!GlobalVariableTemp(\"_DbLock\"));\n"
+                + "  while (StringReplace(rec, \"a\", \"b\") > 0);\n"
+                + "  int i = 0; while ((i += 2) < 10) { } }";
+        assertNoProblems(new SuspiciousSemicolonInspection(), code);
+        assertNoProblems(new EmptyLoopBodyInspection(), code);
+        // no work in the header: still an empty or runaway loop
+        assertHasProblems(new SuspiciousSemicolonInspection(), "void f(int n) { while (n > 0); }");
+        assertHasProblems(new EmptyLoopBodyInspection(), "void f(int n) { while (n > 0) { } }");
+        assertHasProblems(new SuspiciousSemicolonInspection(), "void f() { if (Check()); }");
+    }
+
+    public void testHardcodedCredentialsIgnoresAFormatPlaceholder() {
+        // geraked Cot.mqh: the token is StringFormat's argument, not in the literal
+        assertNoProblems(new HardcodedCredentialsInspection(),
+                "void f(string t) { string h = StringFormat(\"X-App-Token: %s\\r\\n\", t); }");
+        assertHasProblems(new HardcodedCredentialsInspection(),
+                "void f() { string h = \"X-App-Token: abc123\"; }");
+    }
+
     public void testUnusedParameter() {
         assertHasProblems(new UnusedParameterInspection(),
                 "void Foo(int unused) { Print(\"hi\"); }");

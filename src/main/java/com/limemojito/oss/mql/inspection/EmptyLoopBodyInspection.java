@@ -44,7 +44,7 @@ public class EmptyLoopBodyInspection extends MQL5SafetyInspectionBase {
                 if (body == null) continue;
                 StatementAst.forEachDescendant(body, StatementAst.LOOP_STATEMENTS, loop -> {
                     ASTNode loopBody = StatementAst.findLoopBody(loop);
-                    if (loopBody == null || !isEmptyBody(loopBody)) return;
+                    if (loopBody == null || !isEmptyBody(loopBody) || SuspiciousSemicolonInspection.headerDoesWork(loop)) return;
                     PsiElement psi = loop.getPsi();
                     if (psi != null && psi.isValid()) {
                         problems.add(manager.createProblemDescriptor(

@@ -63,13 +63,28 @@ public class SuspiciousSemicolonInspection extends MQL5SafetyInspectionBase {
         return false;
     }
 
+    /**
+     * True for a loop that does its work in its header, so an empty body is intended: a {@code while} or
+     * {@code do} whose condition calls a function or assigns ({@code while(StringReplace(s, a, b) > 0);},
+     * {@code while(!GlobalVariableTemp(lock));}), or a {@code for} whose step does ({@link #advancesInStep}).
+     */
+    static boolean headerDoesWork(@NotNull ASTNode loop) {
+        if (loop.getElementType() == MQL4Elements.FOR_STATEMENT) {
+            return advancesInStep(loop);
+        }
+        if (loop.getElementType() == MQL4Elements.WHILE_STATEMENT || loop.getElementType() == MQL4Elements.DO_STATEMENT) {
+            ASTNode condition = StatementAst.findConditionBlock(loop);
+            return condition != null && hasSideEffect(condition);
+        }
+        return false;
+    }
+
     private static boolean hasSideEffect(@NotNull ASTNode node) {
         if (SIDE_EFFECTS.contains(node.getElementType())) {
             return true;
         }
         if (node.getElementType() == MQL4Elements.IDENTIFIER) {
-            ASTNode next = StatementAst.nextNonTrivia(node);
-            return next != null && next.getElementType() == MQL4Elements.L_ROUND_BRACKET; // a call
+            return StatementAst.isCallIdentifierAnyScope(node); // a call: '(' or a wrapped (...) block
         }
         for (ASTNode child = node.getFirstChildNode(); child != null; child = child.getTreeNext()) {
             if (hasSideEffect(child)) {
@@ -90,7 +105,7 @@ public class SuspiciousSemicolonInspection extends MQL5SafetyInspectionBase {
                 StatementAst.forEachDescendant(body, StatementAst.CONDITION_STATEMENTS, stmt -> {
                     ASTNode stmtBody = StatementAst.findBodyAfterCondition(stmt);
                     if (stmtBody != null && stmtBody.getElementType() == MQL4Elements.EMPTY_STATEMENT
-                            && !advancesInStep(stmt)) {
+                            && !headerDoesWork(stmt)) {
                         PsiElement psi = stmt.getPsi();
                         if (psi != null && psi.isValid()) {
                             problems.add(createWarning(manager, psi, MESSAGE, isOnTheFly));
