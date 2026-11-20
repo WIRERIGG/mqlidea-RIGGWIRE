@@ -1,0 +1,17 @@
+<html>
+<body>
+Reports a statement whose <code>;</code> is missing. MetaEditor rejects it with error 154,
+"semicolon expected" (or "unexpected token" on the next line).
+<!-- tooltip end -->
+<p>Example:</p>
+<pre>
+void OnTick()
+{
+   double lot = 0.1        // ';' expected
+   Print(lot);
+}
+</pre>
+<p>A statement that uses a <code>#define</code> macro is not reported, since the macro's body may end in
+<code>;</code>. Nor is anything in a file whose <code>#include</code> files the plugin can't all read.</p>
+</body>
+</html>

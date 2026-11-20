@@ -69,6 +69,18 @@ public class MqlValidSyntaxTest extends BasePlatformTestCase {
         assertEquals(List.of("CP", "SA", "SB", "SN", "C1", "C2"), classNames(file));
     }
 
+    public void testTemplateArgumentsInANewInitializerStayInIt() {
+        // Standard Library SortedMap.mqh: the ',' in <TKey,TValue> doesn't start another declaration
+        PsiFile file = parse("void Add(int key, int value) {\n"
+                + "  CKeyValuePair<TKey,TValue>*pair=new CKeyValuePair<TKey,TValue>(key,value);\n  Print(pair);\n"
+                // sibvic Array.mqh: explicit template arguments on a call
+                + "  const int n = Array::Size<int, ITArray<string> *>(arr, INT_MIN), m = Get<CStack<CArray<int>>>(0);\n}\n");
+        List<String> declared = com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(file, com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement.class)
+                .stream().map(com.limemojito.oss.mql.psi.impl.MQL4VarDefinitionElement::getName).toList();
+        assertEquals(List.of("pair", "n", "m"), declared);
+        assertEmpty(com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(file, com.intellij.psi.PsiErrorElement.class));
+    }
+
     public void testPackStaysAnOrdinaryName() {
         // pack is not reserved in MQL5: int pack=1; compiles
         String code = "void OnStart()\n  {\n   int pack=1;\n   Print(pack);\n  }\n";

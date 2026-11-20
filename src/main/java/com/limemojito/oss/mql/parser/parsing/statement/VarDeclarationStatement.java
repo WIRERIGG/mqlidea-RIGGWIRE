@@ -311,6 +311,36 @@ public class VarDeclarationStatement implements MQL4Elements {
         }
     }
 
+    private static final TokenSet TYPE_ARGUMENT_TOKENS = TokenSet.orSet(MQL4TokenSets.DATA_TYPES, TokenSet.create(
+            IDENTIFIER, COMMA, MUL, AND, COLON_COLON, CONST_KEYWORD, LT, GT, SH_RIGHT));
+
+    /**
+     * When the current {@code IDENTIFIER} starts {@code Name<types>(}, the number of tokens up to and including
+     * the closing {@code >}; else 0. Only type tokens may sit between the angle brackets, so a comparison
+     * ({@code a < b}) isn't taken for one.
+     */
+    private static int templateArgumentsEnd(@NotNull PsiBuilder b) {
+        if (b.lookAhead(1) != LT) {
+            return 0;
+        }
+        int angles = 0;
+        for (int k = 1; k < 48; k++) {
+            IElementType a = b.lookAhead(k);
+            if (a == null || !TYPE_ARGUMENT_TOKENS.contains(a)) {
+                return 0;
+            }
+            if (a == LT) {
+                angles++;
+            } else if (a == GT || a == SH_RIGHT) {
+                angles -= a == GT ? 1 : 2; // CStack<CArray<int>>: '>>' closes two
+                if (angles <= 0) {
+                    return angles == 0 && b.lookAhead(k + 1) == L_ROUND_BRACKET ? k + 1 : 0;
+                }
+            }
+        }
+        return 0;
+    }
+
     /**
      * Consumes initializer tokens flat (no bracket blocks, matching the established initializer
      * shape) up to, not including, the top-level {@code ,} or {@code ;}. Returns false, leaving the
@@ -334,6 +364,14 @@ public class VarDeclarationStatement implements MQL4Elements {
                 }
             }
             first = false;
+            int typeArgs = t == IDENTIFIER ? templateArgumentsEnd(b) : 0;
+            if (typeArgs > 0) {
+                // F<int, CFoo *>(x), new CPair<TKey,TValue>(k, v): the type arguments' ',' doesn't end the initializer
+                for (int k = 0; k < typeArgs; k++) {
+                    b.advanceLexer();
+                }
+                continue;
+            }
             if (t == L_ROUND_BRACKET || t == L_SQUARE_BRACKET || t == L_CURLY_BRACKET) {
                 depth++;
             } else if (MQL4TokenSets.RIGHT_BRACKETS.contains(t)) {
